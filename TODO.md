@@ -10,7 +10,7 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 - [x] Données anciennes préservées ; nouveaux chemins `~/.the_harness_assistant`
   et `~/TheHarness`, sans import de sessions, mémoire, médias ou secrets.
   Ancien runtime renommé `~/TheSuccubus` ; première instance neutre
-  `~/TheHarnessAssistant` conservée séparément, hors service.
+  `~/TheHarnessAssistant` supprimée à la demande de Baptiste.
 - [x] Prompts neutres ; suppression des états de personnage, haptique, studios de
   génération spécialisés, webcam, application mobile/VR et bundles associés.
 - [x] Interface neutre basée sur le starter, chat/pièces jointes/voix du framework.

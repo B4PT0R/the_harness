@@ -32,9 +32,9 @@ through Tailscale. The server binds only to `127.0.0.1:48887`.
 Data defaults to `~/TheHarness`; bootstrap, browser profile and local
 secrets live under `~/.the_harness_assistant`. The previous companion's data in
 `~/TheSuccubus` and `~/.the_harness` are intentionally separate and never imported.
-The initial neutral instance in `~/TheHarnessAssistant` is retained separately;
-the current instance was created empty in `~/TheHarness`, without importing its
-conversation, memory, attachments or configuration.
+The current instance was created empty in `~/TheHarness`. The provisional
+`~/TheHarnessAssistant` directory was subsequently removed, without importing
+its conversation, memory, attachments or configuration.
 Configure backend authentication through the supported `codex-backend-sdk`
 authentication flow. No former application credentials are copied.
 
