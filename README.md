@@ -4,7 +4,7 @@ A local general-purpose agent for conversation, research, development and work
 on your computer. No prescribed character, romantic relationship or intimate
 hardware integration. Python owns the durable conversation and tools; a React
 interface provides chat, file attachments, plugin settings and optional voice.
-The UI uses anthracite surfaces and an electric-blue accent, with safe Markdown,
+The shared UI uses anthracite surfaces and an electric-blue accent, with safe Markdown,
 code and math rendering. Personal instructions can be edited in Settings and
 are shared by the text and voice agent. The initial model is `gpt-5.5`; choose
 another model in Settings if your backend account exposes a different catalogue.
@@ -49,6 +49,10 @@ After a system Python major upgrade, recreate the venv with `uv sync --python
 /usr/bin/python3 --extra dev`; do not reuse a venv built for a different Python.
 
 ## Canonical framework application
+
+`ui/` contains the reusable `@the-harness/ui` workspace: visual components,
+client state, CSS theme tokens and the French/English copy bank. `desktop/` is a
+thin host entry point and build. See `ui/README.md` for composition and theming.
 
 `application.py` declares capabilities. `agent_definition.py` and `prompts/`
 provide identity and working policy. `assistant_runtime.py` supplies local

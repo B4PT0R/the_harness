@@ -1,3 +1,4 @@
+import { translate } from "./locales.js";
 export async function api(path, { method = "GET", body, signal } = {}) {
   const multipart = body instanceof FormData;
   const response = await fetch(`/api/v1/${path}`, {
@@ -20,7 +21,7 @@ export async function api(path, { method = "GET", body, signal } = {}) {
       payload.error?.message ||
         (typeof payload.error === "string" ? payload.error : "") ||
         payload.detail ||
-        `Échec de la requête (${response.status})`,
+        translate("requestFailed", { status: response.status }),
     );
   return payload;
 }

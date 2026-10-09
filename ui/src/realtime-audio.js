@@ -1,6 +1,7 @@
+import { translate } from "./locales.js";
 // Browser-owned WebRTC transport. The Python server remains the authority for
 // starting and ending the call; this module only owns media tracks and the peer.
-const aborted = () => new DOMException("Realtime connection cancelled", "AbortError");
+const aborted = () => new DOMException(translate("voiceCancelled"), "AbortError");
 const ensureActive = (signal) => {
   if (signal?.aborted) throw aborted();
 };
@@ -22,7 +23,7 @@ const waitForIce = (peer, signal, timeoutMs = 4_000) => new Promise((resolve, re
 
 const waitForPeer = (peer, signal, timeoutMs = 12_000) => new Promise((resolve, reject) => {
   if (peer.connectionState === "connected") return resolve();
-  const timeout = window.setTimeout(() => done(new Error("Realtime audio connection timed out")), timeoutMs);
+  const timeout = window.setTimeout(() => done(new Error(translate("voiceTimeout"))), timeoutMs);
   function cleanup() {
     window.clearTimeout(timeout);
     peer.removeEventListener("connectionstatechange", changed);
@@ -33,7 +34,7 @@ const waitForPeer = (peer, signal, timeoutMs = 12_000) => new Promise((resolve, 
   function changed() {
     if (peer.connectionState === "connected") done();
     else if (["failed", "closed"].includes(peer.connectionState))
-      done(new Error("Realtime audio connection failed"));
+      done(new Error(translate("voiceFailed")));
   }
   signal?.addEventListener("abort", cancelled, { once: true });
   peer.addEventListener("connectionstatechange", changed);
@@ -83,7 +84,7 @@ export async function connectRealtimeAudio(transport, audio, onDisconnected, opt
     await waitForIce(peer, signal, options.iceTimeoutMs);
     ensureActive(signal);
     const offerSdp = peer.localDescription?.sdp;
-    if (!offerSdp) throw new Error("Unable to create Realtime audio offer");
+    if (!offerSdp) throw new Error(translate("voiceOfferFailed"));
     const answer = await transport.startRealtime(offerSdp);
     ensureActive(signal);
     await peer.setRemoteDescription({ type: "answer", sdp: answer.answer_sdp });

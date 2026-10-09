@@ -65,7 +65,7 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   se base sur `application.connected`. Vérifier la présence réelle de l'interface
   avant d'adapter la politique ; éviter de relier les notices au seul client distant.
 
-## Interface et identité — ensuite, pas pendant l'audit
+## Interface et identité
 
 - [x] **Identité visuelle commune — livrée.** Nouvelle
   icône neutre pour le tray, le lanceur/dash desktop et les applications mobile/Quest
@@ -75,8 +75,14 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   réel sur fond clair/sombre. Source commune dans `scripts/build-icons.py`, SVG et
   PNG 512 px ; variante transparente de tray. Mobile/Quest : assets prêts, clients
   natifs toujours absents de cette base.
+- [x] Socle UI partagé `@the-harness/ui` : shell, conversation, saisie, réglages,
+  icônes et cycle de vie client séparés de l'entrée desktop. Banque FR/EN pour
+  les labels, infobulles, noms accessibles et erreurs locales ; langue persistante.
+  Textes d'ambiance retirés.
 - [x] **Palette sobre — livrée et vérifiée.** Interfaces avec des
-  gris anthracite et un accent bleu électrique, avec des tokens de couleur communs
+  gris anthracite et un accent bleu électrique. `ui/src/theme.css` centralise aussi
+  typographie, espacements, rayons et dimensions ; `style.css` consomme les tokens
+  communs
   pour fonds, surfaces, texte, actions, focus et états. Réserver l'accent aux éléments
   utiles, vérifier contraste et lisibilité, et comparer les captures des principales
   vues dans les mêmes conditions. Cette identité appartient à l'application ; le

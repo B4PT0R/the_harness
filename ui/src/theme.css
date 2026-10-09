@@ -1,0 +1,70 @@
+/* Application theme. Components consume these tokens; structural values such as
+   flex ratios, 100% widths and responsive breakpoints remain in style.css. */
+:root {
+  --color-scheme: dark;
+  --color-background: #191b1f;
+  --color-surface: #22252a;
+  --color-surface-raised: #2b2e34;
+  --color-surface-hover: #343840;
+  --color-code-background: #121418;
+  --color-border: #454a54;
+  --color-border-subtle: #30343b;
+  --color-text: #eef1f7;
+  --color-muted: #a6aeba;
+  --color-accent: #397bff;
+  --color-accent-hover: #2464e5;
+  --color-on-accent: #ffffff;
+  --color-link: #85aeff;
+  --color-focus: var(--color-link);
+  --color-selection: #284c8b;
+  --color-error-background: #3d2526;
+  --color-error-text: #ffd8da;
+  --color-scrollbar: var(--color-border);
+
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  --font-size-body: 1rem;
+  --font-size-xs: 0.6875rem;
+  --font-size-sm: 0.75rem;
+  --font-size-control: 0.8125rem;
+  --font-size-title: 1.25rem;
+  --font-size-heading: 1.75rem;
+  --font-size-code: 0.9em;
+  --font-weight-strong: 600;
+  --line-height-body: 1.5;
+  --line-height-reading: 1.65;
+  --line-height-heading: 1.25;
+  --letter-spacing-label: 0.08em;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --border-width: 1px;
+  --focus-width: 2px;
+  --focus-offset: 2px;
+  --opacity-disabled: 0.45;
+
+  --icon-size: 20px;
+  --icon-stroke: 1.8;
+  --button-size: 40px;
+  --brand-icon-size: 32px;
+  --status-dot-size: 6px;
+  --topbar-height: 64px;
+  --topbar-padding: var(--space-6);
+  --conversation-width: 780px;
+  --conversation-padding: var(--space-8);
+  --page-padding: var(--space-6);
+  --composer-width: calc(var(--conversation-width) + 2 * var(--page-padding));
+  --composer-min-height: 72px;
+  --composer-max-height: 230px;
+  --settings-width: 390px;
+  --config-min-height: 280px;
+  --instructions-min-height: 120px;
+}

@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { api } from "./api";
+import { useLocale } from "../i18n";
+import { languages } from "../locales";
+import { IconButton } from "./Icons";
 
-export function Settings({ onClose, report }) {
+export function Settings({ api, onClose, report }) {
+  const { locale, setLocale, t } = useLocale();
   const [config, setConfig] = useState("");
   const [plugins, setPlugins] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -11,6 +14,11 @@ export function Settings({ onClose, report }) {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) parsed = null;
   } catch {
     parsed = null;
+  }
+  function pluginLabel(name) {
+    const key = `plugin_${name}`;
+    const label = t(key);
+    return label === key ? name : label;
   }
   function change(key, value) {
     setConfig(JSON.stringify({ ...parsed, [key]: value }, null, 2));
@@ -29,7 +37,7 @@ export function Settings({ onClose, report }) {
         if (error.name !== "AbortError") report(error.message);
       });
     return () => controller.abort();
-  }, []);
+  }, [api, report]);
   async function save() {
     setSaving(true);
     try {
@@ -53,15 +61,20 @@ export function Settings({ onClose, report }) {
     }
   }
   return (
-    <aside className="settings" aria-label="Réglages">
+    <aside className="settings" aria-label={t("settings")}>
       <header>
-        <h2>Réglages</h2>
-        <button onClick={onClose}>Fermer</button>
+        <h2>{t("settings")}</h2>
+        <IconButton icon="close" label={t("close")} onClick={onClose} />
       </header>
-      <p>Configure le modèle et ses capacités. Les réglages sont conservés localement.</p>
-      <h3>Conversation</h3>
+      <div className="setting-field">
+        <label htmlFor="ui-language">{t("language")}</label>
+        <select id="ui-language" value={locale} onChange={(event) => setLocale(event.target.value)}>
+          {Object.entries(languages).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+        </select>
+      </div>
+      <h3>{t("conversation")}</h3>
       <label className="setting-field">
-        Modèle
+        {t("model")}
         <input
           value={typeof parsed?.model === "string" ? parsed.model : ""}
           disabled={!parsed}
@@ -69,45 +82,38 @@ export function Settings({ onClose, report }) {
           spellCheck={false}
         />
       </label>
-      <p>
-        Choisis un modèle disponible sur ton compte backend. Les identifiants restent
-        hors de l’interface.
-      </p>
       <label className="setting-field">
-        Instructions personnelles
+        {t("personalInstructions")}
         <textarea
           className="config instructions"
           value={typeof parsed?.instructions === "string" ? parsed.instructions : ""}
           disabled={!parsed}
-          placeholder="Ta façon de travailler, le ton souhaité, tes préférences…"
+          placeholder={t("optional")}
           onChange={(event) => change("instructions", event.target.value || null)}
         />
       </label>
-      <h3>Capacités</h3>
+      <h3>{t("capabilities")}</h3>
       <div className="plugins">
         {plugins.map((plugin) => (
           <div className="plugin-row" key={plugin.name}>
             {plugin.binding_available && <input
               type="checkbox"
-              aria-label={`Activer ${plugin.name} pour l’agent`}
+              aria-label={t("enablePlugin", { name: pluginLabel(plugin.name) })}
               checked={plugin.binding_enabled}
               disabled={plugin.binding_required || !plugin.running}
               onChange={() => toggle(plugin)}
             />}
-            <span>{plugin.name}</span>
+            <span>{pluginLabel(plugin.name)}</span>
             <small>{plugin.binding_available
-              ? (plugin.running ? "Chargé" : "Arrêté")
-              : (plugin.running ? "Service actif" : "Service arrêté")}</small>
+              ? t(plugin.running ? "loaded" : "stopped")
+              : t(plugin.running ? "serviceActive" : "serviceStopped")}</small>
           </div>
         ))}
       </div>
       <details>
-        <summary>Configuration avancée</summary>
-        <p>
-          Paramètres de l’agent et des plugins. Les services externes doivent être configurés séparément.
-        </p>
+        <summary>{t("advancedConfig")}</summary>
         <label className="sr-only" htmlFor="config">
-          Configuration de l’agent en JSON
+          {t("configJson")}
         </label>
         <textarea
           id="config"
@@ -117,13 +123,12 @@ export function Settings({ onClose, report }) {
           spellCheck={false}
         />
       </details>
-      <button
+      <div className="save"><IconButton
+        icon="save" label={t(saving ? "saving" : "save")}
         className="primary"
         disabled={saving || typeof parsed?.model !== "string" || !parsed.model.trim()}
         onClick={save}
-      >
-        {saving ? "Enregistrement…" : "Enregistrer"}
-      </button>
+      /></div>
     </aside>
   );
 }
