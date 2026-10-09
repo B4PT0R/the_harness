@@ -3,6 +3,10 @@
 export const languages = { fr: "Français", en: "English" };
 export const messages = {
   fr: {
+    dangerZone: "Zone de danger", resetSession: "Réinitialiser la session", resetMemory: "Réinitialiser la mémoire",
+    resetSessionWarning: "Effacer définitivement la conversation et son historique ? La mémoire, les fichiers et les réglages sont conservés. Toute activité en cours sera interrompue.",
+    resetMemoryWarning: "Effacer définitivement la mémoire durable de l’agente ? La conversation, le registre, les fichiers et les réglages sont conservés. Toute activité en cours sera interrompue.",
+    confirmReset: "Réinitialiser", resetting: "Réinitialisation…", resetDone: "Réinitialisation effectuée.",
     settings: "Réglages", close: "Fermer", language: "Langue", conversation: "Conversation",
     model: "Modèle", personalInstructions: "Instructions personnelles", optional: "Optionnel",
     capabilities: "Capacités", enablePlugin: "Activer {name} pour l’agent",
@@ -20,6 +24,10 @@ export const messages = {
     plugin_scheduler: "Planification", plugin_chromium: "Navigateur", plugin_system: "Système", plugin_registry: "Registre",
   },
   en: {
+    dangerZone: "Danger zone", resetSession: "Reset session", resetMemory: "Reset memory",
+    resetSessionWarning: "Permanently erase the conversation and its history? Memory, files and settings are preserved. Any ongoing activity will be interrupted.",
+    resetMemoryWarning: "Permanently erase the agent’s durable memory? The conversation, registry, files and settings are preserved. Any ongoing activity will be interrupted.",
+    confirmReset: "Reset", resetting: "Resetting…", resetDone: "Reset complete.",
     settings: "Settings", close: "Close", language: "Language", conversation: "Conversation",
     model: "Model", personalInstructions: "Personal instructions", optional: "Optional",
     capabilities: "Capabilities", enablePlugin: "Enable {name} for the agent",

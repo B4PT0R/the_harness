@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocale } from "../i18n";
 import { languages } from "../locales";
 import { IconButton } from "./Icons";
+import { DangerZone } from "./DangerZone";
 
 export function Settings({ api, onClose, report }) {
   const { locale, setLocale, t } = useLocale();
@@ -129,6 +130,7 @@ export function Settings({ api, onClose, report }) {
         disabled={saving || typeof parsed?.model !== "string" || !parsed.model.trim()}
         onClick={save}
       /></div>
+      <DangerZone api={api} disabled={saving} />
     </aside>
   );
 }

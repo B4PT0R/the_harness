@@ -19,6 +19,11 @@
   --color-selection: #284c8b;
   --color-error-background: #3d2526;
   --color-error-text: #ffd8da;
+  --color-danger: #ff9b9e;
+  --color-danger-border: #9e575c;
+  --color-danger-hover: #462b30;
+  --color-backdrop: #00000099;
+  --dialog-width: 420px;
   --color-scrollbar: var(--color-border);
 
   --font-sans: Inter, system-ui, sans-serif;

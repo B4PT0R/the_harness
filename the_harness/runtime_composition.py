@@ -10,7 +10,7 @@ from the_framework.server.runtime.application import ApplicationRuntime
 
 from the_framework.server import FileResetTransaction
 
-from .runtime_reset import RESET_ENTRIES
+from .runtime_reset import RESET_ENTRIES, SESSION_RESET_ENTRIES, MEMORY_RESET_ENTRIES
 
 
 EVENT_SUBPROTOCOL = "the-harness"
@@ -74,12 +74,25 @@ class Harness(ApplicationRuntime):
         await self.publish({"type": "surface_build_progress", **payload})
 
     async def reset_session(self):
-        ready = await self.reset_runtime_state()
+        ready = await self.reset_runtime_state(
+            transaction_factory=lambda path: FileResetTransaction(path.parent, SESSION_RESET_ENTRIES),
+        )
+        await self.publish({"type": "interface_refresh_requested"})
         return {
             "status": "reset",
             "session_id": ready.session_id,
-            "cleared": ["conversation", "archive", "memory", "registry", "auxiliaries"],
-            "preserved": ["config", "environment", "scheduler", "workfolder"],
+            "cleared": ["conversation", "archive", "auxiliaries"],
+            "preserved": ["memory", "registry", "config", "environment", "scheduler", "files"],
+        }
+
+    async def reset_memory(self):
+        ready = await self.reset_runtime_state(
+            transaction_factory=lambda path: FileResetTransaction(path.parent, MEMORY_RESET_ENTRIES),
+        )
+        return {
+            "status": "reset", "session_id": ready.session_id,
+            "cleared": ["memory"],
+            "preserved": ["conversation", "archive", "registry", "config", "files"],
         }
 
 

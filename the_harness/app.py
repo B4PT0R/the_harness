@@ -1,13 +1,14 @@
 import secrets
 from pathlib import Path
 
-from the_framework import ApplicationSpec, BuildContext
+from the_framework import ApplicationSpec, BuildContext, ServerExtension
 from the_framework.server import CanonicalAgentApi, ApplicationHealthApi, application_server_extensions
 from the_framework.server.clients.browser_rpc import BrowserRPCClient
 
 from .application import application
 from .http_boundary import access_boundary
 from .security import HarnessSecurityPolicy
+from .reset_api import MemoryResetApi
 from .runtime_composition import (
     Harness,
     health_projection,
@@ -73,6 +74,10 @@ def create_app(
         **application,
         "security": HarnessSecurityPolicy(token=token, browser_token=browser_token, remote_clients=remote_clients),
         "server_extensions": (
+            ServerExtension(
+                name="memory_reset", endpoints=(MemoryResetApi(harness),),
+                requires_services=("runtime",),
+            ),
             *application_server_extensions(
                 harness,
                 agent_api=CanonicalAgentApi(harness, session_projection="display", reset_handler=harness.reset_session),

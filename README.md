@@ -10,6 +10,14 @@ code and math rendering. Personal instructions can be edited in Settings and
 are shared by the text and voice agent. The initial model is `gpt-5.5`; choose
 another model in Settings if your backend account exposes a different catalogue.
 
+Settings includes a confirmed Danger zone. **Reset session** erases the
+conversation, archive and auxiliary sessions while preserving durable memory.
+**Reset memory** erases the memory database and its curator session while
+preserving the conversation and registry. Both preserve files, configuration
+and scheduled tasks, and interrupt any ongoing agent or voice activity.
+The authenticated endpoints are `DELETE /api/v1/session` and
+`DELETE /api/v1/memory`; resets use the framework's suspension and rollback lifecycle.
+
 ## Retained capabilities
 
 - Persistent conversation, supervised worker, compaction and recovery.

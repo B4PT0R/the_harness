@@ -9,3 +9,13 @@ RESET_ENTRIES = (
     "system-control.json",
     "registry.json",
 )
+
+SESSION_RESET_ENTRIES = (
+    "session.json", "session.auxiliaries", "system-control.json",
+    "session.turn-timing.json",
+)
+
+MEMORY_RESET_ENTRIES = (
+    "relational-memory.sqlite3", "relational-memory.sqlite3-shm",
+    "relational-memory.sqlite3-wal", "session.auxiliaries/memory.jiminy",
+)
