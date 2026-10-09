@@ -62,6 +62,18 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 
 ## Interface et identité — ensuite, pas pendant l'audit
 
+- [ ] **Identité visuelle commune — demande de Baptiste.** Créer une nouvelle
+  icône neutre pour le tray, le lanceur/dash desktop et les applications mobile/Quest
+  lorsqu'elles seront réintroduites. Prévoir une source commune et des déclinaisons
+  adaptées aux plateformes : silhouette lisible à petite taille, variante symbolique
+  pour le tray, fonds et marges adaptés aux icônes de lancement. Vérifier le rendu
+  réel sur fond clair/sombre ; l'icône provisoire actuelle n'est pas l'identité finale.
+- [ ] **Palette sobre — demande de Baptiste.** Réorienter les interfaces vers des
+  gris anthracite et un accent bleu électrique, avec des tokens de couleur communs
+  pour fonds, surfaces, texte, actions, focus et états. Réserver l'accent aux éléments
+  utiles, vérifier contraste et lisibilité, et comparer les captures des principales
+  vues dans les mêmes conditions. Cette identité appartient à l'application ; le
+  framework doit permettre de la configurer sans imposer cette palette aux autres apps.
 - [ ] Personnalité/instructions utilisateur configurables sans modifier le code,
   sans reconstituer un personnage imposé. Même politique en texte et en voix.
 - [ ] Restaurer un rendu Markdown/code/math adapté au travail, avec liens sûrs et
