@@ -24,10 +24,13 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   des chemins différents. Comparer à la politique Host/Origin stricte du starter,
   définir un propriétaire et éliminer les divergences. Tester les requêtes
   cross-origin, accès par cookie, bearer et transports distants avant extraction.
-- [ ] **Secret dans les logs — défaut observé.**
+  La version locale rejette désormais les Host non-loopback et les Origin étrangers ;
+  ces protections HTTP et les contrôles WebSocket ont été vérifiés avant installation.
+  Les transports distants restent à réexaminer avant toute exposition hors loopback.
+- [x] **Secret dans les logs — corrigé et vérifié.**
   `the_harness/server_process.py` imprime le descripteur contenant le token local.
-  Garder le descripteur privé sur disque, mais ne jamais imprimer son secret dans
-  le journal. Test : aucun token ni contenu sensible dans la sortie de démarrage.
+  Le descripteur reste privé sur disque ; la sortie de démarrage se limite à
+  host/port/pid. Absence du token vérifiée dans les logs isolés et le journal systemd.
 - [ ] **Exposition à l'agent versus runtime installé — à examiner.**
   `application.py`, `agent_definition.py`, réglages de plugins.
   Vérifier les outils réellement activés au premier démarrage, leurs prérequis,
@@ -62,22 +65,24 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 
 ## Interface et identité — ensuite, pas pendant l'audit
 
-- [ ] **Identité visuelle commune — demande de Baptiste.** Créer une nouvelle
+- [x] **Identité visuelle commune — livrée.** Nouvelle
   icône neutre pour le tray, le lanceur/dash desktop et les applications mobile/Quest
   lorsqu'elles seront réintroduites. Prévoir une source commune et des déclinaisons
   adaptées aux plateformes : silhouette lisible à petite taille, variante symbolique
   pour le tray, fonds et marges adaptés aux icônes de lancement. Vérifier le rendu
-  réel sur fond clair/sombre ; l'icône provisoire actuelle n'est pas l'identité finale.
-- [ ] **Palette sobre — demande de Baptiste.** Réorienter les interfaces vers des
+  réel sur fond clair/sombre. Source commune dans `scripts/build-icons.py`, SVG et
+  PNG 512 px ; variante transparente de tray. Mobile/Quest : assets prêts, clients
+  natifs toujours absents de cette base.
+- [x] **Palette sobre — livrée et vérifiée.** Interfaces avec des
   gris anthracite et un accent bleu électrique, avec des tokens de couleur communs
   pour fonds, surfaces, texte, actions, focus et états. Réserver l'accent aux éléments
   utiles, vérifier contraste et lisibilité, et comparer les captures des principales
   vues dans les mêmes conditions. Cette identité appartient à l'application ; le
   framework doit permettre de la configurer sans imposer cette palette aux autres apps.
-- [ ] Personnalité/instructions utilisateur configurables sans modifier le code,
+- [x] Personnalité/instructions utilisateur configurables dans les réglages,
   sans reconstituer un personnage imposé. Même politique en texte et en voix.
-- [ ] Restaurer un rendu Markdown/code/math adapté au travail, avec liens sûrs et
-  validation visuelle. L'interface de base affiche actuellement du texte brut.
+- [x] Rendu Markdown/code/math restauré, sans HTML brut et avec liens sûrs.
+  Validation sur une réponse réelle du backend et captures desktop/mobile.
 - [ ] Harmoniser les derniers libellés des réglages, l'affichage des activités/outils
   et les erreurs. Vérifier desktop/mobile, densité, clavier et thèmes avant retouches.
 - [ ] Ajouter une entrée réellement utilisable pour les surfaces/aperçus/rollback ;
@@ -87,9 +92,12 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 
 ## Vérifications et limites de la passe
 
-- [ ] Test d'inférence et voix réels avec le backend choisi ; les tests isolés ne
-  garantissent pas la disponibilité du modèle ou des credentials.
-- [ ] Installation/autostart de la nouvelle version après revue ; seuls un serveur
-  de test isolé et l'interface compilée sont utilisés pendant cette passe.
+- [x] Inférence réelle, pièce jointe texte et outil Bash vérifiés avec le backend.
+  Modèle initial `gpt-5.5`, confirmé dans son catalogue et par une réponse réelle.
+  Connexion/arrêt WebRTC réels vérifiés avec microphone simulé.
+- [ ] Essai vocal humain pour apprécier micro physique, écoute et qualité audio.
+- [x] Services neutres installés après tests et activés au démarrage. Santé worker,
+  ouverture UI et redémarrage serveur avec navigateur préservé vérifiés. Anciennes
+  données intactes ; aucune publication réseau hors loopback.
 - [ ] Choisir une stratégie de versions framework/application et un dépôt distant
   pour la base neutre. Ne pas pousser vers l'ancien projet par défaut.
