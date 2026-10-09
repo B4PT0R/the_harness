@@ -42,7 +42,7 @@ def assistant_resources(session_path):
 ASSISTANT_AGENT = AgentSpec(
     name="assistant",
     description=(
-        "General-purpose local assistant and sole owner of canonical conversation "
+        "Pandora, general-purpose local agent and sole owner of canonical conversation "
         "history."
     ),
     session_mode='durable',

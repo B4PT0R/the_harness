@@ -16,6 +16,6 @@ def compaction_instructions(configured=None):
     return base + "\n\n" + configured.strip()
 
 def install_assistant_instructions(agent):
-    for name, scope in (("general", "general"), ("agentic", "agentic")):
+    for name, scope in (("general", "general"), ("architecture", "general"), ("agentic", "agentic")):
         agent.add_instruction(Instruction.from_file(ROOT / f"{name}.md", name=name, scope=scope))
     return agent

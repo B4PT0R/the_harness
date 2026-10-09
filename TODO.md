@@ -67,6 +67,10 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 
 ## Interface et identité
 
+- [x] Pandora comme personnalité par défaut, commune au texte et à la voix.
+  Instructions d'architecture partagées : framework stable et général, harness
+  évolutif, auto-modification contrôlée et continuité de session préservée.
+
 - [x] **Identité visuelle commune — livrée.** Nouvelle
   icône neutre pour le tray, le lanceur/dash desktop et les applications mobile/Quest
   lorsqu'elles seront réintroduites. Prévoir une source commune et des déclinaisons

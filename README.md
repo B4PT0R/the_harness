@@ -1,8 +1,9 @@
 # The Harness
 
 A local general-purpose agent for conversation, research, development and work
-on your computer. No prescribed character, romantic relationship or intimate
-hardware integration. Python owns the durable conversation and tools; a React
+on your computer. The default agent is Pandora: warm, feminine, lightly witty
+and focused on effective work, with user-configurable preferences. Python owns
+the durable conversation and tools; a React
 interface provides chat, file attachments, plugin settings and optional voice.
 The shared UI uses anthracite surfaces and an electric-blue accent, with safe Markdown,
 code and math rendering. Personal instructions can be edited in Settings and
