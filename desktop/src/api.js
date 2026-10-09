@@ -18,8 +18,9 @@ export async function api(path, { method = "GET", body, signal } = {}) {
   if (!response.ok)
     throw new Error(
       payload.error?.message ||
+        (typeof payload.error === "string" ? payload.error : "") ||
         payload.detail ||
-        `Request failed (${response.status})`,
+        `Échec de la requête (${response.status})`,
     );
   return payload;
 }

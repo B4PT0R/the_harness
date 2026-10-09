@@ -12,6 +12,7 @@ import {
   snapshot,
   voiceCaptions,
 } from "./session";
+import { Markdown } from "./markdown";
 import "./style.css";
 
 function App() {
@@ -45,7 +46,7 @@ function App() {
         if (cause.name !== "AbortError") setError(cause.message);
       });
     return () => controller.abort();
-  }, []);
+  }, [settings]);
   useEffect(() => {
     if (!voiceAvailable) return undefined;
     let mounted = true;
@@ -226,11 +227,12 @@ function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div>
+        <div className="brand">
+          <img src="./assistant.svg" alt="" />
           <strong>The Harness</strong>
           <span className="connection">{{Connected: "Connecté", Connecting: "Connexion…", Reconnecting: "Reconnexion…"}[connection] || connection}</span>
         </div>
-        <button onClick={() => setSettings((value) => !value)}>Réglages</button>
+        <button aria-expanded={settings} onClick={() => setSettings((value) => !value)}>Réglages</button>
       </header>
       <div className="workspace">
         <main>
@@ -266,13 +268,13 @@ function App() {
             {messages.map((message) => (
               <article key={message.id} className={`message ${message.role}`}>
                 <small>{message.role === "user" ? "Toi" : "Assistant"}</small>
-                <div>{message.text}</div>
+                <Markdown>{message.text}</Markdown>
               </article>
             ))}
             {Object.entries(captions).map(([role, text]) => (
               <article key={role} className={`message ${role}`}>
                 <small>{role === "user" ? "Toi" : "Assistant"} · En direct</small>
-                <div>{text}</div>
+                <Markdown>{text}</Markdown>
               </article>
             ))}
           </section>
@@ -296,7 +298,7 @@ function App() {
                       type="button"
                       key={index}
                       disabled={sending}
-                      aria-label={`Remove ${file.name}`}
+                      aria-label={`Retirer ${file.name}`}
                       onClick={() =>
                         setFiles((items) => items.filter((_, i) => i !== index))
                       }

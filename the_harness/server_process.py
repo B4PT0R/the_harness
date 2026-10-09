@@ -111,7 +111,7 @@ def main():
         server_socket = listening_socket(port=args.port)
         host, port = server_socket.getsockname()
         payload = store.write(store.payload(host=host, port=port, token=token))
-        print(json.dumps(payload, separators=(",", ":")), flush=True)
+        print(json.dumps({key: payload[key] for key in ("host", "port", "pid")}, separators=(",", ":")), flush=True)
         config = uvicorn.Config(
             app,
             log_level="info",

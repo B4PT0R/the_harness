@@ -58,10 +58,10 @@ export function Settings({ onClose, report }) {
         <h2>Réglages</h2>
         <button onClick={onClose}>Fermer</button>
       </header>
-      <p>Configure the model and each capability. Changes persist locally.</p>
+      <p>Configure le modèle et ses capacités. Les réglages sont conservés localement.</p>
       <h3>Conversation</h3>
       <label className="setting-field">
-        Model
+        Modèle
         <input
           value={typeof parsed?.model === "string" ? parsed.model : ""}
           disabled={!parsed}
@@ -70,16 +70,26 @@ export function Settings({ onClose, report }) {
         />
       </label>
       <p>
-        Use a model available to your backend account. Credentials stay outside
-        the interface.
+        Choisis un modèle disponible sur ton compte backend. Les identifiants restent
+        hors de l’interface.
       </p>
-      <h3>Plugins</h3>
+      <label className="setting-field">
+        Instructions personnelles
+        <textarea
+          className="config instructions"
+          value={typeof parsed?.instructions === "string" ? parsed.instructions : ""}
+          disabled={!parsed}
+          placeholder="Ta façon de travailler, le ton souhaité, tes préférences…"
+          onChange={(event) => change("instructions", event.target.value || null)}
+        />
+      </label>
+      <h3>Capacités</h3>
       <div className="plugins">
         {plugins.map((plugin) => (
           <div className="plugin-row" key={plugin.name}>
             {plugin.binding_available && <input
               type="checkbox"
-              aria-label={`Expose ${plugin.name} to the agent`}
+              aria-label={`Activer ${plugin.name} pour l’agent`}
               checked={plugin.binding_enabled}
               disabled={plugin.binding_required || !plugin.running}
               onChange={() => toggle(plugin)}
@@ -87,7 +97,7 @@ export function Settings({ onClose, report }) {
             <span>{plugin.name}</span>
             <small>{plugin.binding_available
               ? (plugin.running ? "Chargé" : "Arrêté")
-              : (plugin.running ? "Server only · Loaded" : "Server only · Stopped")}</small>
+              : (plugin.running ? "Service actif" : "Service arrêté")}</small>
           </div>
         ))}
       </div>
@@ -97,7 +107,7 @@ export function Settings({ onClose, report }) {
           Paramètres de l’agent et des plugins. Les services externes doivent être configurés séparément.
         </p>
         <label className="sr-only" htmlFor="config">
-          Agent configuration JSON
+          Configuration de l’agent en JSON
         </label>
         <textarea
           id="config"
@@ -112,7 +122,7 @@ export function Settings({ onClose, report }) {
         disabled={saving || typeof parsed?.model !== "string" || !parsed.model.trim()}
         onClick={save}
       >
-        {saving ? "Enregistrement…" : "Save configuration"}
+        {saving ? "Enregistrement…" : "Enregistrer"}
       </button>
     </aside>
   );

@@ -97,6 +97,10 @@ def local_socket_handshake(*, token, browser_token, allowed_origins, supported):
     """Build the strict same-origin/token handshake for a local socket."""
 
     def authenticate(socket):
+        # HTTP and WebSocket share the same local host boundary. App origins are
+        # explicitly allowed below for native clients using a bearer protocol.
+        if urlparse(f"http://{socket.headers.get('host', '')}").hostname not in {"127.0.0.1", "localhost", "::1"}:
+            return None
         protocols = [
             value.strip()
             for value in socket.headers.get("sec-websocket-protocol", "").split(",")

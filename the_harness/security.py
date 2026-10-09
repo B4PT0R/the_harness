@@ -1,6 +1,20 @@
 """The Harness authentication policy for declarative server endpoints."""
 
 from the_framework.server.api.endpoints import Principal
+from urllib.parse import urlsplit
+
+
+def local_request_allowed(request):
+    """Reject foreign hosts and cross-origin use of the local session."""
+    host = request.headers.get("host", "")
+    try:
+        parsed = urlsplit(f"http://{host}")
+    except ValueError:
+        return False
+    if parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        return False
+    origin = request.headers.get("origin")
+    return origin is None or origin == f"{request.url.scheme}://{host}"
 
 
 class HarnessSecurityPolicy:
@@ -10,6 +24,8 @@ class HarnessSecurityPolicy:
         self.remote_clients = remote_clients
 
     async def authenticate(self, request):
+        if not local_request_allowed(request):
+            return None
         authorization = request.headers.get("authorization", "")
         if authorization == f"Bearer {self.token}":
             return Principal(id="local-bearer", scopes=frozenset({"*"}))

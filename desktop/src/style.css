@@ -1,7 +1,17 @@
 :root {
+  --background: #191b1f;
+  --surface: #22252a;
+  --surface-raised: #2b2e34;
+  --hover: #343840;
+  --border: #454a54;
+  --border-subtle: #30343b;
+  --text: #eef1f7;
+  --muted: #a6aeba;
+  --accent: #397bff;
+  --accent-light: #85aeff;
   font-family: Inter, system-ui, sans-serif;
-  color: #dfe6eb;
-  background: #11171b;
+  color: var(--text);
+  background: var(--background);
   color-scheme: dark;
   font-synthesis: none;
 }
@@ -17,32 +27,35 @@ input {
   font: inherit;
 }
 button {
-  border: 1px solid #3b474f;
-  background: #202b32;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
   color: inherit;
   border-radius: 8px;
   padding: 9px 14px;
   cursor: pointer;
 }
 button:hover {
-  background: #2c3b44;
+  background: var(--hover);
 }
 button:disabled {
   opacity: 0.45;
   cursor: default;
 }
 button:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid #80d4ba;
+textarea:focus-visible,
+input:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent-light);
   outline-offset: 2px;
 }
 .primary {
-  background: #9dd9c5;
-  color: #132b24;
+  background: var(--accent);
+  color: #ffffff;
   border-color: transparent;
 }
 .primary:hover {
-  background: #b5ead8;
+  background: #2464e5;
 }
 .app {
   height: 100dvh;
@@ -52,7 +65,7 @@ textarea:focus-visible {
 .topbar {
   height: 66px;
   flex: none;
-  border-bottom: 1px solid #2a343b;
+  border-bottom: 1px solid var(--border-subtle);
   padding: 14px 28px;
   display: flex;
   align-items: center;
@@ -60,7 +73,7 @@ textarea:focus-visible {
 }
 .connection {
   font-size: 12px;
-  color: #94a6ad;
+  color: var(--muted);
   margin-left: 18px;
 }
 .workspace {
@@ -87,7 +100,7 @@ main {
 .eyebrow {
   font-size: 11px;
   letter-spacing: 0.15em;
-  color: #9dd9c5;
+  color: var(--accent-light);
 }
 h1 {
   font-size: clamp(28px, 3vw, 40px);
@@ -96,7 +109,7 @@ h1 {
   letter-spacing: -0.03em;
 }
 .welcome p {
-  color: #9eafb8;
+  color: var(--muted);
   line-height: 1.7;
   max-width: 440px;
 }
@@ -108,16 +121,16 @@ h1 {
 .message small {
   display: block;
   font-size: 11px;
-  color: #97a9b1;
+  color: var(--muted);
   margin-bottom: 7px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 .message > div {
-  white-space: pre-wrap;
+  white-space: normal;
 }
 .message.user {
-  background: #202b32;
+  background: var(--surface-raised);
   padding: 16px 20px;
   border-radius: 14px;
 }
@@ -129,12 +142,12 @@ h1 {
 .activity {
   font-size: 12px;
   min-height: 28px;
-  color: #9eafb8;
+  color: var(--muted);
   padding: 4px;
 }
 .composer {
-  background: #19232a;
-  border: 1px solid #3b4a53;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 14px;
 }
@@ -154,7 +167,7 @@ h1 {
   outline: none;
 }
 .composer:focus-within {
-  border-color: #80d4ba;
+  border-color: var(--accent-light);
 }
 .composer-actions {
   display: flex;
@@ -165,7 +178,7 @@ h1 {
 .composer-actions span {
   flex: 1;
   font-size: 11px;
-  color: #8599a4;
+  color: var(--muted);
 }
 .error {
   background: #3d2526;
@@ -179,10 +192,10 @@ h1 {
 .settings {
   width: 390px;
   max-width: 45vw;
-  border-left: 1px solid #2a343b;
+  border-left: 1px solid var(--border-subtle);
   padding: 24px;
   overflow: auto;
-  background: #172027;
+  background: var(--surface);
 }
 .settings header {
   display: flex;
@@ -198,7 +211,7 @@ h1 {
   margin-top: 26px;
 }
 .settings p {
-  color: #9eafb8;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -214,17 +227,17 @@ h1 {
 }
 .plugins small {
   margin-left: auto;
-  color: #91a39b;
+  color: var(--muted);
   font-size: 11px;
 }
 .config {
   width: 100%;
   min-height: 280px;
   resize: vertical;
-  background: #10181d;
-  border: 1px solid #34424b;
+  background: var(--background);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #c5d6dd;
+  color: var(--text);
   padding: 10px;
   font-family: monospace;
   font-size: 12px;
@@ -283,10 +296,10 @@ h1 {
   width: 100%;
   min-width: 0;
   padding: 10px;
-  border: 1px solid #34424b;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #10181d;
-  color: #c5d6dd;
+  background: var(--background);
+  color: var(--text);
 }
 .settings details {
   margin: 24px 0;
@@ -294,4 +307,30 @@ h1 {
 .settings summary {
   cursor: pointer;
   font-size: 13px;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 34px; height: 34px; }
+.connection { margin-left: 8px; }
+.connection::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-light); margin-right: 6px; }
+input[type="checkbox"] { accent-color: var(--accent); }
+.message a { color: var(--accent-light); text-underline-offset: 3px; }
+.message p { margin: 0 0 12px; }
+.message p:last-child { margin-bottom: 0; }
+.message pre { background: #121418; border: 1px solid var(--border-subtle); padding: 16px; border-radius: 10px; overflow-x: auto; white-space: pre; }
+.message code { font-family: ui-monospace, monospace; font-size: .9em; }
+.message :not(pre) > code { background: var(--surface-raised); padding: 2px 5px; border-radius: 4px; }
+.message table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 16px 0; }
+.message th, .message td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+.message th { background: var(--surface-raised); }
+.message blockquote { margin-left: 0; border-left: 3px solid var(--accent); padding-left: 16px; color: var(--muted); }
+.message img { max-width: 100%; }
+.message .katex-display { overflow-x: auto; overflow-y: hidden; padding: 6px; }
+.instructions { min-height: 130px; font-family: inherit; font-size: 13px; line-height: 1.5; }
+@media (max-width: 480px) {
+  .topbar { padding-inline: 12px; }
+  .brand { gap: 6px; }
+  .connection { font-size: 10px; margin-left: 2px; }
+  .composer-actions { flex-wrap: wrap; }
+  .composer-actions span { flex-basis: 100%; }
 }

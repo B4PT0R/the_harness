@@ -5,6 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
 from the_framework import ServerExtension
+from .security import local_request_allowed
 
 
 class HarnessAccessMiddleware(BaseHTTPMiddleware):
@@ -36,6 +37,8 @@ class HarnessAccessMiddleware(BaseHTTPMiddleware):
         return service is not None and service.desktop_api_allowed(method, path)
 
     async def dispatch(self, request, call_next):
+        if not local_request_allowed(request):
+            return JSONResponse({"error": "untrusted host or origin"}, status_code=403)
         path = request.url.path
         if path in {"/.well-known/assetlinks.json", "/ui/bootstrap"}:
             return await call_next(request)

@@ -4,6 +4,10 @@ A local general-purpose agent for conversation, research, development and work
 on your computer. No prescribed character, romantic relationship or intimate
 hardware integration. Python owns the durable conversation and tools; a React
 interface provides chat, file attachments, plugin settings and optional voice.
+The UI uses anthracite surfaces and an electric-blue accent, with safe Markdown,
+code and math rendering. Personal instructions can be edited in Settings and
+are shared by the text and voice agent. The initial model is `gpt-5.5`; choose
+another model in Settings if your backend account exposes a different catalogue.
 
 ## Retained capabilities
 
@@ -55,6 +59,11 @@ small independent starter as well as this application. The local framework
 checkout contains the current joint-development changes; they are not published.
 
 ## Development
+
+`scripts/build-icons.py` generates the shared vector mark and raster variants:
+the desktop launcher uses `assets/assistant.png`, the tray uses its transparent
+small-format variant, and the web UI uses the same SVG. The 512 px asset is also
+available for future mobile/Quest packaging; native clients are not bundled here.
 
 The framework and SDK use the existing editable sibling checkouts declared in
 `pyproject.toml`. `uv sync --extra dev` installs the development dependencies.

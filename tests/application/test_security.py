@@ -15,12 +15,27 @@ class Clients:
 
 
 def request(*, authorization=None, cookie=None):
-    headers = []
+    headers = [(b"host", b"127.0.0.1:48887")]
     if authorization:
         headers.append((b"authorization", authorization.encode()))
     if cookie:
         headers.append((b"cookie", cookie.encode()))
-    return Request({"type": "http", "method": "GET", "path": "/", "headers": headers})
+    return Request({"type": "http", "method": "GET", "path": "/", "scheme": "http", "headers": headers})
+
+
+def test_local_sessions_reject_cross_origin_and_rebinding():
+    from the_harness.security import local_request_allowed
+    for host, origin, allowed in (
+        ("127.0.0.1:48887", None, True),
+        ("127.0.0.1:48887", "http://127.0.0.1:48887", True),
+        ("localhost:48887", "https://evil.example", False),
+        ("evil.example:48887", None, False),
+        ("127.0.0.1:48887", "http://127.0.0.1:48888", False),
+    ):
+        req = request(cookie="harness_session=browser")
+        req.scope["headers"] = [(b"host", host.encode())]
+        if origin: req.scope["headers"].append((b"origin", origin.encode()))
+        assert local_request_allowed(req) is allowed
 
 
 def test_harness_security_distinguishes_local_and_scoped_remote_callers():
