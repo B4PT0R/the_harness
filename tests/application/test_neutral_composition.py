@@ -19,7 +19,7 @@ def test_new_instance_never_opens_old_companion_data(tmp_path, monkeypatch):
     (tmp_path / '.the_harness').mkdir()
     (tmp_path / '.the_harness/config.json').write_text('{"data_root":"/do/not/open/old/data"}')
     assert runtime_paths.bootstrap_root() == tmp_path / '.the_harness_assistant'
-    assert runtime_paths.resolve_data_root() == tmp_path / 'TheHarnessAssistant'
+    assert runtime_paths.resolve_data_root() == tmp_path / 'TheHarness'
 
 
 def test_neutral_compaction_preserves_task_continuity():

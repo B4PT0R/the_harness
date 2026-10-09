@@ -11,7 +11,7 @@ from the_harness.runtime_paths import (
 
 def test_runtime_root_defaults_to_the_harness_in_home(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
-    assert resolve_data_root(bootstrap=tmp_path / ".the_harness") == tmp_path / "TheHarnessAssistant"
+    assert resolve_data_root(bootstrap=tmp_path / ".the_harness") == tmp_path / "TheHarness"
 
 
 def test_runtime_root_is_read_from_stable_bootstrap(tmp_path):
@@ -27,7 +27,7 @@ def test_runtime_root_is_read_from_stable_bootstrap(tmp_path):
 def test_first_launch_persists_default_without_overwriting_later_choice(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     bootstrap = tmp_path / ".the_harness"
-    assert ensure_data_root_config(bootstrap=bootstrap) == tmp_path / "TheHarnessAssistant"
+    assert ensure_data_root_config(bootstrap=bootstrap) == tmp_path / "TheHarness"
     selected = configure_data_root(tmp_path / "Dropbox" / "The Harness", bootstrap=bootstrap)
     assert ensure_data_root_config(bootstrap=bootstrap) == selected
 

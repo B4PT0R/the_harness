@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 
 DEFAULT_BOOTSTRAP_ROOT = Path("~/.the_harness_assistant")
-DEFAULT_DATA_ROOT = Path("~/TheHarnessAssistant")
+DEFAULT_DATA_ROOT = Path("~/TheHarness")
 BOOTSTRAP_CONFIG_NAME = "config.json"
 
 
