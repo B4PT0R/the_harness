@@ -90,7 +90,7 @@ def main():
         ui_root = (
             args.ui_root
             or os.environ.get("THE_HARNESS_UI_ROOT")
-           
+
         )
         if ui_root is None and source_ui.is_dir():
             ui_root = source_ui
