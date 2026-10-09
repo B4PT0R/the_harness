@@ -1,0 +1,20 @@
+[Unit]
+Description=The Harness persistent local agent server
+After=graphical-session.target network-online.target the-harness-browser.service
+Wants=network-online.target the-harness-browser.service
+
+[Service]
+Type=simple
+WorkingDirectory=@REPO_ROOT@
+Environment="PYTHONPATH=@REPO_ROOT@"
+Environment="THE_HARNESS_UI_ROOT=@REPO_ROOT@/desktop/.surface-build"
+Environment="PLAYWRIGHT_BROWSERS_PATH=@REPO_ROOT@/.playwright-browsers"
+Environment="THE_HARNESS_MACHINE_ROOT=%h/.the_harness_assistant"
+ExecStart="@REPO_ROOT@/.venv/bin/python" -m the_harness.server_process --port 48887
+LimitNOFILE=65536
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,19 @@
+[Unit]
+Description=The Harness system tray client
+After=graphical-session.target the-harness.service
+Requires=the-harness.service
+Wants=the-harness-ui.service
+PartOf=graphical-session.target the-harness.service
+
+[Service]
+Type=simple
+WorkingDirectory=@REPO_ROOT@
+Environment="PYTHONPATH=@REPO_ROOT@"
+Environment="PYSTRAY_BACKEND=appindicator"
+Environment="THE_HARNESS_TRAY_ICON=@REPO_ROOT@/assets/assistant.png"
+ExecStart="@REPO_ROOT@/.venv/bin/python" -m the_harness.tray_process
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

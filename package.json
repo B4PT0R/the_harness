@@ -1,0 +1,13 @@
+{
+  "name": "the-harness",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "desktop"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace the-harness-desktop",
+    "build:surface": "npm run build",
+    "test": "npm run test --workspace the-harness-desktop"
+  }
+}

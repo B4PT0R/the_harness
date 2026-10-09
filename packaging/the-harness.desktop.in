@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=The Harness
+Comment=Open the local general-purpose agent interface
+Exec="@REPO_ROOT@/scripts/open-harness.sh"
+Icon=@REPO_ROOT@/assets/assistant.png
+Terminal=false
+Categories=Utility;

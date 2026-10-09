@@ -1,0 +1,276 @@
+"""Product policy and projections for paired remote clients."""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Mapping
+
+import modict
+
+from the_framework.agent.runtime.protocol import StateSnapshotRequest
+from the_framework.utils.ids import timestamp_id
+from the_framework.server.clients.remote import RemoteClientPolicy
+
+
+BASE_REMOTE_DESKTOP_API = (
+    ("GET", "/api/v1/health"),
+    ("GET", "/api/v1/status"),
+    ("POST", "/api/v1/agent/compact"),
+    ("DELETE", "/api/v1/session"),
+    ("GET", "/api/v1/config"),
+    ("PATCH", "/api/v1/config"),
+    ("GET", "/api/v1/client-remote"),
+    ("POST", "/api/v1/client-remote/pairings"),
+)
+
+
+BASE_REMOTE_POLICY = RemoteClientPolicy(
+    default_scopes=("chat",),
+    platform_scopes={"desktop": ("desktop", "full_ui")},
+    capabilities=frozenset({"conversation", "notifications"}),
+)
+
+
+class RemoteDesktopAccess:
+    """Startup-fixed HTTP allowlist for a paired desktop or Quest client."""
+
+    def __init__(self):
+        self.exact = set()
+        self.subtrees = []
+        self.frozen = False
+        self.add_exact(*BASE_REMOTE_DESKTOP_API)
+        self.add_subtree("/api/v1/client-remote/clients", ("DELETE",), include_base=False)
+
+    def _ensure_mutable(self):
+        if self.frozen:
+            raise RuntimeError("remote desktop access is fixed after startup")
+
+    @staticmethod
+    def _path(path):
+        if not isinstance(path, str) or not path.startswith("/api/v1/"):
+            raise ValueError("remote desktop route must be under /api/v1/")
+        if "?" in path or "#" in path or "//" in path or any(
+            segment in {".", ".."} for segment in path.split("/")
+        ):
+            raise ValueError("invalid remote desktop route")
+        return path.rstrip("/")
+
+    @staticmethod
+    def _method(method):
+        if not isinstance(method, str) or method.upper() not in {
+            "GET", "POST", "PUT", "PATCH", "DELETE",
+        }:
+            raise ValueError("invalid remote desktop HTTP method")
+        return method.upper()
+
+    def add_exact(self, *routes):
+        self._ensure_mutable()
+        normalized = {(self._method(method), self._path(path)) for method, path in routes}
+        if self.exact & normalized:
+            raise ValueError("duplicate remote desktop route")
+        self.exact.update(normalized)
+
+    def add_subtree(self, path, methods, *, include_base=True):
+        self._ensure_mutable()
+        prefix = self._path(path)
+        normalized = frozenset(self._method(method) for method in methods)
+        if not normalized or any(existing[0] == prefix for existing in self.subtrees):
+            raise ValueError("duplicate or empty remote desktop route subtree")
+        self.subtrees.append((prefix, normalized, include_base))
+
+    def freeze(self):
+        self.exact = frozenset(self.exact)
+        self.subtrees = tuple(self.subtrees)
+        self.frozen = True
+
+    def allowed(self, method, path):
+        if not isinstance(path, str) or "//" in path or any(
+            segment in {".", ".."} for segment in path.split("/")
+        ):
+            return False
+        method = method.upper()
+        if (method, path) in self.exact:
+            return True
+        return any(
+            method in methods
+            and (path.startswith(f"{prefix}/") or (include_base and path == prefix))
+            for prefix, methods, include_base in self.subtrees
+        )
+
+
+def _wire_value(value):
+    if value is modict.MISSING:
+        return None
+    if isinstance(value, Mapping):
+        return {
+            key: _wire_value(value[key])
+            for key in value
+            if value[key] is not modict.MISSING
+        }
+    if isinstance(value, (list, tuple)):
+        return [_wire_value(item) for item in value if item is not modict.MISSING]
+    return value
+
+
+def wire_mapping(value):
+    return _wire_value(value) if isinstance(value, Mapping) else {}
+
+
+class RemoteProjection:
+    """Project canonical state without knowing optional product features."""
+
+    def __init__(self, harness):
+        self.harness = harness
+        self.item_projectors = []
+        self.assistant_projectors = []
+        self.application_payload_projectors = []
+
+    def add_item_projector(self, projector):
+        if projector not in self.item_projectors:
+            self.item_projectors.append(projector)
+
+    def add_assistant_projector(self, projector):
+        if projector not in self.assistant_projectors:
+            self.assistant_projectors.append(projector)
+
+    def add_application_payload_projector(self, projector):
+        if projector not in self.application_payload_projectors:
+            self.application_payload_projectors.append(projector)
+
+    def project_item(self, client_id, item, kind):
+        for projector in self.item_projectors:
+            result = projector(client_id, item, kind)
+            if result is not None:
+                return result
+        return None
+
+    @staticmethod
+    def tool_activity(item):
+        payload = wire_mapping(item)
+        if payload.get("type") != "function_call":
+            return None
+        try:
+            arguments = json.loads(payload.get("arguments") or "{}")
+        except (TypeError, json.JSONDecodeError):
+            arguments = {}
+        feedback = arguments.get("user_feedback") if isinstance(arguments, dict) else None
+        return {
+            "kind": "tool_activity",
+            "id": f"tool-{payload.get('call_id') or payload.get('id')}",
+            "feedback": (
+                feedback.strip()
+                if isinstance(feedback, str) and feedback.strip()
+                else f"Outil {payload.get('name') or 'terminé'}"
+            ),
+            "status": "completed",
+        }
+
+    def session_page(self, client_id, page):
+        payload = wire_mapping(page)
+        turns = []
+        for turn in payload.get("turns", []):
+            turn_payload = wire_mapping(turn)
+            items = []
+            for item in turn_payload.get("items", []):
+                item_payload = wire_mapping(item)
+                if (
+                    item_payload.get("type") in {"image", "portrait"}
+                    or isinstance(item_payload.get("path"), str)
+                ):
+                    projected = self.project_item(
+                        client_id, item,
+                        "media_reference"
+                        if item_payload.get("type") == "media_reference"
+                        else "image",
+                    )
+                    if projected is not None:
+                        items.append(projected)
+                elif item_payload.get("type") == "function_call":
+                    items.append(self.tool_activity(item))
+                else:
+                    items.append(item_payload)
+            turns.append({**turn_payload, "items": items})
+        return {**payload, "turns": turns}
+
+    def assistant(self, client_id, config_snapshot=None, state_snapshot=None):
+        config = wire_mapping(wire_mapping(config_snapshot).get("config"))
+        state = wire_mapping(wire_mapping(state_snapshot).get("state"))
+        result = {}
+        for projector in self.assistant_projectors:
+            contribution = projector(client_id, config, state)
+            if not isinstance(contribution, dict) or result.keys() & contribution.keys():
+                raise ValueError("remote assistant projector returned invalid or duplicate fields")
+            result.update(contribution)
+        return result
+
+    async def event(self, client_id, event):
+        payload = wire_mapping(event.get("payload"))
+        if payload.get("type") != "command_event":
+            return event
+        inner = wire_mapping(payload.get("event"))
+        if inner.get("type") == "agent.config.updated":
+            state_snapshot = await self.harness.request(
+                StateSnapshotRequest(id=timestamp_id()), timeout=15,
+            )
+            return {
+                **event,
+                "payload": {
+                    "type": "assistant_state",
+                    "assistant": self.assistant(
+                        client_id,
+                        {"config": wire_mapping(inner.get("config"))},
+                        state_snapshot,
+                    ),
+                },
+            }
+        if inner.get("type") in {"agent.tool_call.start", "agent.tool_call.end"}:
+            tool_call = wire_mapping(inner.get("tool_call"))
+            return {
+                **event,
+                "payload": {
+                    "type": "command_event",
+                    "event": {
+                        "type": inner["type"],
+                        "user_feedback": inner.get("user_feedback"),
+                        "tool_call": {
+                            "call_id": tool_call.get("call_id"),
+                            "name": tool_call.get("name"),
+                        },
+                        "output": wire_mapping(inner.get("output")),
+                    },
+                },
+            }
+        if inner.get("type") != "agent.response_item.added":
+            return event
+        item = wire_mapping(inner.get("item"))
+        if (
+            item.get("type") not in {"image", "portrait"}
+            and not isinstance(item.get("path"), str)
+        ):
+            return event
+        projected = self.project_item(client_id, item, "image")
+        return {
+            **event,
+            "payload": {
+                **payload,
+                "event": {
+                    **inner,
+                    "item": projected or {
+                        key: value for key, value in item.items() if key != "path"
+                    },
+                },
+            },
+        }
+
+    def application_payload(self, client_id, capability, method, payload):
+        for projector in self.application_payload_projectors:
+            payload = projector(client_id, capability, method, payload)
+        return payload
+
+
+__all__ = [
+    "RemoteProjection",
+    "BASE_REMOTE_POLICY",
+    "RemoteDesktopAccess",
+    "wire_mapping",
+]
