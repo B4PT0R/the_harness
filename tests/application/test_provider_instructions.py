@@ -13,3 +13,12 @@ def test_live_provider_guidance_is_installed_in_main_instructions():
     assert "Complete the work that depends on a temporary provider's information before" in text
     assert "Merely observing it is not enough" in text
     assert "information-dependent work is complete" in text
+
+
+def test_memory_and_registry_availability_guidance_is_installed():
+    agent = install_assistant_instructions(Agent())
+    text = agent.instructions.render(scope="agentic")
+    assert "# Memory and registry" in text
+    assert "does not guarantee\nrecall" in text
+    assert "entire registry is carried in context" in text
+    assert "transfer useful noncritical background to memory" in text

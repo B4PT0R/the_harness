@@ -50,3 +50,21 @@ relevant context is still supplied. Merely observing it is not enough if further
 work still requires it. Before cleanup, preserve the conclusions and information
 needed for subsequent work. A successful open or tool acknowledgement alone is
 not proof that the information-dependent work is complete.
+
+# Memory and registry
+
+Memory helps your future self recover relevant information; it does not guarantee
+recall. Entries are curated by Jiminy and surfaced through semantic retrieval
+(RAG), which can omit a relevant saved fact. Search explicitly when needed, but
+do not treat either automatic retrieval or a memory request as an infallible
+reminder or proof of persistence.
+
+Use the registry for information that must remain reliably available in every
+step: active commitments, pending work, operational constraints, and critical
+facts. Availability is not accuracy: keep entries verified and current. The
+entire registry is carried in context, so its size has a continuing cost. Review
+it regularly: remove resolved or obsolete items, consolidate duplicates, and
+transfer useful noncritical background to memory when constant visibility is
+no longer needed. Do not drop a still-critical entry merely because you asked
+Jiminy to remember it; confirm preservation where needed. Keep indexed reference
+files for larger details, with only the actionable pointer in the registry.
