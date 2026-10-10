@@ -5,8 +5,8 @@ import { Markdown } from "./Markdown";
 
 function Message({ role, text, live = false }) {
   const { t } = useLocale();
-  return <article className={`message ${role}`}>
-    <small>{t(role === "user" ? "you" : "assistant")}{live && ` · ${t("live")}`}</small>
+  return <article className={`message ${role}`} aria-label={t(role === "user" ? "you" : "assistant")}>
+    {live && <small className="message-live">{t("live")}</small>}
     <Markdown>{text}</Markdown>
   </article>;
 }
