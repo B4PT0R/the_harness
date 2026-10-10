@@ -122,17 +122,30 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   sans reconstituer un personnage imposé. Même politique en texte et en voix.
 - [x] Rendu Markdown/code/math restauré, sans HTML brut et avec liens sûrs.
   Validation sur une réponse réelle du backend et captures desktop/mobile.
-- [ ] Harmoniser les derniers libellés des réglages, l'affichage des activités/outils
-  et les erreurs. Vérifier desktop/mobile, densité, clavier et thèmes avant retouches.
-- [ ] Ajouter une entrée réellement utilisable pour les surfaces/aperçus/rollback ;
-  la logique existe dans le framework, mais doit être compréhensible côté app.
+- [x] Réglages : distinguer accès de l’agente et service actif, expliquer les
+  prérequis et autorisations, désactiver les changements concurrents de binding.
+  Erreurs HTTP non-JSON et réponses invalides traduites sans erreur de parsing brute.
+  Tests JavaScript et navigateur ; interface publiée vérifiée sur bureau/petit écran.
+- [x] Gestion des versions d’interface dans les réglages : construire, ouvrir
+  l’aperçu, publier et revenir en arrière avec confirmation. Compilation annulable,
+  même après réouverture ; état de compilation exposé par le framework.
+  Tests des confirmations et de l’annulation sur bureau/petit écran.
+- [ ] Vérification d’ensemble des activités/outils, navigation clavier et thèmes
+  supplémentaires avant une nouvelle passe visuelle ; pas de refonte sans besoin.
 - [x] Chargeurs JSON du mode client et du timing : documents non-objets traités
   sans AttributeError ni écrasement. Configuration client invalide refusée
   explicitement ; timing auxiliaire invalide ignoré. Tests de régression.
-- [ ] Réévaluer `turn_timing.py` : mesure utile ou état durable supplémentaire sans
-  utilisateur ? Garder uniquement si sa valeur justifie son coût.
+- [x] `turn_timing.py` conservé : middleware applicatif limité aux prompts,
+  utilisé par le contexte live pour distinguer continuité et retour après absence.
+  Écriture hors event loop et lecture auxiliaire tolérante déjà testées.
 
 ## Vérifications et limites de la passe
+
+- [x] Finitions du 10 octobre : descripteur serveur JSON non-objet et ports booléens
+  refusés sans suppression du fichier ; message de désinstallation corrigé.
+  Framework : 578 tests réussis, 4 ignorés. Harness : 121 tests Python et 38 tests
+  JavaScript réussis ; build production valide. Serveur redémarré sous supervision,
+  santé vérifiée et nouvelle interface prévisualisée puis publiée localement.
 
 - [x] Inférence réelle, pièce jointe texte et outil Bash vérifiés avec le backend.
   Modèle initial `gpt-5.5`, confirmé dans son catalogue et par une réponse réelle.
