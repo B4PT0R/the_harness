@@ -3,7 +3,8 @@ export function resizeComposerTextarea(element, styles = (node) => getComputedSt
   if (!element) return;
   element.style.height = "auto";
   const maximum = Number.parseFloat(styles(element).maxHeight);
-  const height = Number.isFinite(maximum) ? Math.min(element.scrollHeight, maximum) : element.scrollHeight;
+  const contentHeight = element.scrollHeight;
+  const height = Number.isFinite(maximum) ? Math.min(contentHeight, maximum) : contentHeight;
   element.style.height = `${height}px`;
-  element.style.overflowY = element.scrollHeight > height ? "auto" : "hidden";
+  element.style.overflowY = contentHeight > height ? "auto" : "hidden";
 }

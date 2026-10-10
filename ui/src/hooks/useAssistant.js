@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api as defaultApi } from "../api";
 import { RemoteRealtimeTranscriptAssembler } from "../realtime-transcript";
 import { voiceSession } from "../voice";
@@ -75,6 +75,10 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   }, [context.phase]);
   const scroll = useRef(null);
   const follow = useRef(true);
+  const onScroll = useCallback(() => {
+    const element = scroll.current;
+    follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+  }, []);
   useEffect(() => {
     let disposed = false,
       socket,
@@ -212,7 +216,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       historyScroll.current = null;
     }
   }, [messages]);
-  async function loadHistory() {
+  const loadHistory = useCallback(async () => {
     if (!before || loadingHistory) return;
     setLoadingHistory(true);
     try {
@@ -229,7 +233,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     } finally {
       setLoadingHistory(false);
     }
-  }
+  }, [api, before, loadingHistory]);
   async function send(event) {
     event.preventDefault();
     if (chatAvailable !== true || sending || (!draft.trim() && !files.length)) return;
@@ -276,7 +280,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   }
   return {
     context, compact,
-    messages, captions, before, loadingHistory, loadHistory, scroll, follow,
+    messages, captions, before, loadingHistory, loadHistory, scroll, follow, onScroll,
     draft, setDraft, files, setFiles, sending, connection, activity, busy,
     error, setError, chatAvailable, voiceAvailable, voiceState, send,
     toggleVoice: () => voiceState === "idle" ? voice.current.start() : voice.current.stop(),

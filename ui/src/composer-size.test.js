@@ -24,3 +24,11 @@ test("an unlimited host theme and an unmounted field are supported", () => {
   assert.equal(element.style.height, "500px");
   assert.doesNotThrow(() => resizeComposerTextarea(null));
 });
+test("sizing measures content once before writing the final height", () => {
+  let measurements = 0;
+  const element = { style: {}, get scrollHeight() { measurements++; return 500; } };
+  resizeComposerTextarea(element, () => ({ maxHeight: "230px" }));
+  assert.equal(measurements, 1);
+  assert.equal(element.style.height, "230px");
+  assert.equal(element.style.overflowY, "auto");
+});

@@ -16,7 +16,7 @@ function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./ass
     settings={settingsOpen && <Settings api={request} onClose={() => setSettingsOpen(false)} report={state.setError} />}
   >
     <Conversation messages={state.messages} captions={state.captions} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
-      onScroll={() => { const el = state.scroll.current; state.follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
+      onScroll={state.onScroll}
     />
     <Composer draft={state.draft} onDraftChange={state.setDraft} files={state.files} onFilesChange={state.setFiles} sending={state.sending}
       chatAvailable={state.chatAvailable} voiceAvailable={state.voiceAvailable} voiceState={state.voiceState} busy={state.busy} connected={state.connection === "Connected"}
