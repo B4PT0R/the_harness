@@ -12,7 +12,6 @@ from .reset_api import MemoryResetApi
 from .runtime_composition import (
     Harness,
     health_projection,
-    local_socket_handshake,
     APPLICATION_SUBPROTOCOL, EVENT_SUBPROTOCOL,
 )
 
@@ -70,9 +69,13 @@ def create_app(
     if ui_root is not None:
         build_context.provide("ui_root", ui_root)
 
+    security = HarnessSecurityPolicy(
+        token=token, browser_token=browser_token, remote_clients=remote_clients,
+        allowed_origins=allowed_origins,
+    )
     application_spec = ApplicationSpec({
         **application,
-        "security": HarnessSecurityPolicy(token=token, browser_token=browser_token, remote_clients=remote_clients),
+        "security": security,
         "server_extensions": (
             ServerExtension(
                 name="memory_reset", endpoints=(MemoryResetApi(harness),),
@@ -82,22 +85,10 @@ def create_app(
                 harness,
                 agent_api=CanonicalAgentApi(harness, session_projection="display", reset_handler=harness.reset_session),
                 health_api=ApplicationHealthApi(health_projection, runtime=harness),
-                event_handshake=local_socket_handshake(
-                    token=token, browser_token=browser_token,
-                    allowed_origins=allowed_origins,
-                    supported=(EVENT_SUBPROTOCOL,),
-                ),
-                application_handshake=local_socket_handshake(
-                    token=token, browser_token=browser_token,
-                    allowed_origins=allowed_origins,
-                    supported=(APPLICATION_SUBPROTOCOL,),
-                ),
+                event_handshake=security.socket_handshake(supported=(EVENT_SUBPROTOCOL,)),
+                application_handshake=security.socket_handshake(supported=(APPLICATION_SUBPROTOCOL,)),
             ),
-            access_boundary(
-                token=token,
-                browser_token=browser_token,
-                remote_clients=remote_clients,
-            ),
+            access_boundary(security=security),
         ),
     })
     app = application_spec.build(build_context)

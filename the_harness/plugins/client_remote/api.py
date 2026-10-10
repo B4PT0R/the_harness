@@ -16,6 +16,8 @@ from the_framework.utils.ids import timestamp_id
 from the_framework.server.api.endpoints import HttpError
 from the_framework.server.api.websockets import WebSocketEndpoint
 
+from ...security import local_request_allowed
+
 
 class ClientRemoteApi:
     def __init__(
@@ -70,6 +72,8 @@ class ClientRemoteApi:
         ]
 
     def _remote_handshake(self, socket, supported):
+        if not local_request_allowed(socket):
+            return None
         protocols = self._protocols(socket)
         if len(protocols) != 2 or protocols[0] not in supported:
             return None
@@ -200,9 +204,10 @@ class ClientRemoteApi:
                 "unsupported_protocol_version",
                 "Unsupported remote protocol version",
             )
-        return self.service.claim(
-            pairing_id, secret, device_name, platform,
-        )
+        try:
+            return self.service.claim(pairing_id, secret, device_name, platform)
+        except ValueError as error:
+            raise HttpError(422, "invalid_pairing", "Pairing could not be claimed") from error
 
     @endpoint(
         "get", "/remote/v1/bootstrap",

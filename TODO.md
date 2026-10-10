@@ -20,15 +20,16 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 
 ## Priorité : frontières et sécurité
 
-- [ ] **Authentification en double — duplication observée.**
+- [x] **Authentification en double — consolidée.**
   `the_harness/security.py`, `http_boundary.py`, `runtime_composition.py`.
-  Politique d'endpoint, middleware et handshake vérifient les credentials par
-  des chemins différents. Comparer à la politique Host/Origin stricte du starter,
-  définir un propriétaire et éliminer les divergences. Tester les requêtes
-  cross-origin, accès par cookie, bearer et transports distants avant extraction.
-  La version locale rejette désormais les Host non-loopback et les Origin étrangers ;
-  ces protections HTTP et les contrôles WebSocket ont été vérifiés avant installation.
-  Les transports distants restent à réexaminer avant toute exposition hors loopback.
+  `HarnessSecurityPolicy` possède les credentials locaux, clients distants,
+  scopes et allowlist desktop. Le middleware délègue l'authentification et protège
+  les montages privés ; les endpoints déclaratifs du Framework appliquent leur
+  auth/scope. HTTP et WebSocket locaux/distants partagent la frontière Host/Origin
+  loopback. Les Origins natifs explicites exigent un bearer sur les sockets locaux,
+  jamais un cookie. CORS et exceptions d'anciennes surfaces retirés. Tests couvrant
+  Host/Origin, cookies, bearer, scopes, pairing/révocation et WebSocket.
+  L'exposition hors loopback reste non supportée par cette base.
 - [x] **Secret dans les logs — corrigé et vérifié.**
   `the_harness/server_process.py` imprime le descripteur contenant le token local.
   Le descripteur reste privé sur disque ; la sortie de démarrage se limite à
@@ -64,7 +65,10 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   snapshots worker inutiles. Soumissions locales/distantes via le même ingress
   du framework, injecté par la capacité `conversation.ingress`. Reçus idempotents,
   protocoles et filtrage des chemins locaux préservés et testés. L'API distante
-  et ses permissions restent côté application ; leur harmonisation est à suivre.
+  et ses permissions restent côté application ; frontière HTTP/WebSocket désormais
+  harmonisée avec les contrats de sécurité du Framework.
+  Entrée à clarifier : `control.py` ouvre encore `/remote-ui/`, alors qu'aucune
+  surface de ce nom n'est installée ici (éventuel serveur ancien à confirmer).
 - [ ] **Notifications et présence UI — point à vérifier.**
   `plugins/desktop_notifications/service.py`, interface et application bridge.
   La nouvelle UI utilise le flux d'événements, alors que la suppression de notices

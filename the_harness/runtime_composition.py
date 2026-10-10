@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import inspect
 from datetime import datetime, timezone
-from urllib.parse import urlparse
 
 from the_framework.server.runtime.application import ApplicationRuntime
 
@@ -106,46 +105,6 @@ def health_projection(base):
     return payload
 
 
-def local_socket_handshake(*, token, browser_token, allowed_origins, supported):
-    """Build the strict same-origin/token handshake for a local socket."""
-
-    def authenticate(socket):
-        # HTTP and WebSocket share the same local host boundary. App origins are
-        # explicitly allowed below for native clients using a bearer protocol.
-        if urlparse(f"http://{socket.headers.get('host', '')}").hostname not in {"127.0.0.1", "localhost", "::1"}:
-            return None
-        protocols = [
-            value.strip()
-            for value in socket.headers.get("sec-websocket-protocol", "").split(",")
-            if value.strip()
-        ]
-        selected = next(
-            (protocol for protocol in supported if protocols[:1] == [protocol]),
-            None,
-        )
-        authenticated = selected is not None and (
-            token in protocols[1:]
-            or socket.cookies.get("harness_session") == browser_token
-        )
-        origin = socket.headers.get("origin")
-        origin_allowed = origin in allowed_origins or _same_origin(socket, origin)
-        if not authenticated or not origin_allowed:
-            return None
-        return {"subprotocol": selected}
-
-    return authenticate
-
-
-def _same_origin(socket, origin):
-    if not origin:
-        return True
-    parsed = urlparse(origin)
-    return (
-        parsed.scheme in {"http", "https"}
-        and parsed.hostname in {"127.0.0.1", "localhost", "::1"}
-        and parsed.netloc == socket.headers.get("host")
-    )
-
 
 __all__ = [
     "APPLICATION_SUBPROTOCOL",
@@ -154,5 +113,4 @@ __all__ = [
     "REMOTE_APPLICATION_SUBPROTOCOL",
     "REMOTE_EVENT_SUBPROTOCOL",
     "health_projection",
-    "local_socket_handshake",
 ]
