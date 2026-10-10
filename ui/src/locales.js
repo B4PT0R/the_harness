@@ -3,6 +3,8 @@
 export const languages = { fr: "Français", en: "English" };
 export const messages = {
   fr: {
+    contextUsage: "Contexte : {percent} % ({tokens} / {limit} tokens estimés)", contextUnknown: "Occupation du contexte indisponible",
+    compactContext: "Compacter le contexte", compactionQueued: "Compaction en attente…", compacting: "Compaction du contexte en cours…", compactionDone: "Contexte compacté.", compactionFailed: "La compaction a été interrompue ou a échoué.", workerDisconnected: "Le worker s’est déconnecté.",
     dangerZone: "Zone de danger", resetSession: "Réinitialiser la session", resetMemory: "Réinitialiser la mémoire",
     resetSessionWarning: "Effacer définitivement la conversation et son historique ? La mémoire, les fichiers et les réglages sont conservés. Toute activité en cours sera interrompue.",
     resetMemoryWarning: "Effacer définitivement la mémoire durable de l’agente ? La conversation, le registre, les fichiers et les réglages sont conservés. Toute activité en cours sera interrompue.",
@@ -24,6 +26,8 @@ export const messages = {
     plugin_scheduler: "Planification", plugin_chromium: "Navigateur", plugin_system: "Système", plugin_registry: "Registre",
   },
   en: {
+    contextUsage: "Context: {percent}% ({tokens} / {limit} estimated tokens)", contextUnknown: "Context usage unavailable",
+    compactContext: "Compact context", compactionQueued: "Compaction queued…", compacting: "Compacting context…", compactionDone: "Context compacted.", compactionFailed: "Compaction was interrupted or failed.", workerDisconnected: "The worker disconnected.",
     dangerZone: "Danger zone", resetSession: "Reset session", resetMemory: "Reset memory",
     resetSessionWarning: "Permanently erase the conversation and its history? Memory, files and settings are preserved. Any ongoing activity will be interrupted.",
     resetMemoryWarning: "Permanently erase the agent’s durable memory? The conversation, registry, files and settings are preserved. Any ongoing activity will be interrupted.",

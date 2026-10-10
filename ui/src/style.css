@@ -158,3 +158,19 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 @media (max-width: 480px) {
   :root { --topbar-padding: var(--space-3); }
 }
+
+/* Compact, theme-owned context meter; no extra toolbar or persistent legend. */
+.context-gauge svg { width: 32px; height: 32px; overflow: visible; }
+.context-gauge circle { fill: none; stroke-width: 2; }
+.context-gauge-track { stroke: var(--color-border); }
+.context-gauge-fill { stroke: var(--color-muted); transition: stroke-dasharray .25s ease; }
+.context-gauge text { fill: var(--color-muted); font-size: 9px; font-family: inherit; }
+.context-gauge.is-full .context-gauge-fill { stroke: var(--color-danger); }
+.composer .context-gauge.is-compacting { opacity: 1; }
+.context-gauge.is-compacting .context-gauge-fill { stroke: var(--color-accent); }
+.context-gauge.is-compacting svg { animation: context-spin 1.2s linear infinite; }
+@keyframes context-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .context-gauge.is-compacting svg { animation: none; }
+  .context-gauge-fill { transition: none; }
+}

@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api as defaultApi } from "../api";
 import { RemoteRealtimeTranscriptAssembler } from "../realtime-transcript";
 import { voiceSession } from "../voice";
+import { translate } from "../locales.js";
+import { contextState, initialContext } from "../context.js";
 import { pluginRunning } from "../plugins";
 import { conversationBusy, conversationCommand, eventMessages, snapshot, voiceCaptions } from "../session";
 
@@ -20,6 +22,9 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   const [connection, setConnection] = useState("Connecting");
   const [activity, setActivity] = useState("");
   const [busy, setBusy] = useState(false);
+  const [context, setContext] = useState(initialContext);
+  const compactSubmitting = useRef(false);
+  const contextRevision = useRef(0);
   const [error, setError] = useState("");
   const [voiceState, setVoiceState] = useState("idle");
   const [chatAvailable, setChatAvailable] = useState(null);
@@ -61,6 +66,13 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       voice.current = null;
     };
   }, [api, voiceAvailable]);
+  useEffect(() => {
+    if (!["done", "failed"].includes(context.phase)) return;
+    const timer = setTimeout(() => setContext((current) =>
+      current.phase === context.phase ? { ...current, phase: "idle", commandId: null } : current
+    ), 4000);
+    return () => clearTimeout(timer);
+  }, [context.phase]);
   const scroll = useRef(null);
   const follow = useRef(true);
   useEffect(() => {
@@ -69,11 +81,29 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       retry,
       voiceCallId,
       attempts = 0,
-      revision = 0;
+      revision = 0,
+      statusLoading = false;
     const controller = new AbortController();
     const transcripts = new RemoteRealtimeTranscriptAssembler();
+    function updateContext(output) {
+      contextRevision.current++;
+      setContext((current) => contextState(current, output));
+    }
+    async function refreshStatus() {
+      if (disposed || statusLoading) return;
+      statusLoading = true;
+      const requested = contextRevision.current;
+      try {
+        const status = await api("status", { signal: controller.signal });
+        if (!disposed && requested === contextRevision.current) {
+          setContext((current) => contextState(current, status));
+          setBusy(conversationBusy(status));
+        }
+      } finally { statusLoading = false; }
+    }
     async function reconcile() {
       const requested = ++revision;
+      const requestedContext = contextRevision.current;
       const [page, status] = await Promise.all([
         api("session", { signal: controller.signal }),
         api("status", { signal: controller.signal }),
@@ -84,7 +114,10 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           setBefore(page.has_more ? page.next_before : null);
           historyInitialized.current = true;
         }
-        setBusy(conversationBusy(status));
+        if (requestedContext === contextRevision.current) {
+          setBusy(conversationBusy(status));
+          setContext((current) => contextState(current, status));
+        }
       }
     }
     function connect() {
@@ -102,6 +135,13 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       active.onmessage = ({ data }) => {
         if (!current()) return;
         const output = JSON.parse(data);
+        if (["worker_status", "command_accepted", "command_completed", "command_failed", "worker_exited", "worker_transport_error"].includes(output.type) ||
+            (output.type === "command_event" && ["agent.compaction.start", "agent.compaction.end", "agent.generation.start", "agent.turn.start"].includes(output.event?.type)))
+          updateContext(output);
+        if (output.type === "command_event" && output.event?.type === "agent.compaction.end")
+          refreshStatus().catch(fail);
+        if (output.type === "command_failed" && output.error) setError(output.error);
+        if (["worker_exited", "worker_transport_error"].includes(output.type)) setError(output.error || translate("workerDisconnected"));
         if (output.type === "realtime_event" && output.call_id !== voiceCallId) {
           voiceCallId = output.call_id;
           transcripts.reset();
@@ -123,7 +163,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           setBusy(true);
         if (
           ["command_completed", "command_failed"].includes(output.type) &&
-          conversationCommand(output)
+          (conversationCommand(output) || output.command?.type === "compact_request")
         ) {
           if (output.error) setError(output.error);
           setActivity("");
@@ -136,6 +176,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         transcripts.reset();
         setCaptions({});
         revision++;
+        contextRevision.current++;
         setConnection("Reconnecting");
         retry = setTimeout(
           connect,
@@ -148,10 +189,15 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       if (!disposed && error.name !== "AbortError") setError(error.message);
     }
     connect();
+    const statusTimer = setInterval(() => {
+      if (socket?.readyState === WebSocket.OPEN && document.visibilityState !== "hidden")
+        refreshStatus().catch(fail);
+    }, 5000);
     return () => {
       disposed = true;
       controller.abort();
       clearTimeout(retry);
+      clearInterval(statusTimer);
       socket?.close();
     };
   }, [api, eventsUrl, eventProtocol]);
@@ -215,7 +261,21 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       setSending(false);
     }
   }
+  async function compact() {
+    if (compactSubmitting.current || ["queued", "running"].includes(context.phase) || connection !== "Connected" || voiceState !== "idle") return;
+    compactSubmitting.current = true;
+    contextRevision.current++;
+    setError("");
+    setContext((current) => ({ ...current, phase: "queued", commandId: null }));
+    try {
+      await api("agent/compact", { method: "POST" });
+    } catch (cause) {
+      setError(cause.message);
+      setContext((current) => ({ ...current, phase: "failed", commandId: null }));
+    } finally { compactSubmitting.current = false; }
+  }
   return {
+    context, compact,
     messages, captions, before, loadingHistory, loadHistory, scroll, follow,
     draft, setDraft, files, setFiles, sending, connection, activity, busy,
     error, setError, chatAvailable, voiceAvailable, voiceState, send,

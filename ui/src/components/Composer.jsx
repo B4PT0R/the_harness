@@ -1,10 +1,12 @@
 import React, { useLayoutEffect, useRef } from "react";
 import { useLocale } from "../i18n";
+import { initialContext } from "../context.js";
+import { ContextGauge } from "./ContextGauge";
 import { IconButton } from "./Icons";
 import { handleComposerKeyDown } from "../composer-keyboard.js";
 import { resizeComposerTextarea } from "../composer-size.js";
 
-export function Composer({ draft, onDraftChange, files, onFilesChange, sending, chatAvailable, voiceAvailable, voiceState, busy, connected, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
+export function Composer({ draft, onDraftChange, files, onFilesChange, sending, chatAvailable, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
   const { t } = useLocale();
   const fileInput = useRef(null);
   const textarea = useRef(null);
@@ -26,7 +28,7 @@ export function Composer({ draft, onDraftChange, files, onFilesChange, sending, 
   const voiceLabel = voiceState === "idle" ? "voiceStart" : voiceState === "connecting" ? "cancel" : voiceState === "stopping" ? "voiceStopping" : "voiceEnd";
   return <div className="composer-area">
     {error && <div className="error" role="alert">{error}<IconButton icon="close" label={t("close")} onClick={onDismissError} /></div>}
-    <div className="activity" role="status">{chatAvailable === false ? t("chatUnavailable") : busy ? activity || t("working") : ""}</div>
+    <div className="activity" role="status">{context.phase === "queued" ? t("compactionQueued") : context.phase === "running" ? t("compacting") : context.phase === "done" ? t("compactionDone") : context.phase === "failed" ? t("compactionFailed") : chatAvailable === false ? t("chatUnavailable") : busy ? activity || t("working") : ""}</div>
     <form className="composer" onSubmit={onSubmit}>
       {!!files.length && <div className="attachments">{files.map((file, index) => <button
         type="button" key={index} disabled={sending} aria-label={t("removeAttachment", { name: file.name })}
@@ -38,6 +40,7 @@ export function Composer({ draft, onDraftChange, files, onFilesChange, sending, 
         <input ref={fileInput} type="file" multiple hidden onChange={(event) => { onFilesChange([...files, ...event.target.files]); event.target.value = ""; }} />
         <IconButton icon="attach" label={t("attach")} disabled={sending || chatAvailable !== true || voiceState !== "idle"} onClick={() => fileInput.current.click()} />
         <div className="composer-main-actions">
+          <ContextGauge context={context} disabled={!connected || sending || voiceState !== "idle"} onCompact={onCompact} />
           {voiceAvailable && <IconButton
             icon={voiceState === "idle" ? "mic" : voiceState === "connecting" ? "close" : "stop"}
             label={t(voiceLabel)} aria-pressed={voiceState !== "idle"}
