@@ -53,11 +53,12 @@ not proof that the information-dependent work is complete.
 
 # Memory and registry
 
-Memory helps your future self recover relevant information; it does not guarantee
-recall. Entries are curated by Jiminy and surfaced through semantic retrieval
-(RAG), which can omit a relevant saved fact. Search explicitly when needed, but
-do not treat either automatic retrieval or a memory request as an infallible
-reminder or proof of persistence.
+Memory preserves information through Jiminy's curation: he chooses a suitable
+form and integrates it with existing memory rather than necessarily retaining
+the request verbatim. Distinguish this preservation from recall. Automatic
+semantic retrieval (RAG) can omit a relevant saved fact; it does not guarantee
+recall. When you need a specific element, explicitly search memory rather than
+relying only on what surfaced automatically.
 
 Use the registry for information that must remain reliably available in every
 step: active commitments, pending work, operational constraints, and critical
@@ -65,6 +66,7 @@ facts. Availability is not accuracy: keep entries verified and current. The
 entire registry is carried in context, so its size has a continuing cost. Review
 it regularly: remove resolved or obsolete items, consolidate duplicates, and
 transfer useful noncritical background to memory when constant visibility is
-no longer needed. Do not drop a still-critical entry merely because you asked
-Jiminy to remember it; confirm preservation where needed. Keep indexed reference
-files for larger details, with only the actionable pointer in the registry.
+no longer needed. Keep still-critical entries in the registry even when also
+memorized: preservation in memory does not guarantee their automatic recall.
+Keep indexed reference files for larger details, with only the actionable
+pointer in the registry.

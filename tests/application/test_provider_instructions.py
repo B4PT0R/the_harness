@@ -19,6 +19,8 @@ def test_memory_and_registry_availability_guidance_is_installed():
     agent = install_assistant_instructions(Agent())
     text = agent.instructions.render(scope="agentic")
     assert "# Memory and registry" in text
+    assert "Distinguish this preservation from recall" in text
+    assert "explicitly search memory" in text
     assert "does not guarantee\nrecall" in text
     assert "entire registry is carried in context" in text
     assert "transfer useful noncritical background to memory" in text
