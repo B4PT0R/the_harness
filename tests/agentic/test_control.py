@@ -49,6 +49,10 @@ def test_control_reads_private_descriptor_and_opens_ui(tmp_path):
     Client.calls = []
     control = HarnessControl(
         tmp_path,
+        service="fixture.service",
+        tray_service="fixture-tray.service",
+        ui_service="fixture-ui.service",
+        browser_service="fixture-browser.service",
         command_runner=run,
         client_factory=Client,
     )
@@ -60,7 +64,7 @@ def test_control_reads_private_descriptor_and_opens_ui(tmp_path):
         "systemctl",
         "--user",
         "start",
-        "the-harness-tray.service",
+        "fixture-tray.service",
     ]
     assert Client.calls[-1][:3] == (
         "POST",
@@ -83,7 +87,9 @@ def test_control_stops_tray_and_server_together(tmp_path):
     def run(command, **options):
         commands.append((command, options))
 
-    control = HarnessControl(tmp_path, command_runner=run)
+    control = HarnessControl(tmp_path, service="fixture.service", tray_service="fixture-tray.service",
+                             ui_service="fixture-ui.service", browser_service="fixture-browser.service",
+                             command_runner=run)
     control.stop()
 
     assert commands == [(
@@ -91,10 +97,10 @@ def test_control_stops_tray_and_server_together(tmp_path):
             "systemctl",
             "--user",
             "stop",
-            "the-harness-tray.service",
-            "the-harness-ui.service",
-            "the-harness-browser.service",
-            "the-harness.service",
+            "fixture-tray.service",
+            "fixture-ui.service",
+            "fixture-browser.service",
+            "fixture.service",
         ],
         {"check": False, "text": True, "capture_output": True},
     )]
@@ -114,14 +120,22 @@ def test_control_restart_preserves_browser_and_waits_for_server(tmp_path):
     def run(command, **options):
         commands.append((command, options))
 
-    control = HarnessControl(tmp_path, command_runner=run, client_factory=Client)
+    control = HarnessControl(
+        tmp_path,
+        service="fixture.service",
+        tray_service="fixture-tray.service",
+        ui_service="fixture-ui.service",
+        browser_service="fixture-browser.service",
+        command_runner=run,
+        client_factory=Client,
+    )
     control.restart()
 
     assert commands[0][0] == [
         "systemctl",
         "--user",
         "restart",
-        "the-harness.service",
+        "fixture.service",
     ]
 
 
@@ -158,3 +172,32 @@ def test_remote_open_cli_reports_unavailable_without_traceback(tmp_path, monkeyp
     assert output.out == ""
     assert "remote UI is not installed" in output.err
     assert "Traceback" not in output.err
+
+
+def test_control_resolves_data_from_selected_machine_bootstrap(tmp_path):
+    from the_harness.runtime_paths import configure_data_root
+
+    machine = tmp_path / "machine"
+    selected = tmp_path / "data"
+    configure_data_root(selected, bootstrap=machine)
+    assert HarnessControl(machine).data_root() == {"data_root": str(selected)}
+
+
+@pytest.mark.parametrize("action", ["start", "stop", "restart"])
+def test_custom_instance_never_controls_installed_units(tmp_path, action):
+    commands = []
+    control = HarnessControl(tmp_path, command_runner=lambda *args, **kwargs: commands.append(args))
+    with pytest.raises(RuntimeError, match="refusing to control the installed instance"):
+        getattr(control, action)()
+    assert commands == []
+
+
+def test_data_root_cli_honors_machine_root(tmp_path, monkeypatch, capsys):
+    import json
+    from the_harness.control import main
+
+    machine, data = tmp_path / "machine", tmp_path / "data"
+    monkeypatch.setattr("sys.argv", ["control", "data-root", str(data), "--machine-root", str(machine)])
+    main()
+    assert json.loads(capsys.readouterr().out)["data_root"] == str(data)
+    assert HarnessControl(machine).data_root() == {"data_root": str(data)}

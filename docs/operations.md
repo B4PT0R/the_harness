@@ -45,6 +45,15 @@ access secrets and the browser profile live under `~/.the_harness_assistant`.
 Backend authentication is managed separately by `codex-backend-sdk`; see its
 [authentication documentation](../../codex-backend-sdk/README.md#authentication-and-lifecycle).
 
+`THE_HARNESS_MACHINE_ROOT` selects the machine-local instance root; the server,
+browser and control commands also accept `--machine-root`. A custom machine root
+defaults its data directory to `<machine-root>/data`. Its bootstrap configuration
+can select another data directory without moving secrets, browser state or runtime
+discovery. Services load `.env` from the selected machine root. An explicit server
+`--session` uses its parent as an isolated machine root unless `--machine-root`
+overrides it. The installed systemd units belong to the default instance;
+custom instances need their own units and cannot control the installed ones.
+
 Use Settings for the model, personal instructions and optional tool bindings.
 Personal instructions apply to both text and voice. A loaded plugin's service
 can remain available when its tools are disabled for the agent.

@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from .runtime_paths import bootstrap_root
+
 
 def load_dotenv(path):
     """Load a small, predictable dotenv subset without overriding process env."""
@@ -29,5 +31,5 @@ def load_dotenv(path):
 
 def load_runtime_environment(session_path):
     machine_root = os.environ.get("THE_HARNESS_MACHINE_ROOT")
-    root = Path(machine_root).expanduser().resolve() if machine_root else Path(session_path).parent
+    root = bootstrap_root(machine_root) if machine_root else Path(session_path).parent
     return load_dotenv(root / ".env")

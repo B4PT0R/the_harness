@@ -14,7 +14,7 @@ from the_framework.server.clients.browser_rpc import BrowserRPCServer, browser_s
 from .client_mode import ClientModeStore
 from .configuration import AgentConfigStore
 from .environment import load_runtime_environment
-from .runtime_paths import bootstrap_root, ensure_data_root_config, resolve_data_root
+from .runtime_paths import bootstrap_root, ensure_data_root_config
 
 
 def ensure_graphical_environment(
@@ -49,16 +49,13 @@ def browser_config(runtime_root):
     return value if isinstance(value, dict) else {}
 
 
-async def run(runtime_root):
+async def run(machine_root=None):
     ensure_graphical_environment()
-    machine_root = (
-        Path(runtime_root).expanduser().resolve()
-        if runtime_root is not None
-        else bootstrap_root()
-    )
+    machine_root = bootstrap_root(machine_root)
+    os.environ["THE_HARNESS_MACHINE_ROOT"] = str(machine_root)
     client = ClientModeStore(machine_root / "client.json").load()
     if client["mode"] == "local":
-        data_root = resolve_data_root(runtime_root)
+        data_root = ensure_data_root_config(bootstrap=machine_root)
         load_runtime_environment(data_root / "session.json")
         config = browser_config(data_root)
     else:
@@ -94,13 +91,9 @@ async def run(runtime_root):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--runtime-root")
+    parser.add_argument("--machine-root", "--runtime-root", dest="machine_root")
     args = parser.parse_args()
-    if args.runtime_root is None:
-        client = ClientModeStore().load()
-        if client["mode"] == "local":
-            ensure_data_root_config()
-    asyncio.run(run(args.runtime_root))
+    asyncio.run(run(args.machine_root))
 
 
 if __name__ == "__main__":

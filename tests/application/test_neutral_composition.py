@@ -16,6 +16,7 @@ def test_application_uses_shared_features_without_companion_plugins():
 
 def test_new_instance_never_opens_old_companion_data(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("THE_HARNESS_MACHINE_ROOT", raising=False)
     (tmp_path / '.the_harness').mkdir()
     (tmp_path / '.the_harness/config.json').write_text('{"data_root":"/do/not/open/old/data"}')
     assert runtime_paths.bootstrap_root() == tmp_path / '.the_harness_assistant'

@@ -42,11 +42,13 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 
 ## Priorité : simplifier l'application canonique
 
-- [ ] **Bootstrap et chemins — ambiguïté observée.**
-  `runtime_paths.py`, `environment.py`, `server_process.py`, `browser_process.py`.
-  `THE_HARNESS_MACHINE_ROOT` sélectionne actuellement le dotenv mais n'est pas le
-  propriétaire unique de tous les chemins bootstrap. Clarifier l'injection de
-  l'instance entière et tester deux instances simultanées, sans accès croisé.
+- [x] **Bootstrap et chemins — résolution centralisée.**
+  Racine machine explicite, puis environnement, puis défaut installé ; session
+  explicite isolée sauf surcharge. Serveur, navigateur, contrôle et dotenv
+  partagent cette sélection. Les tests couvrent les racines distinctes et le
+  déplacement des données ; les instances personnalisées ne peuvent pas piloter
+  les unités installées. Le lancement simultané de services réels reste à valider
+  dans le lot cycle de vie desktop.
 - [ ] **Cycle de vie desktop — assemblage à harmoniser.**
   `server_process.py`, `browser_process.py`, `control.py`, `tray_process.py`,
   `packaging/systemd/`, `scripts/install-services.sh`.

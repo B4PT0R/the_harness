@@ -6,7 +6,6 @@ import argparse
 import json
 import subprocess
 import time
-from pathlib import Path
 
 import httpx
 
@@ -14,6 +13,7 @@ from the_framework.server.runtime.discovery import ServerDescriptorStore
 
 from .client_mode import ClientModeStore
 from .runtime_paths import (
+    DEFAULT_BOOTSTRAP_ROOT,
     bootstrap_root,
     configure_data_root,
     ensure_data_root_config,
@@ -29,7 +29,7 @@ DEFAULT_BROWSER_SERVICE = "the-harness-browser.service"
 class HarnessControl:
     def __init__(
         self,
-        runtime_root=None,
+        machine_root=None,
         *,
         service=DEFAULT_SERVICE,
         tray_service=DEFAULT_TRAY_SERVICE,
@@ -38,14 +38,8 @@ class HarnessControl:
         command_runner=subprocess.run,
         client_factory=httpx.Client,
     ):
-        self.explicit_runtime_root = runtime_root
-        self.machine_root = (
-            Path(runtime_root).expanduser().resolve()
-            if runtime_root is not None
-            else bootstrap_root()
-        )
+        self.machine_root = bootstrap_root(machine_root)
         self.client_modes = ClientModeStore(self.machine_root / "client.json")
-        self.runtime_root = None
         self.descriptor = ServerDescriptorStore(
             self.machine_root / "runtime" / "server.json"
         )
@@ -57,8 +51,19 @@ class HarnessControl:
         self.client_factory = client_factory
 
     def systemctl(self, action, *units, check=True):
+        units = units or (self.service,)
+        if (
+            self.machine_root != DEFAULT_BOOTSTRAP_ROOT.expanduser().resolve()
+            and set(units) & {
+                DEFAULT_SERVICE, DEFAULT_TRAY_SERVICE, DEFAULT_UI_SERVICE, DEFAULT_BROWSER_SERVICE,
+            }
+        ):
+            raise RuntimeError(
+                "Custom instances need their own service units; "
+                "refusing to control the installed instance"
+            )
         return self.command_runner(
-            ["systemctl", "--user", action, *(units or (self.service,))],
+            ["systemctl", "--user", action, *units],
             check=check,
             text=True,
             capture_output=True,
@@ -136,7 +141,7 @@ class HarnessControl:
     def data_root(self):
         if self.client_modes.load()["mode"] == "remote":
             return {"data_root": None, "mode": "remote"}
-        return {"data_root": str(resolve_data_root(self.explicit_runtime_root))}
+        return {"data_root": str(resolve_data_root(bootstrap=self.machine_root))}
 
     def mode(self, value=None, endpoint=None):
         if value is None:
@@ -153,21 +158,24 @@ def main():
         default="open",
     )
     parser.add_argument("path", nargs="?")
-    parser.add_argument("--runtime-root")
+    parser.add_argument("--machine-root", "--runtime-root", dest="machine_root")
     parser.add_argument("--endpoint")
     args = parser.parse_args()
     if args.action == "data-root":
-        root = configure_data_root(args.path) if args.path else ensure_data_root_config()
+        root = (
+            configure_data_root(args.path, bootstrap=args.machine_root)
+            if args.path else ensure_data_root_config(bootstrap=args.machine_root)
+        )
         result = {"data_root": str(root), "restart_required": bool(args.path)}
     elif args.action == "mode":
         if args.path not in {None, "local", "remote"}:
             parser.error("mode accepts local or remote")
-        result = HarnessControl(args.runtime_root).mode(args.path, args.endpoint)
+        result = HarnessControl(args.machine_root).mode(args.path, args.endpoint)
     else:
         if args.path is not None:
             parser.error("path is only accepted by data-root")
         try:
-            result = getattr(HarnessControl(args.runtime_root), args.action)()
+            result = getattr(HarnessControl(args.machine_root), args.action)()
         except RuntimeError as error:
             parser.exit(1, f"{error}\n")
     if result is not None:

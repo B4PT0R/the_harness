@@ -13,13 +13,12 @@ from the_framework.server.runtime.discovery import (
     PersistentSecretStore,
     ServerDescriptorStore,
     ServerLease,
-    descriptor_path,
 )
 from the_framework.server.runtime.supervisor import WorkerSupervisor
 
 from .app import create_app
 from .environment import load_runtime_environment
-from .runtime_paths import bootstrap_root, ensure_data_root_config
+from .runtime_paths import server_paths
 
 RESTART_EXIT_CODE = 75
 GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS = 5
@@ -41,6 +40,7 @@ def listening_socket(host="127.0.0.1", port=0):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--session")
+    parser.add_argument("--machine-root")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument(
         "--origin",
@@ -52,20 +52,14 @@ def main():
     parser.add_argument("--exit-on-parent-stdin-close", action="store_true")
     args = parser.parse_args()
 
-    session_path = (
-        Path(args.session).expanduser().resolve()
-        if args.session
-        else ensure_data_root_config() / "session.json"
+    paths = server_paths(
+        session=args.session, machine_root=args.machine_root, descriptor=args.descriptor,
     )
-
+    session_path = paths.session_path
+    # Workers inherit the same browser/pairing root, even with an explicit session.
+    os.environ["THE_HARNESS_MACHINE_ROOT"] = str(paths.machine_root)
     load_runtime_environment(session_path)
-    descriptor = (
-        Path(args.descriptor)
-        if args.descriptor
-        else descriptor_path(session_path)
-        if args.session
-        else bootstrap_root() / "runtime" / "server.json"
-    )
+    descriptor = paths.descriptor_path
     store = ServerDescriptorStore(descriptor)
     lease = ServerLease(descriptor.with_name("server.lock"))
     with lease:
@@ -102,10 +96,8 @@ def main():
             allowed_origins=set(args.origin),
             ui_root=ui_root,
             restart=request_restart,
-            browser_runtime_root=(
-                bootstrap_root() if not args.session else session_path.parent
-            ),
-            client_remote_root=bootstrap_root(),
+            browser_runtime_root=paths.machine_root,
+            client_remote_root=paths.machine_root,
             advertised_remote_endpoint=advertised_remote_endpoint,
         )
         server_socket = listening_socket(port=args.port)

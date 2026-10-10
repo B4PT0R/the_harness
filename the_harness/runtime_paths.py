@@ -7,20 +7,26 @@ import os
 import tempfile
 from pathlib import Path
 
+from modict import modict
+
 DEFAULT_BOOTSTRAP_ROOT = Path("~/.the_harness_assistant")
 DEFAULT_DATA_ROOT = Path("~/TheHarness")
 BOOTSTRAP_CONFIG_NAME = "config.json"
 
 
 def bootstrap_root(path=None) -> Path:
-    return Path(path or DEFAULT_BOOTSTRAP_ROOT).expanduser().resolve()
+    root = path or os.environ.get("THE_HARNESS_MACHINE_ROOT") or DEFAULT_BOOTSTRAP_ROOT
+    return Path(root).expanduser().resolve()
 
 
 def bootstrap_config_path(path=None) -> Path:
     return bootstrap_root(path) / BOOTSTRAP_CONFIG_NAME
 
 
-def default_data_root() -> Path:
+def default_data_root(*, bootstrap=None) -> Path:
+    machine = bootstrap_root(bootstrap)
+    if machine != DEFAULT_BOOTSTRAP_ROOT.expanduser().resolve():
+        return machine / "data"
     return DEFAULT_DATA_ROOT.expanduser().resolve()
 
 
@@ -32,7 +38,7 @@ def resolve_data_root(explicit=None, *, bootstrap=None) -> Path:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
-        return default_data_root()
+        return default_data_root(bootstrap=bootstrap)
     except (OSError, json.JSONDecodeError) as error:
         raise RuntimeError(f"invalid Harness bootstrap configuration: {path}") from error
     value = payload.get("data_root") if isinstance(payload, dict) else None
@@ -73,4 +79,26 @@ def ensure_data_root_config(*, bootstrap=None) -> Path:
     if path.exists():
         os.chmod(path.parent, 0o700)
         return resolve_data_root(bootstrap=bootstrap)
-    return configure_data_root(default_data_root(), bootstrap=bootstrap)
+    return configure_data_root(default_data_root(bootstrap=bootstrap), bootstrap=bootstrap)
+
+
+def server_paths(*, session=None, machine_root=None, descriptor=None):
+    """Resolve one instance before dotenv loading or process startup.
+
+    An explicit session owns an isolated machine root unless one is supplied.
+    Otherwise, machine selection follows the explicit argument, environment,
+    then the installed default. Data may move without moving machine state.
+    """
+    session_path = Path(session).expanduser().resolve() if session else None
+    machine = bootstrap_root(machine_root or (session_path.parent if session_path else None))
+    if session_path is None:
+        session_path = ensure_data_root_config(bootstrap=machine) / "session.json"
+    return modict(
+        machine_root=machine,
+        data_root=session_path.parent,
+        session_path=session_path,
+        descriptor_path=(
+            Path(descriptor).expanduser().resolve() if descriptor
+            else machine / "runtime" / "server.json"
+        ),
+    )
