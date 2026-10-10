@@ -71,6 +71,8 @@ class DesktopNotificationService:
     def _load(self) -> None:
         try:
             payload = json.loads(self.path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("settings must be a JSON object")
         except FileNotFoundError:
             return
         except (OSError, TypeError, ValueError) as error:

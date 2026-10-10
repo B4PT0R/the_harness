@@ -1,6 +1,8 @@
 import asyncio
 import json
 
+import pytest
+
 from the_harness.plugins.desktop_notifications.service import DesktopNotificationService
 
 
@@ -58,6 +60,28 @@ def test_desktop_notification_preference_is_persisted_and_disables_delivery(tmp_
         "delivery": "host_desktop",
     }
     assert messages == []
+
+
+@pytest.mark.parametrize("content", ["null", "[]", '[{"enabled": false}]', '"text"', "42", "false", "{"])
+def test_invalid_notification_settings_keep_defaults_without_overwriting(tmp_path, caplog, content):
+    path = tmp_path / "desktop-notifications.json"
+    path.write_text(content, encoding="utf-8")
+
+    service = DesktopNotificationService(path, Transport(), sender=Sender())
+
+    assert service.enabled is True
+    assert path.read_text(encoding="utf-8") == content
+    assert "desktop notification settings could not be read" in caplog.text
+
+
+@pytest.mark.parametrize("payload, enabled", [({}, True), ({"enabled": True}, True), ({"enabled": False}, False)])
+def test_valid_notification_settings_are_loaded(tmp_path, payload, enabled):
+    path = tmp_path / "desktop-notifications.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    service = DesktopNotificationService(path, Transport(), sender=Sender())
+
+    assert service.enabled is enabled
 
 
 def test_real_event_sockets_suppress_only_local_host_notifications(tmp_path):

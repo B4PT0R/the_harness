@@ -79,10 +79,10 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   `application.connected`. Les clients distants restent indépendants ; connexion
   ne signifie pas visibilité ou attention. Tests des sockets locaux et distants.
 
-- [ ] **Robustesse des paramètres de notifications.**
-  Dans `plugins/desktop_notifications/service.py:_load`, vérifier que le JSON
-  chargé est un objet avant `payload.get`. Aucun fichier invalide observé ; un
-  JSON valide non-objet pourrait néanmoins empêcher la construction du service.
+- [x] **Robustesse des paramètres de notifications.**
+  `_load` vérifie que le JSON est un objet : sinon, avertissement et valeurs par
+  défaut sans écraser le fichier. Tests des valeurs non-objets, du JSON malformé
+  et des préférences valides.
 
 ## Interface et identité
 
