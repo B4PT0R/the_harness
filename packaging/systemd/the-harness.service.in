@@ -1,7 +1,7 @@
 [Unit]
 Description=The Harness persistent local agent server
-After=graphical-session.target network-online.target the-harness-browser.service
-Wants=network-online.target the-harness-browser.service
+After=graphical-session.target network-online.target the-harness-browser.service the-harness-ui.service
+Wants=network-online.target the-harness-browser.service the-harness-ui.service
 
 [Service]
 Type=simple

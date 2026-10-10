@@ -29,7 +29,14 @@ The installation consists of four systemd user units: `the-harness.service`
 owns the server and workers, `the-harness-browser.service` owns the browser,
 `the-harness-ui.service` prepares the interface, and `the-harness-tray.service`
 provides the tray. The UI unit is a oneshot build service, so an `active (exited)`
-state is normal. For startup diagnostics:
+state is normal. The server waits for the UI build job before adopting the initial
+artifact; an existing published release remains authoritative. A failed build does
+not prevent a headless server or an existing release from starting. The control
+client waits for healthy backend status and briefly retries interface opening while
+the browser becomes available. A backend restart does not restart the browser.
+Graceful shutdown removes the private discovery descriptor.
+
+For startup diagnostics:
 
 ```sh
 systemctl --user status the-harness.service

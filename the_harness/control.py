@@ -85,7 +85,11 @@ class HarnessControl:
         last_error = None
         while time.monotonic() < deadline:
             try:
-                return self.request("GET", "/api/v1/health", timeout=2)
+                health = self.request("GET", "/api/v1/health", timeout=2)
+                if health.get("status") == "ok":
+                    return health
+                last_error = RuntimeError(f"server health: {health.get('status', 'unknown')}")
+                time.sleep(0.1)
             except (FileNotFoundError, ValueError, json.JSONDecodeError, httpx.HTTPError) as error:
                 last_error = error
                 time.sleep(0.1)
@@ -105,9 +109,19 @@ class HarnessControl:
         self.systemctl("start", self.tray_service)
         return self.wait_until_ready()
 
-    def open(self):
+    def open(self, timeout=30):
         self.start()
-        return self.request("POST", "/api/v1/ui/open")
+        deadline = time.monotonic() + timeout
+        last_error = None
+        while (remaining := deadline - time.monotonic()) > 0:
+            try:
+                return self.request("POST", "/api/v1/ui/open", timeout=remaining)
+            except httpx.HTTPStatusError as error:
+                if error.response.status_code != 503:
+                    raise
+                last_error = error
+                time.sleep(min(0.1, max(0, deadline - time.monotonic())))
+        raise RuntimeError("The Harness interface did not become ready") from last_error
 
     def restart(self):
         self._require_local_ui()

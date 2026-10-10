@@ -66,6 +66,10 @@ class HostedUiApi:
     )
     async def open(self, call):
         """Open the hosted interface in the persistent local browser runtime."""
+        if call.application.surface_service.active_path("main") is None:
+            return JSONResponse(
+                {"error": "interface unavailable: no published release"}, status_code=503,
+            )
         ticket = self.issue_ticket()
         base_url = str(call.request.base_url).rstrip("/")
         bootstrap_url = f"{base_url}/ui/bootstrap?ticket={ticket}"

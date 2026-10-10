@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import secrets
+import signal
 import socket
 import sys
 import threading
@@ -25,7 +26,10 @@ GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS = 5
 
 
 def exit_when_stream_closes(server, stream):
-    stream.read()
+    # A buffered stdin read holds its lock while blocked, which can abort
+    # interpreter shutdown after SIGTERM. Read the descriptor directly instead.
+    while os.read(stream.fileno(), 4096):
+        pass
     server.should_exit = True
 
 
@@ -118,10 +122,22 @@ def main():
                 daemon=True,
                 name="parent-stdin-monitor",
             ).start()
+        # Uvicorn replays shutdown signals to the previous handlers before run()
+        # returns. Own that replay so discovery cleanup and lease release run;
+        # a requested graceful stop should exit normally, not trigger a restart.
+        previous_handlers = {
+            signum: signal.signal(signum, lambda *_args: setattr(server, "should_exit", True))
+            for signum in (signal.SIGINT, signal.SIGTERM)
+        }
         try:
             server.run(sockets=[server_socket])
         finally:
-            store.remove_if_owned(payload)
+            try:
+                store.remove_if_owned(payload)
+            finally:
+                server_socket.close()
+                for signum, handler in previous_handlers.items():
+                    signal.signal(signum, handler)
         if restart_requested:
             raise SystemExit(RESTART_EXIT_CODE)
 

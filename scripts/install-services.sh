@@ -16,7 +16,7 @@ uv sync --locked --extra dev --python /usr/bin/python3
 npm ci
 PLAYWRIGHT_BROWSERS_PATH="$repo_root/.playwright-browsers" .venv/bin/python -m playwright install chromium
 npm run build
-.venv/bin/python -m the_harness.control data-root >/dev/null
+.venv/bin/python -m the_harness.control data-root --machine-root "$HOME/.the_harness_assistant" >/dev/null
 mkdir -p "$unit_root" "$application_root"
 escaped_root=$(printf '%s' "$repo_root" | sed 's/[&|]/\\&/g')
 escaped_npm=$(command -v npm | sed 's/[&|]/\\&/g')
