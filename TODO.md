@@ -67,10 +67,13 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   protocoles et filtrage des chemins locaux préservés et testés. L'API distante
   et ses permissions restent côté application ; frontière HTTP/WebSocket désormais
   harmonisée avec les contrats de sécurité du Framework.
-  Vestige confirmé par Baptiste : `/remote-ui/` était le client mobile de
-  l'ancienne application coquine, pas une surface actuelle du Harness.
-  Nettoyer l'entrée correspondante de `control.py` et ses tests lors du lot client
-  distant ; ne pas réintroduire cette UI ni conserver sa compatibilité par défaut.
+  Objectif confirmé par Baptiste : un nouveau client mobile sera développé pour
+  le Harness actuel. Adapter plutôt que supprimer en bloc : préserver les bases
+  utiles (pairing, transports, permissions, ingress et composition), sans figer
+  les anciens contrats ni restaurer l'ancienne UI.
+  `/remote-ui/` était le client mobile de l'ancienne application coquine, pas une
+  surface actuelle. Adapter l'entrée de `control.py` et ses tests à la composition
+  présente/future ; ne pas présenter une surface absente comme utilisable.
 - [ ] **Notifications et présence UI — point à vérifier.**
   `plugins/desktop_notifications/service.py`, interface et application bridge.
   La nouvelle UI utilise le flux d'événements, alors que la suppression de notices
