@@ -16,8 +16,6 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   const [loadingHistory, setLoadingHistory] = useState(false);
   const historyInitialized = useRef(false);
   const historyScroll = useRef(null);
-  const [draft, setDraft] = useState("");
-  const [files, setFiles] = useState([]);
   const [sending, setSending] = useState(false);
   const [connection, setConnection] = useState("Connecting");
   const [activity, setActivity] = useState("");
@@ -169,7 +167,6 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           ["command_completed", "command_failed"].includes(output.type) &&
           (conversationCommand(output) || output.command?.type === "compact_request")
         ) {
-          if (output.error) setError(output.error);
           setActivity("");
           reconcile().catch(fail);
         }
@@ -234,10 +231,9 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       setLoadingHistory(false);
     }
   }, [api, before, loadingHistory]);
-  async function send(event) {
-    event.preventDefault();
-    if (chatAvailable !== true || sending || (!draft.trim() && !files.length)) return;
-    const text = draft;
+  // Return acceptance so the composer only clears its local draft after success.
+  async function send({ text, files }) {
+    if (chatAvailable !== true || sending || connection !== "Connected" || (!text.trim() && !files.length)) return false;
     setError("");
     if (voiceState === "idle") setBusy(true);
     setSending(true);
@@ -255,12 +251,12 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           body: { id, prompt: text },
         });
       }
-      setDraft("");
-      setFiles([]);
       follow.current = true;
+      return true;
     } catch (error) {
       setError(error.message);
       setBusy(false);
+      return false;
     } finally {
       setSending(false);
     }
@@ -281,7 +277,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   return {
     context, compact,
     messages, captions, before, loadingHistory, loadHistory, scroll, follow, onScroll,
-    draft, setDraft, files, setFiles, sending, connection, activity, busy,
+    sending, connection, activity, busy,
     error, setError, chatAvailable, voiceAvailable, voiceState, send,
     toggleVoice: () => voiceState === "idle" ? voice.current.start() : voice.current.stop(),
     interrupt: () => api("agent/interrupt", { method: "POST", body: {} }).catch((error) => setError(error.message)),

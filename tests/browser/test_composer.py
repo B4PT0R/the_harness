@@ -20,6 +20,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AssistantApp } from './ui/src/AssistantApp.jsx';
 window.markdownRenders = 0;
+window.assistantRenders = 0;
 window.requests = [];
 class Socket {
   static OPEN = 1;
@@ -34,11 +35,17 @@ const items = Array.from({ length: 80 }, (_, id) => ({
   type: 'message', id: String(id), role: id % 2 ? 'assistant' : 'user', content: [{ text }],
 }));
 async function request(path, options = {}) {
-  window.requests.push({ path, body: options.body });
+  const body = options.body instanceof FormData
+    ? Object.fromEntries(['id', 'prompt'].map(key => [key, options.body.get(key)]).concat([
+      ['files', options.body.getAll('files').map(file => file.name)],
+    ])) : options.body;
+  window.requests.push({ path, body });
+  if (path.startsWith('agent/') && window.holdSend)
+    await new Promise(resolve => { window.releaseSend = resolve; });
   if (path === 'plugins') return { plugins: [{ name: 'chat', running: true }] };
   if (path === 'status') return { foreground_active: false, foreground_pending: 0 };
   if (path.startsWith('session')) return { turns: [{ items }], has_more: true, next_before: 'older' };
-  if (path === 'agent/prompt' && window.failSend) throw new Error('Send failed');
+  if (path.startsWith('agent/') && window.failSend) throw new Error('Send failed');
   return {};
 }
 createRoot(document.getElementById('root')).render(<AssistantApp request={request} />);
@@ -50,10 +57,12 @@ await build({
   stdin: { contents: ENTRY, resolveDir: process.cwd(), loader: 'jsx' },
   bundle: true, outfile: OUTPUT, loader: { '.woff': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl' },
   plugins: [{ name: 'count-markdown', setup(build) {
-    build.onLoad({ filter: /Markdown\\.jsx$/ }, async ({ path }) => ({
-      contents: (await readFile(path, 'utf8')).replace(
-        'export function Markdown({ children }) {',
-        'export function Markdown({ children }) { window.markdownRenders++;'),
+    build.onLoad({ filter: /(Markdown|AssistantApp)\\.jsx$/ }, async ({ path }) => ({
+      contents: (await readFile(path, 'utf8'))
+        .replace('export function Markdown({ children }) {',
+          'export function Markdown({ children }) { window.markdownRenders++;')
+        .replace('  const [settingsOpen, setSettingsOpen] = useState(false);',
+          '  window.assistantRenders++; const [settingsOpen, setSettingsOpen] = useState(false);'),
       loader: 'jsx',
     }));
   }}],
@@ -100,6 +109,7 @@ def test_repeated_backspace_does_not_render_history(page):
     field.fill("a" * 2000)
     field.press("End")
     before = page.evaluate("window.markdownRenders")
+    parent_before = page.evaluate("window.assistantRenders")
     page.evaluate("window.repeatKeys = []; document.querySelector('textarea').addEventListener('keydown', event => window.repeatKeys.push(event.repeat))")
     durations = []
     try:
@@ -114,6 +124,7 @@ def test_repeated_backspace_does_not_render_history(page):
     renders = page.evaluate("window.markdownRenders") - before
     print(f"Backspace: mean {sum(durations) / len(durations):.1f} ms, max {max(durations):.1f} ms, history renders {renders}")
     assert renders == 0
+    assert page.evaluate("window.assistantRenders") == parent_before
     page.evaluate("window.emit({ type: 'command_event', event: { type: 'response.output_text.delta', item_id: 'stream', sequence_number: 1, delta: 'Streaming response' } })")
     page.wait_for_function("document.querySelectorAll('.message').length === 81")
     assert page.locator(".message").last.inner_text() == "Streaming response"
@@ -145,3 +156,44 @@ def test_composer_resize_submission_and_failure(page, width):
     assert page.evaluate("window.requests.filter(r => r.path === 'agent/prompt').length") == 2
     assert field.evaluate("el => el.getBoundingClientRect().height") < 100
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+def test_attachments_and_draft_survive_updates_and_failed_send(page):
+    field = page.locator("textarea")
+    field.fill("With attachment")
+    page.locator("input[type=file]").set_input_files({
+        "name": "note.txt", "mimeType": "text/plain", "buffer": b"test attachment",
+    })
+    page.evaluate("window.emit({ type: 'worker_status', foreground_active: false, local_input_tokens: 40, context_token_limit: 200 })")
+    page.wait_for_function("document.querySelector('.context-gauge text').textContent === '20'")
+    assert field.input_value() == "With attachment"
+    assert page.locator(".attachments button").inner_text() == "note.txt ×"
+    page.evaluate("window.holdSend = true; window.failSend = true")
+    field.press("Enter")
+    page.wait_for_function("typeof window.releaseSend === 'function'")
+    assert field.is_disabled()
+    # Even a second synchronous/programmatic submit cannot duplicate the request.
+    page.evaluate("document.querySelector('.composer').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))")
+    assert page.evaluate("window.requests.filter(r => r.path === 'agent/attachments').length") == 1
+    page.evaluate("window.releaseSend()")
+    page.wait_for_function("document.querySelector('[role=alert]')?.textContent.includes('Send failed')")
+    assert field.input_value() == "With attachment"
+    assert page.locator(".attachments button").count() == 1
+    page.evaluate("window.holdSend = false; window.failSend = false")
+    field.press("Enter")
+    page.wait_for_function("document.querySelector('textarea').value === ''")
+    assert page.locator(".attachments button").count() == 0
+    body = page.evaluate("window.requests.filter(r => r.path === 'agent/attachments').at(-1).body")
+    assert body["prompt"] == "With attachment"
+    assert body["files"] == ["note.txt"]
+    assert body["id"]
+
+
+def test_voice_completion_clears_caption_without_replacing_canonical_history(page):
+    before = page.locator(".message").count()
+    page.evaluate("window.emit({ type: 'realtime_event', call_id: 'call', event: { type: 'input_transcript.added', item: { text: 'Partial voice' } } })")
+    page.wait_for_function("document.querySelectorAll('.message').length === 81")
+    assert "Partial voice" in page.locator(".message").last.inner_text()
+    page.evaluate("window.emit({ type: 'realtime_event', call_id: 'call', event: { type: 'turn.done', turn: { role: 'user', transcript: '' } } })")
+    page.wait_for_function("document.querySelectorAll('.message').length === 80")
+    assert page.locator(".message").count() == before

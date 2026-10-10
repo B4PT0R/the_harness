@@ -6,6 +6,9 @@ mobile/Quest hosts. It has no dependency on the desktop entry point.
 - `AssistantApp` assembles `AppShell`, `Conversation`, `Composer` and `Settings`.
 - `useAssistant` owns the browser-side conversation, history and voice lifecycle;
   Python remains the owner of the canonical conversation.
+- `Composer` owns its draft and attachments: typing never updates application
+  state. Its `onSubmit({ text, files })` action resolves to `true` on acceptance;
+  otherwise the draft is preserved. Sending status remains application-owned.
 - `Conversation` and its messages are memoized; keep its callback props stable so
   composer edits never reparse the transcript's Markdown. Unchanged messages also
   stay cached while another message streams. Browser regressions live in
