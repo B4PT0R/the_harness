@@ -19,16 +19,15 @@ class RemoteClientAssembly:
     """Startup declarations shared with security before the transport exists."""
 
     def __init__(
-        self, harness, machine_root, *, context,
+        self, machine_root, *, context,
         storage_root=None, advertised_endpoint=None,
     ):
-        self.harness = harness
         self.context = context
         self.path = Path(storage_root or machine_root) / "remote-clients.json"
         self.advertised_endpoint = advertised_endpoint
         self.policy = BASE_REMOTE_POLICY
         self.desktop_access = RemoteDesktopAccess()
-        self.projection = RemoteProjection(harness)
+        self.projection = RemoteProjection()
         self.message_notification_listener = None
         self.service = None
 
@@ -69,36 +68,20 @@ class RemoteClientAssembly:
                 self.advertised_endpoint,
             )
         service.event_payload_adapter = self.projection.event
-        service.application_payload_adapter = self.projection.application_payload
         runtime.application.register_router(service)
         self.service = service
         return service
 
 
-def build_api(
-    harness, service, realtime, realtime_state, projection, *, advertised_endpoint=None,
-):
+def build_api(runtime, service, ingress, projection, *, advertised_endpoint=None):
     """Construct HTTP and WebSocket declarations for the installed transport."""
-
-    async def on_revoke(client_id):
-        if realtime_state is not None and realtime_state.remote_owner == client_id:
-            await realtime.stop()
-            realtime_state.clear_remote()
-
-    api = ClientRemoteApi(
+    return ClientRemoteApi(
         service,
-        harness,
+        runtime,
         protocol_version=PROTOCOL_VERSION,
         advertised_endpoint=advertised_endpoint,
         session_projection=projection.session_page,
-        assistant_projection=projection.assistant,
-        realtime=realtime.controller if realtime is not None else None,
-        on_revoke=on_revoke,
-        event_subprotocols=(
-            REMOTE_EVENT_SUBPROTOCOL,
-        ),
-        application_subprotocols=(
-            REMOTE_APPLICATION_SUBPROTOCOL,
-                ),
+        ingress=ingress,
+        event_subprotocols=(REMOTE_EVENT_SUBPROTOCOL,),
+        application_subprotocols=(REMOTE_APPLICATION_SUBPROTOCOL,),
     )
-    return api

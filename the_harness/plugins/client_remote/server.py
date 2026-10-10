@@ -9,7 +9,6 @@ def build_server_extensions(context):
     assembly = context.provide(
         "remote_clients",
         RemoteClientAssembly(
-            context.require("harness"),
             context.require("machine_root"),
             context=context,
             storage_root=context.get("client_remote_root"),
@@ -17,10 +16,9 @@ def build_server_extensions(context):
         ),
     )
 
-    def build_client_remote_api(client_remote, realtime=None):
+    def build_client_remote_api(client_remote, chat):
         return build_api(
-            context.require("harness"), client_remote, realtime,
-            None, assembly.projection,
+            chat.runtime, client_remote, chat.ingress, assembly.projection,
             advertised_endpoint=assembly.advertised_endpoint,
         )
 

@@ -1,18 +1,15 @@
 """Declarative HTTP surface for The Harness private remote clients."""
 
 import asyncio
-import inspect
 from urllib.parse import urlparse
 
 from starlette.websockets import WebSocketDisconnect
 
 from the_framework.server import endpoint
 from the_framework.agent.runtime.protocol import (
-    ConfigSnapshotRequest,
     InterruptRequest,
     PromptRequest,
     SessionPageRequest,
-    StateSnapshotRequest,
     StatusRequest,
 )
 from the_framework.utils.ids import timestamp_id
@@ -29,9 +26,7 @@ class ClientRemoteApi:
         protocol_version,
         advertised_endpoint=None,
         session_projection,
-        assistant_projection,
-        realtime=None,
-        on_revoke=None,
+        ingress,
         event_subprotocols=("the-harness-remote-v1",),
         application_subprotocols=("the-harness-application-v1",),
     ):
@@ -40,9 +35,7 @@ class ClientRemoteApi:
         self.protocol_version = protocol_version
         self.advertised_endpoint = advertised_endpoint
         self.session_projection = session_projection
-        self.assistant_projection = assistant_projection
-        self.realtime = realtime
-        self.on_revoke = on_revoke
+        self.ingress = ingress
         self.event_subprotocols = tuple(event_subprotocols)
         self.application_subprotocols = tuple(application_subprotocols)
         self.events_socket = WebSocketEndpoint(
@@ -180,10 +173,6 @@ class ClientRemoteApi:
         """Revoke a private client and its active connections immediately."""
         if not await self.service.revoke_client(client_id):
             raise HttpError(404, "unknown_remote_client", "Unknown remote client")
-        if self.on_revoke is not None:
-            result = self.on_revoke(client_id)
-            if inspect.isawaitable(result):
-                await result
         return {"status": "revoked", "client_id": client_id}
 
     @endpoint(
@@ -231,17 +220,11 @@ class ClientRemoteApi:
     async def bootstrap(self, call, before=None, limit=50):
         """Load the canonical session and current application projection."""
         client = self._client(call)
-        session_page, agent_status, config_snapshot, state_snapshot = await asyncio.gather(
+        session_page, agent_status = await asyncio.gather(
             self.runtime.request(SessionPageRequest(
                 id=timestamp_id(), before=before, limit=limit, projection="remote",
             ), timeout=15),
             self.runtime.request(StatusRequest(id=timestamp_id())),
-            self.runtime.request(
-                ConfigSnapshotRequest(id=timestamp_id()), timeout=15,
-            ),
-            self.runtime.request(
-                StateSnapshotRequest(id=timestamp_id()), timeout=15,
-            ),
         )
         return {
             "version": self.protocol_version,
@@ -252,9 +235,7 @@ class ClientRemoteApi:
             "agent_status": agent_status,
             "application": {"connected": self.runtime.application.connected},
             "capabilities": self.service.lease_status(),
-            "assistant": self.assistant_projection(
-                client["id"], config_snapshot, state_snapshot
-            ),
+            "assistant": {},
         }
 
     @endpoint(
@@ -264,11 +245,8 @@ class ClientRemoteApi:
     )
     async def state(self, call):
         """Return the current server-owned assistant state projection."""
-        client = self._client(call)
-        snapshot = await self.runtime.request(
-            StateSnapshotRequest(id=timestamp_id()), timeout=15,
-        )
-        return self.assistant_projection(client["id"], None, snapshot)
+        self._client(call)
+        return {}
 
     @endpoint(
         "get", "/remote/v1/notifications/wait",
@@ -319,34 +297,10 @@ class ClientRemoteApi:
         command_id = command_id or id
 
         async def submit():
-            if self.realtime is not None and self.realtime.active:
-                if not append_prompt:
-                    raise ValueError(
-                        "attachment-only turns are unavailable during realtime voice"
-                    )
-                try:
-                    turn_id = await self.realtime.send_text(prompt)
-                except RuntimeError as cause:
-                    raise ValueError(str(cause)) from cause
-                return {
-                    "id": turn_id,
-                    "command_id": command_id,
-                    "status": "submitted",
-                    "route": "realtime",
-                }
-            command = PromptRequest(
-                id=command_id,
-                prompt=prompt,
-                priority=10,
-                append_prompt=append_prompt,
-            )
-            await self.runtime.submit(command)
-            return {
-                "id": command.id,
-                "command_id": command_id,
-                "status": "submitted",
-                "route": "text",
-            }
+            result = await self.ingress.submit(PromptRequest(
+                id=command_id, prompt=prompt, append_prompt=append_prompt,
+            ))
+            return {**result, "command_id": command_id, "status": "submitted"}
 
         try:
             return await self.service.submit_idempotent(

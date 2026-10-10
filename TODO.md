@@ -59,6 +59,12 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   ce qui relève de la lib, de l'autorisation produit et du client. La base livrée
   fournit les APIs de pairing ; elle n'inclut pas l'ancienne UI mobile/distante.
   Décider explicitement quelles surfaces distantes sont souhaitées avant refonte.
+  Premier lot livré : suppression des projecteurs sans consommateurs et de la
+  branche de révocation vocale inactive ; état `assistant: {}` conservé sans
+  snapshots worker inutiles. Soumissions locales/distantes via le même ingress
+  du framework, injecté par la capacité `conversation.ingress`. Reçus idempotents,
+  protocoles et filtrage des chemins locaux préservés et testés. L'API distante
+  et ses permissions restent côté application ; leur harmonisation est à suivre.
 - [ ] **Notifications et présence UI — point à vérifier.**
   `plugins/desktop_notifications/service.py`, interface et application bridge.
   La nouvelle UI utilise le flux d'événements, alors que la suppression de notices

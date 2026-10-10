@@ -7,8 +7,6 @@ from collections.abc import Mapping
 
 import modict
 
-from the_framework.agent.runtime.protocol import StateSnapshotRequest
-from the_framework.utils.ids import timestamp_id
 from the_framework.server.clients.remote import RemoteClientPolicy
 
 
@@ -118,32 +116,7 @@ def wire_mapping(value):
 
 
 class RemoteProjection:
-    """Project canonical state without knowing optional product features."""
-
-    def __init__(self, harness):
-        self.harness = harness
-        self.item_projectors = []
-        self.assistant_projectors = []
-        self.application_payload_projectors = []
-
-    def add_item_projector(self, projector):
-        if projector not in self.item_projectors:
-            self.item_projectors.append(projector)
-
-    def add_assistant_projector(self, projector):
-        if projector not in self.assistant_projectors:
-            self.assistant_projectors.append(projector)
-
-    def add_application_payload_projector(self, projector):
-        if projector not in self.application_payload_projectors:
-            self.application_payload_projectors.append(projector)
-
-    def project_item(self, client_id, item, kind):
-        for projector in self.item_projectors:
-            result = projector(client_id, item, kind)
-            if result is not None:
-                return result
-        return None
+    """Keep the remote wire shape while withholding local files and config."""
 
     @staticmethod
     def tool_activity(item):
@@ -178,14 +151,7 @@ class RemoteProjection:
                     item_payload.get("type") in {"image", "portrait"}
                     or isinstance(item_payload.get("path"), str)
                 ):
-                    projected = self.project_item(
-                        client_id, item,
-                        "media_reference"
-                        if item_payload.get("type") == "media_reference"
-                        else "image",
-                    )
-                    if projected is not None:
-                        items.append(projected)
+                    continue  # Never expose host-local files to a remote client.
                 elif item_payload.get("type") == "function_call":
                     items.append(self.tool_activity(item))
                 else:
@@ -193,35 +159,17 @@ class RemoteProjection:
             turns.append({**turn_payload, "items": items})
         return {**payload, "turns": turns}
 
-    def assistant(self, client_id, config_snapshot=None, state_snapshot=None):
-        config = wire_mapping(wire_mapping(config_snapshot).get("config"))
-        state = wire_mapping(wire_mapping(state_snapshot).get("state"))
-        result = {}
-        for projector in self.assistant_projectors:
-            contribution = projector(client_id, config, state)
-            if not isinstance(contribution, dict) or result.keys() & contribution.keys():
-                raise ValueError("remote assistant projector returned invalid or duplicate fields")
-            result.update(contribution)
-        return result
-
     async def event(self, client_id, event):
         payload = wire_mapping(event.get("payload"))
         if payload.get("type") != "command_event":
             return event
         inner = wire_mapping(payload.get("event"))
         if inner.get("type") == "agent.config.updated":
-            state_snapshot = await self.harness.request(
-                StateSnapshotRequest(id=timestamp_id()), timeout=15,
-            )
             return {
                 **event,
                 "payload": {
                     "type": "assistant_state",
-                    "assistant": self.assistant(
-                        client_id,
-                        {"config": wire_mapping(inner.get("config"))},
-                        state_snapshot,
-                    ),
+                    "assistant": {},
                 },
             }
         if inner.get("type") in {"agent.tool_call.start", "agent.tool_call.end"}:
@@ -249,25 +197,18 @@ class RemoteProjection:
             and not isinstance(item.get("path"), str)
         ):
             return event
-        projected = self.project_item(client_id, item, "image")
         return {
             **event,
             "payload": {
                 **payload,
                 "event": {
                     **inner,
-                    "item": projected or {
+                    "item": {
                         key: value for key, value in item.items() if key != "path"
                     },
                 },
             },
         }
-
-    def application_payload(self, client_id, capability, method, payload):
-        for projector in self.application_payload_projectors:
-            payload = projector(client_id, capability, method, payload)
-        return payload
-
 
 __all__ = [
     "RemoteProjection",
