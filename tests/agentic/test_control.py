@@ -1,3 +1,5 @@
+import pytest
+
 from the_harness.control import HarnessControl
 from the_framework.server.runtime.discovery import ServerDescriptorStore
 
@@ -123,34 +125,36 @@ def test_control_restart_preserves_browser_and_waits_for_server(tmp_path):
     ]
 
 
-def test_remote_control_opens_trusted_ui_without_starting_local_server(tmp_path, monkeypatch):
-    calls = []
+@pytest.mark.parametrize("action", ["start", "open", "restart"])
+def test_remote_ui_is_unavailable_without_side_effects(tmp_path, action):
     commands = []
-
-    class Browser:
-        def __init__(self, socket_path):
-            calls.append(("socket", socket_path))
-
-        def call(self, method, url):
-            calls.append((method, url))
-
-    monkeypatch.setattr("the_harness.control.BrowserRPCClient", Browser)
+    Client.calls = []
     control = HarnessControl(
         tmp_path,
         command_runner=lambda command, **options: commands.append((command, options)),
+        client_factory=Client,
     )
-    assert control.mode("remote", "https://assistant.example") == {
-        "version": 1, "mode": "remote", "endpoint": "https://assistant.example",
-    }
-
-    result = control.open()
-
-    assert commands == [(["systemctl", "--user", "start", "the-harness-browser.service"], {
-        "check": True, "text": True, "capture_output": True,
-    })]
-    assert calls[-1] == ("open_application_ui", "https://assistant.example/remote-ui/")
-    assert result == {
-        "status": "opened", "mode": "remote",
-        "url": "https://assistant.example/remote-ui/",
+    configured = control.mode("remote", "https://assistant.example")
+    with pytest.raises(RuntimeError, match="remote UI is not installed"):
+        getattr(control, action)()
+    assert commands == []
+    assert Client.calls == []
+    assert control.mode() == configured
+    assert control.status() == {
+        "status": "unavailable", "reason": "remote_ui_not_installed", **configured,
     }
     assert control.data_root() == {"data_root": None, "mode": "remote"}
+
+
+def test_remote_open_cli_reports_unavailable_without_traceback(tmp_path, monkeypatch, capsys):
+    from the_harness.control import main
+
+    HarnessControl(tmp_path).mode("remote", "https://assistant.example")
+    monkeypatch.setattr("sys.argv", ["control", "open", "--runtime-root", str(tmp_path)])
+    with pytest.raises(SystemExit) as error:
+        main()
+    assert error.value.code == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "remote UI is not installed" in output.err
+    assert "Traceback" not in output.err

@@ -12,7 +12,6 @@ import httpx
 
 from the_framework.server.runtime.discovery import ServerDescriptorStore
 
-from the_framework.server.clients.browser_rpc import BrowserRPCClient, browser_socket_path
 from .client_mode import ClientModeStore
 from .runtime_paths import (
     bootstrap_root,
@@ -87,29 +86,26 @@ class HarnessControl:
                 time.sleep(0.1)
         raise RuntimeError("The Harness server did not become ready") from last_error
 
-    def start(self):
+    def _require_local_ui(self):
         if self.client_modes.load()["mode"] == "remote":
-            self.systemctl("start", self.browser_service)
-            return {"status": "ready", "mode": "remote"}
+            raise RuntimeError(
+                "The Harness remote UI is not installed; use mode local. "
+                "The remote configuration is preserved for a future client."
+            )
+
+    def start(self):
+        self._require_local_ui()
         # The tray requires the server, so this single operation restores the
         # complete user-facing runtime from either the launcher or the tray.
         self.systemctl("start", self.tray_service)
         return self.wait_until_ready()
 
     def open(self):
-        client = self.client_modes.load()
         self.start()
-        if client["mode"] == "remote":
-            url = f"{client['endpoint']}/remote-ui/"
-            browser = BrowserRPCClient(browser_socket_path(self.machine_root))
-            browser.call("open_application_ui", url)
-            return {"status": "opened", "mode": "remote", "url": url}
         return self.request("POST", "/api/v1/ui/open")
 
     def restart(self):
-        if self.client_modes.load()["mode"] == "remote":
-            self.systemctl("restart", self.browser_service)
-            return self.open()
+        self._require_local_ui()
         # Keep the Chromium-owned Harness UI alive while the backend rolls.
         # Its HTTP and WebSocket transports reconnect to the fixed loopback
         # endpoint once the server is ready. Restarting the browser here would
@@ -131,7 +127,7 @@ class HarnessControl:
     def status(self):
         client = self.client_modes.load()
         if client["mode"] == "remote":
-            return {"status": "configured", **client}
+            return {"status": "unavailable", "reason": "remote_ui_not_installed", **client}
         try:
             return self.request("GET", "/api/v1/health", timeout=2)
         except (FileNotFoundError, ValueError, json.JSONDecodeError, httpx.HTTPError):
@@ -170,7 +166,10 @@ def main():
     else:
         if args.path is not None:
             parser.error("path is only accepted by data-root")
-        result = getattr(HarnessControl(args.runtime_root), args.action)()
+        try:
+            result = getattr(HarnessControl(args.runtime_root), args.action)()
+        except RuntimeError as error:
+            parser.exit(1, f"{error}\n")
     if result is not None:
         print(json.dumps(result, ensure_ascii=False))
 

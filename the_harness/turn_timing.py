@@ -34,6 +34,8 @@ class TurnTiming:
             payload = json.loads(self.path.read_text())
         except (FileNotFoundError, OSError, json.JSONDecodeError):
             return None
+        if not isinstance(payload, dict):
+            return None
         started_at = self._parse(payload.get("started_at"))
         ended_at = self._parse(payload.get("ended_at"))
         if started_at is None or ended_at is None or ended_at < started_at:

@@ -71,9 +71,10 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   le Harness actuel. Adapter plutôt que supprimer en bloc : préserver les bases
   utiles (pairing, transports, permissions, ingress et composition), sans figer
   les anciens contrats ni restaurer l'ancienne UI.
-  `/remote-ui/` était le client mobile de l'ancienne application coquine, pas une
-  surface actuelle. Adapter l'entrée de `control.py` et ses tests à la composition
-  présente/future ; ne pas présenter une surface absente comme utilisable.
+  `/remote-ui/` était le client mobile de l'ancienne application, pas une surface
+  actuelle. Le contrôle indique désormais ce mode comme indisponible et refuse
+  start/open/restart sans démarrer de services ni naviguer ; configuration et
+  bases de pairing préservées pour le futur client.
 - [x] **Notifications et présence UI — transport canonique raccordé.**
   Les notices utilisent `canonical_transport.event_connection_count`, plutôt que
   `application.connected`. Les clients distants restent indépendants ; connexion
@@ -118,6 +119,9 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   et les erreurs. Vérifier desktop/mobile, densité, clavier et thèmes avant retouches.
 - [ ] Ajouter une entrée réellement utilisable pour les surfaces/aperçus/rollback ;
   la logique existe dans le framework, mais doit être compréhensible côté app.
+- [x] Chargeurs JSON du mode client et du timing : documents non-objets traités
+  sans AttributeError ni écrasement. Configuration client invalide refusée
+  explicitement ; timing auxiliaire invalide ignoré. Tests de régression.
 - [ ] Réévaluer `turn_timing.py` : mesure utile ou état durable supplémentaire sans
   utilisateur ? Garder uniquement si sa valeur justifie son coût.
 

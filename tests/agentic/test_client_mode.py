@@ -22,3 +22,12 @@ def test_remote_endpoint_rejects_unencrypted_non_loopback_and_paths():
         normalize_remote_endpoint("http://assistant.example")
     with pytest.raises(ValueError, match="path"):
         normalize_remote_endpoint("https://assistant.example/ui")
+
+
+@pytest.mark.parametrize("content", ["null", "[]", '"text"', "42", "false", "{}", "{"])
+def test_invalid_client_configuration_fails_without_overwriting(tmp_path, content):
+    path = tmp_path / "client.json"
+    path.write_text(content, encoding="utf-8")
+    with pytest.raises(ValueError):
+        ClientModeStore(path).load()
+    assert path.read_text(encoding="utf-8") == content

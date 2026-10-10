@@ -33,7 +33,11 @@ class ClientModeStore:
             payload = json.loads(self.path.read_text(encoding="utf-8"))
         except FileNotFoundError:
             return {"version": 1, "mode": "local"}
-        if payload.get("version") != 1 or payload.get("mode") not in {"local", "remote"}:
+        if (
+            not isinstance(payload, dict)
+            or payload.get("version") != 1
+            or payload.get("mode") not in {"local", "remote"}
+        ):
             raise ValueError("invalid desktop client configuration")
         if payload["mode"] == "remote":
             payload["endpoint"] = normalize_remote_endpoint(payload.get("endpoint"))
