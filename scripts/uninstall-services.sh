@@ -8,4 +8,4 @@ for unit in the-harness-tray.service the-harness-ui.service the-harness-browser.
 done
 rm -f "$application_root/the-harness.desktop"
 systemctl --user daemon-reload
-echo "Services removed; ~/.the_harness_assistant and ~/TheHarnessAssistant preserved."
+echo "Services removed; machine configuration and application data preserved."
