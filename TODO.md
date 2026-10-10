@@ -13,6 +13,10 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   `~/TheHarnessAssistant` supprimée à la demande de Baptiste.
 - [x] Prompts neutres ; suppression des états de personnage, haptique, studios de
   génération spécialisés, webcam, application mobile/VR et bundles associés.
+- [x] Prompts spécialisés rétablis à partir de `the_succubus` et adaptés : rôle,
+  continuité héritée/récente, compression, inventaire exhaustif, intégration mémoire,
+  provenance, couverture finale et critères de complétion. Sans présupposés de
+  l’ancienne application ; tests du contenu et du câblage réel des spécialistes.
 - [x] Interface neutre basée sur le starter, chat/pièces jointes/voix du framework.
 - [x] Instructions de mémoire/voix conservées comme politique application, sans
   reconstruction du transport ni contrôleur de plaisir.
