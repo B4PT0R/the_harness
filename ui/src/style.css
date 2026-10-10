@@ -174,3 +174,17 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
   .context-gauge.is-compacting svg { animation: none; }
   .context-gauge-fill { transition: none; }
 }
+
+/* Advanced release controls stay compact and out of the main conversation. */
+.setting-help { color: var(--color-muted); font-size: var(--font-size-sm); line-height: var(--line-height-body); }
+.surface-settings { display: grid; gap: var(--space-3); font-size: var(--font-size-control); }
+.surface-settings > .setting-help { margin-bottom: 0; }
+.surface-settings > button { justify-self: start; }
+.surface-card { border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--radius-md); padding: var(--space-3); }
+.surface-card dl { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1) var(--space-2); margin-block: var(--space-3); font-size: var(--font-size-sm); }
+.surface-card dt { color: var(--color-muted); }
+.surface-card dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.surface-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.surface-actions button, .surface-actions a { font-size: var(--font-size-sm); }
+.surface-actions a { color: var(--color-link); text-underline-offset: var(--space-1); }
+.surface-confirmation { margin-top: var(--space-3); border-top: var(--border-width) solid var(--color-border); }

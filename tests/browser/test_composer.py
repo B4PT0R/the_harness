@@ -42,6 +42,9 @@ async function request(path, options = {}) {
   window.requests.push({ path, body });
   if (path.startsWith('agent/') && window.holdSend)
     await new Promise(resolve => { window.releaseSend = resolve; });
+  if (path === 'config') return { config: { model: 'test-model' } };
+  if (path === 'surfaces') return { surfaces: [{ name: 'main', active: 'active', candidate: 'candidate', previous: 'previous', preview_route: '/preview/main', building: !!window.building }] };
+  if (path === 'surfaces/main/cancel') { window.building = false; return { cancelled: true }; }
   if (path === 'plugins') return { plugins: [{ name: 'chat', running: true }] };
   if (path === 'status') return { foreground_active: false, foreground_pending: 0 };
   if (path.startsWith('session')) return { turns: [{ items }], has_more: true, next_before: 'older' };
@@ -197,3 +200,28 @@ def test_voice_completion_clears_caption_without_replacing_canonical_history(pag
     page.evaluate("window.emit({ type: 'realtime_event', call_id: 'call', event: { type: 'turn.done', turn: { role: 'user', transcript: '' } } })")
     page.wait_for_function("document.querySelectorAll('.message').length === 80")
     assert page.locator(".message").count() == before
+
+
+@pytest.mark.parametrize("width", [1280, 390])
+def test_interface_release_confirmations_and_external_build(page, width):
+    page.set_viewport_size({"width": width, "height": 800})
+    page.locator("button[aria-label='Réglages']").click()
+    page.locator("summary", has_text="Versions de l’interface").click()
+    panel = page.locator(".surface-settings")
+    panel.get_by_role("button", name="Publier", exact=True).click()
+    assert panel.locator(".surface-confirmation").is_visible()
+    assert not page.evaluate("window.requests.some(r => r.path === 'surfaces/main/publish')")
+    panel.get_by_role("button", name="Annuler", exact=True).click()
+    assert panel.locator(".surface-confirmation").count() == 0
+    panel.get_by_role("button", name="Publier", exact=True).click()
+    panel.get_by_role("button", name="Confirmer", exact=True).click()
+    page.wait_for_function("window.requests.some(r => r.path === 'surfaces/main/publish')")
+    assert page.evaluate("window.requests.find(r => r.path === 'surfaces/main/publish').body") == {"release": "candidate"}
+    page.evaluate("window.building = true")
+    panel.get_by_role("button", name="Actualiser", exact=True).click()
+    panel.get_by_role("button", name="Annuler la compilation", exact=True).wait_for()
+    assert panel.get_by_role("button", name="Construire un aperçu", exact=True).is_disabled()
+    panel.get_by_role("button", name="Annuler la compilation", exact=True).click()
+    page.wait_for_function("window.requests.some(r => r.path === 'surfaces/main/cancel')")
+    page.wait_for_function("!window.building")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")

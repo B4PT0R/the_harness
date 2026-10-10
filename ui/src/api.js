@@ -15,13 +15,15 @@ export async function api(path, { method = "GET", body, signal } = {}) {
         ? undefined
         : JSON.stringify(body),
   });
-  const payload = response.status === 204 ? null : await response.json();
-  if (!response.ok)
-    throw new Error(
-      payload.error?.message ||
-        (typeof payload.error === "string" ? payload.error : "") ||
-        payload.detail ||
-        translate("requestFailed", { status: response.status }),
-    );
+  const text = response.status === 204 ? "" : await response.text();
+  let payload;
+  try { payload = text ? JSON.parse(text) : null; }
+  catch {
+    throw new Error(translate(response.ok ? "invalidResponse" : "requestFailed", { status: response.status }));
+  }
+  if (!response.ok) {
+    const message = payload?.error?.message || payload?.error || payload?.detail;
+    throw new Error(typeof message === "string" ? message : translate("requestFailed", { status: response.status }));
+  }
   return payload;
 }

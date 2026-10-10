@@ -3,12 +3,15 @@ import { useLocale } from "../i18n";
 import { languages } from "../locales";
 import { IconButton } from "./Icons";
 import { DangerZone } from "./DangerZone";
+import { SurfaceSettings } from "./SurfaceSettings";
+import { pluginStatusKey } from "../plugins";
 
 export function Settings({ api, onClose, report }) {
   const { locale, setLocale, t } = useLocale();
   const [config, setConfig] = useState("");
   const [plugins, setPlugins] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [changingPlugin, setChangingPlugin] = useState(null);
   let parsed;
   try {
     parsed = JSON.parse(config);
@@ -51,6 +54,7 @@ export function Settings({ api, onClose, report }) {
     }
   }
   async function toggle(plugin) {
+    setChangingPlugin(plugin.name);
     try {
       await api(`plugins/${plugin.name}/binding`, {
         method: "PUT",
@@ -59,6 +63,8 @@ export function Settings({ api, onClose, report }) {
       setPlugins((await api("plugins")).plugins);
     } catch (error) {
       report(error.message);
+    } finally {
+      setChangingPlugin(null);
     }
   }
   return (
@@ -94,6 +100,7 @@ export function Settings({ api, onClose, report }) {
         />
       </label>
       <h3>{t("capabilities")}</h3>
+      <p className="setting-help">{t("capabilitiesHelp")}</p>
       <div className="plugins">
         {plugins.map((plugin) => (
           <div className="plugin-row" key={plugin.name}>
@@ -101,13 +108,12 @@ export function Settings({ api, onClose, report }) {
               type="checkbox"
               aria-label={t("enablePlugin", { name: pluginLabel(plugin.name) })}
               checked={plugin.binding_enabled}
-              disabled={plugin.binding_required || !plugin.running}
+              disabled={plugin.binding_required || !plugin.running || changingPlugin !== null}
+              title={plugin.binding_required ? t("requiredPlugin") : undefined}
               onChange={() => toggle(plugin)}
             />}
             <span>{pluginLabel(plugin.name)}</span>
-            <small>{plugin.binding_available
-              ? t(plugin.running ? "loaded" : "stopped")
-              : t(plugin.running ? "serviceActive" : "serviceStopped")}</small>
+            <small>{t(changingPlugin === plugin.name ? "saving" : pluginStatusKey(plugin))}</small>
           </div>
         ))}
       </div>
@@ -130,7 +136,8 @@ export function Settings({ api, onClose, report }) {
         disabled={saving || typeof parsed?.model !== "string" || !parsed.model.trim()}
         onClick={save}
       /></div>
-      <DangerZone api={api} disabled={saving} />
+      <SurfaceSettings api={api} />
+      <DangerZone api={api} disabled={saving || changingPlugin !== null} />
     </aside>
   );
 }
