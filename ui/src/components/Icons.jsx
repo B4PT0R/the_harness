@@ -1,5 +1,6 @@
 import React from "react";
 const paths = {
+  back: <path d="M20 12H4m6-6-6 6 6 6" />,
   reset: <><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7" /></>,
   settings: <><path d="M4 7h6m4 0h6M4 17h10m4 0h2" /><circle cx="12" cy="7" r="2" /><circle cx="16" cy="17" r="2" /></>,
   close: <path d="m6 6 12 12M18 6 6 18" />,

@@ -13,6 +13,6 @@ export function AppShell({ connection, settingsOpen, onToggleSettings, brandIcon
       </div>
       <IconButton icon="settings" label={t("settings")} aria-expanded={settingsOpen} onClick={onToggleSettings} />
     </header>
-    <div className="workspace"><main>{children}</main>{settings}</div>
+    <div className="workspace"><main hidden={settingsOpen}>{children}</main>{settings}</div>
   </div>;
 }

@@ -74,7 +74,8 @@
   --composer-send-text: var(--color-background);
   --composer-min-height: 32px;
   --composer-max-height: 230px;
-  --settings-width: 390px;
+  --settings-nav-width: 232px;
+  --settings-content-width: 840px;
   --config-min-height: 280px;
   --instructions-min-height: 120px;
 }

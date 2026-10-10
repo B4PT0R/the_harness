@@ -126,6 +126,10 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   prérequis et autorisations, désactiver les changements concurrents de binding.
   Erreurs HTTP non-JSON et réponses invalides traduites sans erreur de parsing brute.
   Tests JavaScript et navigateur ; interface publiée vérifiée sur bureau/petit écran.
+- [x] Réglages plein écran avec sidebar verticale : Général, Conversation,
+  Capacités, Interface, Avancé et Données. État des sections et brouillon de chat
+  préservés ; retour clavier avec focus restauré, erreurs d’enregistrement visibles.
+  Rendu bureau/petit écran vérifié ; 124 tests Python et 38 tests JS réussis.
 - [x] Gestion des versions d’interface dans les réglages : construire, ouvrir
   l’aperçu, publier et revenir en arrière avec confirmation. Compilation annulable,
   même après réouverture ; état de compilation exposé par le framework.

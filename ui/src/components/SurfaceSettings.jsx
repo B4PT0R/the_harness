@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocale } from "../i18n";
 
-export function SurfaceSettings({ api }) {
+export function SurfaceSettings({ api, active }) {
   const { t } = useLocale();
-  const [open, setOpen] = useState(false);
   const [surfaces, setSurfaces] = useState(null);
   const [busy, setBusy] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
@@ -13,13 +12,13 @@ export function SurfaceSettings({ api }) {
   const pending = useRef(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!active) return;
     const controller = new AbortController();
     api("surfaces", { signal: controller.signal })
       .then((data) => setSurfaces(data.surfaces))
       .catch((failure) => { if (failure.name !== "AbortError") setError(failure.message); });
     return () => controller.abort();
-  }, [api, open]);
+  }, [api, active]);
 
   async function run(name, action, release) {
     if (pending.current) return;
@@ -68,9 +67,7 @@ export function SurfaceSettings({ api }) {
     }
   }
 
-  return <details onToggle={(event) => setOpen(event.currentTarget.open)}>
-    <summary>{t("interfaceReleases")}</summary>
-    {open && <div className="surface-settings">
+  return <div className="surface-settings">
       <p className="setting-help">{t("surfaceHelp")}</p>
       <button type="button" disabled={!!busy} onClick={() => run(null, "refresh")}>{t("refresh")}</button>
       {surfaces === null && !error && <p role="status">{t("loading")}</p>}
@@ -113,6 +110,5 @@ export function SurfaceSettings({ api }) {
       </div>}
       {notice && <p className="setting-help" role="status">{notice}</p>}
       {error && <p className="error" role="alert">{error}</p>}
-    </div>}
-  </details>;
+  </div>;
 }

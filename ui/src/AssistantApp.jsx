@@ -13,7 +13,7 @@ function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./ass
   const [settingsOpen, setSettingsOpen] = useState(false);
   const state = useAssistant({ request, eventsUrl, eventProtocol, refreshKey: settingsOpen });
   return <AppShell connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
-    settings={settingsOpen && <Settings api={request} onClose={() => setSettingsOpen(false)} report={state.setError} />}
+    settings={settingsOpen && <Settings api={request} onClose={() => setSettingsOpen(false)} />}
   >
     <Conversation messages={state.messages} captions={state.captions} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
       onScroll={state.onScroll}

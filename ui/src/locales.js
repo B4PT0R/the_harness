@@ -3,6 +3,12 @@
 export const languages = { fr: "Français", en: "English" };
 export const messages = {
   fr: {
+    settings_general: "Général", settings_conversation: "Conversation", settings_capabilities: "Capacités",
+    settings_interface: "Interface", settings_advanced: "Avancé", settings_data: "Données",
+    settingsSections: "Sections des réglages", backToConversation: "Retour à la conversation",
+    languageImmediate: "La langue de l’interface est appliquée immédiatement.",
+    settingsSaved: "Réglages enregistrés.", unsavedSettings: "Modifications non enregistrées.",
+    invalidConfig: "La configuration doit être un objet JSON valide.",
     invalidResponse: "Réponse du serveur invalide", agentEnabled: "Accessible", agentDisabled: "Masqué",
     requiredPlugin: "Capacité nécessaire au fonctionnement de l’agente",
     capabilitiesHelp: "Les cases contrôlent l’accès de l’agente aux outils et au contexte. Les services restent actifs ; les prérequis externes et vos autorisations restent nécessaires.",
@@ -37,6 +43,12 @@ export const messages = {
     plugin_scheduler: "Planification", plugin_chromium: "Navigateur", plugin_system: "Système", plugin_registry: "Registre",
   },
   en: {
+    settings_general: "General", settings_conversation: "Conversation", settings_capabilities: "Capabilities",
+    settings_interface: "Interface", settings_advanced: "Advanced", settings_data: "Data",
+    settingsSections: "Settings sections", backToConversation: "Back to conversation",
+    languageImmediate: "The interface language is applied immediately.",
+    settingsSaved: "Settings saved.", unsavedSettings: "Unsaved changes.",
+    invalidConfig: "Configuration must be a valid JSON object.",
     invalidResponse: "Invalid server response", agentEnabled: "Available", agentDisabled: "Hidden",
     requiredPlugin: "Required for the agent to operate",
     capabilitiesHelp: "Checkboxes control the agent’s access to tools and context. Services stay active; external prerequisites and your authorization are still required.",

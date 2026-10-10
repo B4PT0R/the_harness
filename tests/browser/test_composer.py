@@ -42,6 +42,7 @@ async function request(path, options = {}) {
   window.requests.push({ path, body });
   if (path.startsWith('agent/') && window.holdSend)
     await new Promise(resolve => { window.releaseSend = resolve; });
+  if (path === 'config' && options.method === 'PATCH' && window.failConfigSave) throw new Error('Config save failed');
   if (path === 'config') return { config: { model: 'test-model' } };
   if (path === 'surfaces') return { surfaces: [{ name: 'main', active: 'active', candidate: 'candidate', previous: 'previous', preview_route: '/preview/main', building: !!window.building }] };
   if (path === 'surfaces/main/cancel') { window.building = false; return { cancelled: true }; }
@@ -206,7 +207,7 @@ def test_voice_completion_clears_caption_without_replacing_canonical_history(pag
 def test_interface_release_confirmations_and_external_build(page, width):
     page.set_viewport_size({"width": width, "height": 800})
     page.locator("button[aria-label='Réglages']").click()
-    page.locator("summary", has_text="Versions de l’interface").click()
+    page.locator(".settings-nav").get_by_role("button", name="Interface", exact=True).click()
     panel = page.locator(".surface-settings")
     panel.get_by_role("button", name="Publier", exact=True).click()
     assert panel.locator(".surface-confirmation").is_visible()
@@ -225,3 +226,60 @@ def test_interface_release_confirmations_and_external_build(page, width):
     page.wait_for_function("window.requests.some(r => r.path === 'surfaces/main/cancel')")
     page.wait_for_function("!window.building")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+@pytest.mark.parametrize("width", [1280, 390])
+def test_fullscreen_settings_preserve_drafts_and_keyboard_navigation(page, width):
+    page.set_viewport_size({"width": width, "height": 800})
+    draft = page.locator(".composer textarea")
+    draft.fill("Un brouillon à conserver")
+    trigger = page.get_by_role("button", name="Réglages", exact=True)
+    trigger.click()
+    settings = page.locator(".settings")
+    assert page.locator(".workspace > main").is_hidden()
+    assert settings.evaluate("el => el.getBoundingClientRect().width") == width
+    nav = settings.get_by_role("navigation", name="Sections des réglages")
+    nav.get_by_role("button", name="Conversation", exact=True).click()
+    instructions = settings.get_by_role("textbox", name="Instructions personnelles")
+    instructions.fill("Une instruction conservée entre les sections")
+    nav.get_by_role("button", name="Avancé", exact=True).click()
+    config = settings.locator("#config")
+    assert "Une instruction conservée" in config.input_value()
+    nav.get_by_role("button", name="Conversation", exact=True).click()
+    assert instructions.input_value() == "Une instruction conservée entre les sections"
+    nav.get_by_role("button", name="Données", exact=True).click()
+    settings.get_by_role("button", name="Réinitialiser la session", exact=True).click()
+    page.locator("dialog").wait_for(state="visible")
+    page.keyboard.press("Escape")
+    assert page.locator("dialog").is_hidden()
+    assert settings.is_visible()
+    nav.get_by_role("button", name="Général", exact=True).click()
+    assert nav.get_by_role("button", name="Général", exact=True).get_attribute("aria-current") == "page"
+    page.keyboard.press("Tab")
+    assert settings.evaluate("el => el.contains(document.activeElement)")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.keyboard.press("Escape")
+    assert settings.count() == 0
+    assert draft.input_value() == "Un brouillon à conserver"
+    assert trigger.evaluate("el => el === document.activeElement")
+
+
+def test_settings_save_validation_and_visible_errors(page):
+    page.get_by_role("button", name="Réglages", exact=True).click()
+    settings = page.locator(".settings")
+    settings.locator(".settings-nav").get_by_role("button", name="Avancé", exact=True).click()
+    config = settings.locator("#config")
+    save = settings.get_by_role("button", name="Enregistrer", exact=True)
+    config.fill("[]")
+    assert save.is_disabled()
+    assert settings.get_by_role("alert").is_visible()
+    config.fill('{"model": "changed-model"}')
+    page.evaluate("window.failConfigSave = true")
+    save.click()
+    settings.get_by_role("alert").filter(has_text="Config save failed").wait_for()
+    assert settings.is_visible()
+    page.evaluate("window.failConfigSave = false")
+    save.click()
+    page.wait_for_function("document.querySelector('.settings-footer').textContent.includes('Réglages enregistrés.')")
+    assert settings.is_visible()
+    assert save.is_disabled()
