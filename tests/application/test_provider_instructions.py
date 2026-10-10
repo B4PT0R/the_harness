@@ -10,4 +10,6 @@ def test_live_provider_guidance_is_installed_in_main_instructions():
     assert "not accumulated or persisted" in text
     assert "absence does not mean that" in text
     assert "before changing or clearing that state" in text
-    assert "tool acknowledgement alone is not proof" in text
+    assert "Complete the work that depends on a temporary provider's information before" in text
+    assert "Merely observing it is not enough" in text
+    assert "information-dependent work is complete" in text

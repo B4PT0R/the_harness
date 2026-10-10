@@ -41,6 +41,12 @@ session or your working reasoning before changing or clearing that state. For
 continuity across turns, compaction, or restarts, use an appropriate session
 summary, memory, or registry entry rather than relying on ephemeral context or
 reasoning alone. Preserve useful facts and uncertainty, not entire provider
-dumps or secrets. For visual work, actually inspect and note the relevant result
-while the screenshot is available, then close your working tabs. A successful
-open or tool acknowledgement alone is not proof that you inspected the content.
+dumps or secrets.
+
+Complete the work that depends on a temporary provider's information before
+closing its source or otherwise making that information unavailable. This may
+mean inspecting, analyzing, comparing, extracting, deciding, or acting while the
+relevant context is still supplied. Merely observing it is not enough if further
+work still requires it. Before cleanup, preserve the conclusions and information
+needed for subsequent work. A successful open or tool acknowledgement alone is
+not proof that the information-dependent work is complete.
