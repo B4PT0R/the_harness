@@ -92,24 +92,33 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .composer-area { padding: 0 var(--page-padding) var(--space-5); width: min(100%, var(--composer-width)); margin: auto; }
 .activity { font-size: var(--font-size-sm); color: var(--color-muted); padding: var(--space-1); margin-bottom: var(--space-2); }
 .activity:empty { padding: 0; margin: 0; }
-.composer { background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-3); }
+.composer { background: var(--color-surface); border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--composer-radius); padding: var(--space-3); box-shadow: var(--composer-shadow); }
 .composer textarea {
   display: block;
   width: 100%;
-  resize: vertical;
+  resize: none;
   min-height: var(--composer-min-height);
   max-height: var(--composer-max-height);
   background: transparent;
   border: 0;
   color: var(--color-text);
   line-height: var(--line-height-body);
-  padding: 0;
+  padding: var(--space-1) var(--space-2);
+  scrollbar-width: thin;
 }
 textarea::placeholder, input::placeholder { color: var(--color-muted); opacity: 1; }
 .composer textarea:focus { outline: none; }
-.composer:focus-within { border-color: var(--color-focus); }
-.composer-actions { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-3); }
-.composer-actions .primary { margin-left: auto; }
+.composer:focus-within { border-color: var(--color-muted); }
+.composer-actions { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-2); }
+.composer-main-actions { display: flex; gap: var(--space-2); align-items: center; margin-left: auto; }
+.composer-actions .icon-button { border-color: transparent; border-radius: 50%; background: transparent; color: var(--color-muted); }
+.composer-actions .icon-button:hover:enabled { background: var(--color-surface-hover); color: var(--color-text); }
+.composer-actions .icon-button[aria-pressed="true"] { background: var(--color-surface-raised); color: var(--color-link); }
+.composer-actions .composer-send { background: var(--composer-send-background); color: var(--composer-send-text); }
+.composer-actions .composer-send:hover:enabled { background: var(--composer-send-hover); color: var(--composer-send-text); }
+.composer-actions .composer-send:disabled { background: var(--color-surface-hover); color: var(--color-muted); opacity: 1; }
+.composer .attachments { padding: 0 var(--space-2) var(--space-2); }
+.composer .attachments button { border-color: var(--color-border-subtle); border-radius: var(--radius-lg); }
 .error { background: var(--color-error-background); color: var(--color-error-text); padding: var(--space-3); border-radius: var(--radius-md); margin-bottom: var(--space-2); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .settings { width: var(--settings-width); max-width: 45vw; border-left: var(--border-width) solid var(--color-border-subtle); padding: var(--space-6); overflow: auto; background: var(--color-surface); }
 .settings header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); }

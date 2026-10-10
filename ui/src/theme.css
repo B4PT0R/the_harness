@@ -67,7 +67,12 @@
   --conversation-padding: var(--space-8);
   --page-padding: var(--space-6);
   --composer-width: calc(var(--conversation-width) + 2 * var(--page-padding));
-  --composer-min-height: 72px;
+  --composer-radius: 24px;
+  --composer-shadow: 0 4px 20px #00000018;
+  --composer-send-background: var(--color-text);
+  --composer-send-hover: #ffffff;
+  --composer-send-text: var(--color-background);
+  --composer-min-height: 32px;
   --composer-max-height: 230px;
   --settings-width: 390px;
   --config-min-height: 280px;
