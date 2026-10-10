@@ -1,94 +1,130 @@
 # The Harness
 
-A local general-purpose agent for conversation, research, development and work
-on your computer. The default agent is Pandora: warm, feminine, lightly witty
-and focused on effective work, with user-configurable preferences. Python owns
-the durable conversation and tools; a React
-interface provides chat, file attachments, plugin settings and optional voice.
-The shared UI uses anthracite surfaces and an electric-blue accent, with safe Markdown,
-code and math rendering. Personal instructions can be edited in Settings and
-are shared by the text and voice agent. The initial model is `gpt-5.5`; choose
-another model in Settings if your backend account exposes a different catalogue.
+The Harness is a local assistant application for working on your computer with
+an AI agent. You can ask it to investigate a problem, work on a codebase, research
+a topic, handle files or follow up on a scheduled task. It combines conversation,
+tools, durable memory and optional voice in one desktop interface.
 
-Settings includes a confirmed Danger zone. **Reset session** erases the
-conversation, archive and auxiliary sessions while preserving durable memory.
-**Reset memory** erases the memory database and its curator session while
-preserving the conversation and registry. Both preserve files, configuration
-and scheduled tasks, and interrupt any ongoing agent or voice activity.
-The authenticated endpoints are `DELETE /api/v1/session` and
-`DELETE /api/v1/memory`; resets use the framework's suspension and rollback lifecycle.
+The default agent is **Pandora**: a warm, feminine, lightly witty collaborator
+who takes the work seriously. Her personality and working instructions are
+application defaults that you can adapt in Settings.
 
-## Retained capabilities
+## A conversation that continues
 
-- Persistent conversation, supervised worker, compaction and recovery.
-- Bash, browser, web search, memory, registry, scheduler and system controls.
-- File attachments, realtime voice, desktop notifications and explicit client pairing APIs.
-- Authenticated loopback HTTP/WebSocket interface and editable client surface.
+The Harness keeps one persistent primary conversation. Text and voice participate
+in that same conversation; closing the interface or restarting a worker does not
+start a new one. Compaction keeps the active context manageable while retaining
+an archive of the conversation. Durable memory is a separate store for information
+the agent should retain across its work.
 
-## Install on Ubuntu
+The installed capabilities include a terminal, browser, web search, file
+attachments, memory, a structured registry and scheduled tasks. Settings controls
+which optional tools are exposed to the agent. The application runs locally;
+model inference uses the backend account you authenticate below.
 
-Requires `uv`, Node.js/npm, and the GTK tray dependencies (`python3-gi` and
-`gir1.2-ayatanaappindicator3-0.1`). Run:
+## Start using it
+
+The current installation targets Ubuntu with a systemd user session. You need
+Python 3.12 or newer at `/usr/bin/python3`, `uv`, Node.js/npm, and the GTK tray
+packages `python3-gi` and `gir1.2-ayatanaappindicator3-0.1`.
+
+This development checkout uses editable sibling dependencies. Before installing,
+arrange the repositories as follows, under a path without spaces:
+
+```text
+dev/
+├── the_harness/
+├── the_framework/
+└── codex-backend-sdk/
+```
+
+From the `the_harness` directory, prepare the Python environment and authenticate
+the model backend. The SDK reuses existing usable Codex credentials or opens a
+browser login:
+
+```sh
+uv sync --locked --extra dev --python /usr/bin/python3
+.venv/bin/python -c 'from codex_backend_sdk import OpenAI; OpenAI().authenticate()'
+```
+
+Then install the desktop application and open it:
 
 ```sh
 ./scripts/install-services.sh
-```
-
-The installer uses `/usr/bin/python3`, builds the interface, installs Playwright
-Chromium, and enables the four user services. It does not publish the server
-through Tailscale. The server binds only to `127.0.0.1:48887`.
-
-Data defaults to `~/TheHarness`; bootstrap, browser profile and local
-secrets live under `~/.the_harness_assistant`. The previous companion's data in
-`~/TheSuccubus` and `~/.the_harness` are intentionally separate and never imported.
-The current instance was created empty in `~/TheHarness`. The provisional
-`~/TheHarnessAssistant` directory was subsequently removed, without importing
-its conversation, memory, attachments or configuration.
-Configure backend authentication through the supported `codex-backend-sdk`
-authentication flow. No former application credentials are copied.
-
-```sh
 .venv/bin/python -m the_harness.control open
-.venv/bin/python -m the_harness.control status
-./scripts/uninstall-services.sh
 ```
 
-Uninstallation removes services and the launcher while retaining user data.
-After a system Python major upgrade, recreate the venv with `uv sync --python
-/usr/bin/python3 --extra dev`; do not reuse a venv built for a different Python.
+The installer builds the interface, downloads its Chromium runtime, installs the
+launcher and tray integration, and enables the user services. The server listens
+on `127.0.0.1:48887`; installation does not expose it to the network.
 
-## Canonical framework application
+Start with an ordinary request such as “Explore this repository and explain how
+it is assembled.” In Settings, select a model available to your account, add any
+personal instructions and adjust the optional capabilities. The initial model
+is `gpt-5.5`. The interface supports French and English; text and voice share the
+agent's personal instructions.
 
-`ui/` contains the reusable `@the-harness/ui` workspace: visual components,
-client state, CSS theme tokens and the French/English copy bank. `desktop/` is a
-thin host entry point and build. See `ui/README.md` for composition and theming.
+For data locations, service diagnostics, resets and removal, see the
+[operations guide](docs/operations.md).
 
-`application.py` declares capabilities. `agent_definition.py` and `prompts/`
-provide identity and working policy. `assistant_runtime.py` supplies local
-persistence; the frontend and desktop installation remain application-owned.
-`CHAT` and `REALTIME` are bundled framework plugins; memory and registry
-contribute live voice context without a product-specific controller.
+## How it fits with The Framework
 
-Application-specific desktop lifecycle and security remain here. Framework
-changes should solve a reusable composition problem and be verified by the
-small independent starter as well as this application. The local framework
-checkout contains the current joint-development changes; they are not published.
+[The Framework](../the_framework/README.md) supplies the reusable foundation:
+declarative agent and plugin assembly, durable sessions, supervised workers,
+authenticated transports and versioned client interfaces. **The Harness is its
+canonical complete application**, showing how those pieces support a working
+local assistant.
 
-## Development
+The Harness owns the choices that make this application: Pandora's defaults,
+installed capabilities, interface, security policy and desktop integration.
+These can evolve, including through work performed by the agent itself, while
+preserving the conversation and user data. The Framework provides controlled
+build, preview, publication, rollback and restart mechanisms for that evolution.
 
-`scripts/build-icons.py` generates the shared vector mark and raster variants:
-the desktop launcher uses `assets/assistant.png`, the tray uses its transparent
-small-format variant, and the web UI uses the same SVG. The 512 px asset is also
-available for future mobile/Quest packaging; native clients are not bundled here.
+When a generally useful mechanism is missing, improve the framework rather than
+duplicate it in the application. Keep the framework lean and general; product
+choices belong here. The [framework composition guide](../the_framework/docs/framework.md)
+explains its contracts and APIs.
 
-The framework and SDK use the existing editable sibling checkouts declared in
-`pyproject.toml`. `uv sync --extra dev` installs the development dependencies.
+## Find your way through the code
+
+For a first technical read, start with the application declaration, then follow
+the agent definition and the server assembly. The main entry points are:
+
+| Where | What you will find |
+| --- | --- |
+| [Application declaration](the_harness/application.py) | The primary agent, installed plugins and client surface |
+| [Agent definition](the_harness/agent_definition.py) and [prompts](the_harness/prompts/) | Pandora's defaults, instructions and session policy |
+| [Server assembly](the_harness/app.py) and [runtime composition](the_harness/runtime_composition.py) | How framework services, transport security and application controls fit together |
+| [Application plugins](the_harness/plugins/) | Application-specific integrations and policies alongside bundled framework capabilities |
+| [Shared interface](ui/README.md) | Reusable React components, client state, theme variables and the multilingual copy bank |
+| [Desktop host](desktop/) and [installation scripts](scripts/) | The thin UI entry point and Ubuntu integration |
+| [Operations guide](docs/operations.md) | Persistent data, configuration, service management and destructive actions |
+| [Backlog](TODO.md) | Known gaps and candidates for later refactoring |
+
+The shared interface is intended for reuse by future mobile and Quest hosts.
+Those native applications are not currently bundled.
+
+## Work on the application
+
+Read [AGENTS.md](AGENTS.md) before changing the code. It records the ownership,
+persistence and verification rules for humans and agents. In particular, clients
+own their interface and media execution, the server owns connections and worker
+supervision, and workers own inference and session history.
+
+With the Python environment prepared above, install the frontend dependencies
+and run the relevant checks:
 
 ```sh
+npm ci
 uv run pytest -q
 npm test
 npm run build
 ```
 
-This repository is an independent neutral snapshot. The original source and Git
-history are archived at `~/dev/the_succubus`; this repository has no Git remote.
+For UI changes, inspect the rendered result as well as the tests, and use the
+candidate build/preview/publication workflow to update the running interface.
+For shared framework changes, verify the framework independently before relying
+on them here. The [UI guide](ui/README.md) and
+[framework composition guide](../the_framework/docs/framework.md) are the next
+references once you have found the part you want to change.
