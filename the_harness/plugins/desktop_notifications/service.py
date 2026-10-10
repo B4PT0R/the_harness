@@ -61,9 +61,9 @@ class LinuxDesktopNotificationSender:
 
 
 class DesktopNotificationService:
-    def __init__(self, path, application, *, sender=None):
+    def __init__(self, path, transport, *, sender=None):
         self.path = Path(path)
-        self.application = application
+        self.transport = transport
         self.sender = sender or LinuxDesktopNotificationSender()
         self.enabled = True
         self._load()
@@ -78,36 +78,6 @@ class DesktopNotificationService:
             return
         self.enabled = payload.get("enabled") is not False
 
-    def snapshot(self) -> dict:
-        return {
-            "enabled": self.enabled,
-            "available": bool(getattr(self.sender, "available", True)),
-            "delivery": "host_desktop",
-        }
-
-    def update(self, enabled: bool) -> dict:
-        self.enabled = enabled
-        _atomic_json(self.path, {"version": 1, "enabled": enabled})
-        return self.snapshot()
-
-    async def notify(self, _message_id: str) -> None:
-        # The application bridge belongs to the local Chromium window. Remote
-        # clients use separate connections and must not suppress a host notice.
-        if not self.enabled or self.application.connected:
-            return
-        try:
-            await self.sender(
-                title="The Harness",
-                body="Ton assistant t’a envoyé un message",
-            )
-        except Exception as error:  # noqa: BLE001 - desktop integration is optional
-            logger.warning("desktop notification delivery failed: %s", error)
-
-
-class DesktopNotificationApi:
-    def __init__(self, service: DesktopNotificationService):
-        self.service = service
-
     @endpoint(
         "get", "/api/v1/notifications/desktop",
         response={"type": "object"},
@@ -115,7 +85,14 @@ class DesktopNotificationApi:
     )
     def status(self):
         """Return host desktop notification preferences and availability."""
-        return self.service.snapshot()
+        return self.snapshot()
+
+    def snapshot(self) -> dict:
+        return {
+            "enabled": self.enabled,
+            "available": bool(getattr(self.sender, "available", True)),
+            "delivery": "host_desktop",
+        }
 
     @endpoint(
         "put", "/api/v1/notifications/desktop",
@@ -128,6 +105,22 @@ class DesktopNotificationApi:
         response={"type": "object"},
         authorization={"scope": "settings:write"},
     )
-    def update(self, enabled):
-        """Persist host desktop notifications independently from the_framework.agent config."""
-        return self.service.update(enabled)
+    def update(self, enabled: bool) -> dict:
+        """Persist host desktop notification preferences."""
+        self.enabled = enabled
+        _atomic_json(self.path, {"version": 1, "enabled": enabled})
+        return self.snapshot()
+
+    async def notify(self, _message_id: str) -> None:
+        # The local UI consumes canonical events, not the capability bridge.
+        # Paired clients have a separate transport and cannot suppress host notices.
+        # Connectivity is intentionally not a claim about focus or visibility.
+        if not self.enabled or self.transport.event_connection_count:
+            return
+        try:
+            await self.sender(
+                title="The Harness",
+                body="Ton assistant t’a envoyé un message",
+            )
+        except Exception as error:  # noqa: BLE001 - desktop integration is optional
+            logger.warning("desktop notification delivery failed: %s", error)

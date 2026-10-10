@@ -74,11 +74,15 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   `/remote-ui/` était le client mobile de l'ancienne application coquine, pas une
   surface actuelle. Adapter l'entrée de `control.py` et ses tests à la composition
   présente/future ; ne pas présenter une surface absente comme utilisable.
-- [ ] **Notifications et présence UI — point à vérifier.**
-  `plugins/desktop_notifications/service.py`, interface et application bridge.
-  La nouvelle UI utilise le flux d'événements, alors que la suppression de notices
-  se base sur `application.connected`. Vérifier la présence réelle de l'interface
-  avant d'adapter la politique ; éviter de relier les notices au seul client distant.
+- [x] **Notifications et présence UI — transport canonique raccordé.**
+  Les notices utilisent `canonical_transport.event_connection_count`, plutôt que
+  `application.connected`. Les clients distants restent indépendants ; connexion
+  ne signifie pas visibilité ou attention. Tests des sockets locaux et distants.
+
+- [ ] **Robustesse des paramètres de notifications.**
+  Dans `plugins/desktop_notifications/service.py:_load`, vérifier que le JSON
+  chargé est un objet avant `payload.get`. Aucun fichier invalide observé ; un
+  JSON valide non-objet pourrait néanmoins empêcher la construction du service.
 
 ## Interface et identité
 

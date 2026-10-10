@@ -10,7 +10,7 @@ from ...runtime_composition import (
     REMOTE_EVENT_SUBPROTOCOL,
 )
 from .api import ClientRemoteApi
-from .contributions import DESKTOP_ACCESS, NOTIFICATION_LISTENER, POLICY
+from .contributions import DESKTOP_ACCESS, POLICY
 from .policy import BASE_REMOTE_POLICY, RemoteDesktopAccess, RemoteProjection
 from .service import ClientRemoteService
 
@@ -28,7 +28,6 @@ class RemoteClientAssembly:
         self.policy = BASE_REMOTE_POLICY
         self.desktop_access = RemoteDesktopAccess()
         self.projection = RemoteProjection()
-        self.message_notification_listener = None
         self.service = None
 
     def add_policy(self, contribution):
@@ -49,11 +48,6 @@ class RemoteClientAssembly:
             self.add_policy(contribution)
         for configure in self.context.contributions(DESKTOP_ACCESS):
             configure(self.desktop_access)
-        listeners = self.context.contributions(NOTIFICATION_LISTENER)
-        if len(listeners) > 1:
-            raise ValueError("multiple remote notification listeners")
-        if listeners:
-            self.message_notification_listener = listeners[0]
         service = ClientRemoteService(
             runtime, self.path,
             pairing_scheme="theharness",
@@ -61,7 +55,6 @@ class RemoteClientAssembly:
             event_subprotocol=REMOTE_EVENT_SUBPROTOCOL,
             policy=self.policy,
             desktop_access=self.desktop_access,
-            message_notification_listener=self.message_notification_listener,
         )
         if self.advertised_endpoint is not None:
             self.advertised_endpoint = service._validate_endpoint(

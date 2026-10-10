@@ -4,8 +4,8 @@ from pathlib import Path
 
 from the_framework import ServerExtension
 
-from ..client_remote.contributions import DESKTOP_ACCESS, NOTIFICATION_LISTENER
-from .service import DesktopNotificationApi, DesktopNotificationService
+from ..client_remote.contributions import DESKTOP_ACCESS
+from .service import DesktopNotificationService
 
 
 def build_server_extensions(context):
@@ -16,14 +16,18 @@ def build_server_extensions(context):
             ("PUT", "/api/v1/notifications/desktop"),
         ),
     )
-    service = DesktopNotificationService(
-        Path(context.require("machine_root")) / "desktop-notifications.json",
-        context.require("harness").application,
-    )
-    context.contribute(NOTIFICATION_LISTENER, service.notify)
+
+    def build_notifications(canonical_transport, client_remote=None):
+        service = DesktopNotificationService(
+            Path(context.require("machine_root")) / "desktop-notifications.json",
+            canonical_transport,
+        )
+        if client_remote is not None:
+            client_remote.message_notification_listener = service.notify
+        return service
+
     return ServerExtension(
         name="desktop_notifications",
-        service=service,
-        endpoints=(DesktopNotificationApi(service),),
-        requires_services=("runtime",),
+        service_factory=build_notifications,
+        endpoints="service",
     )
