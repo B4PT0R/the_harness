@@ -41,3 +41,9 @@ test("multipart does not replace browser content type", async (t) => {
   });
   assert.deepEqual(await api("test", { method: "POST", body }), { ok: true });
 });
+
+
+test("HTTP errors retain status and machine-readable code", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => new Response('{"error":{"code":"local_only","message":"Local only"}}', { status: 403 }));
+  await assert.rejects(api("local-files/settings"), { message: "Local only", status: 403, code: "local_only" });
+});

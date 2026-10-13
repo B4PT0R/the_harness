@@ -75,6 +75,9 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 }
 .message.user { background: var(--color-surface-raised); padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); }
 .message a { color: var(--color-link); text-underline-offset: var(--space-1); }
+.resource-link[aria-busy="true"] { opacity: var(--opacity-disabled); cursor: progress; }
+.resource-error { display: block; font-size: var(--font-size-sm); }
+.file-editor-settings { margin-top: var(--space-5); }
 .message p { margin: 0 0 var(--space-3); }
 .message p:last-child { margin-bottom: 0; }
 .message h1, .message h2, .message h3 { line-height: var(--line-height-heading); font-weight: var(--font-weight-strong); }

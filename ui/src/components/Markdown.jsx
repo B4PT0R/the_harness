@@ -4,11 +4,13 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import { remarkLocalPaths } from "../local-paths";
+import { ResourceLink } from "./ResourceLink";
 
 export function Markdown({ children }) {
   return <div className="markdown"><ReactMarkdown
-    remarkPlugins={[remarkGfm, remarkMath]}
+    remarkPlugins={[remarkGfm, remarkMath, remarkLocalPaths]}
     rehypePlugins={[[rehypeKatex, { strict: "ignore", trust: false }]]}
-    components={{ a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}
+    components={{ a: ResourceLink }}
   >{children || ""}</ReactMarkdown></div>;
 }

@@ -6,13 +6,14 @@ import { AppShell } from "./components/AppShell";
 import { Conversation } from "./components/Conversation";
 import { Composer } from "./components/Composer";
 import { Settings } from "./components/Settings";
+import { ResourceRequest } from "./components/ResourceLink";
 import "./theme.css";
 import "./style.css";
 
 function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./assistant.svg" }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const state = useAssistant({ request, eventsUrl, eventProtocol, refreshKey: settingsOpen });
-  return <AppShell connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
+  return <ResourceRequest.Provider value={request}><AppShell connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
     settings={settingsOpen && <Settings api={request} onClose={() => setSettingsOpen(false)} />}
   >
     <Conversation messages={state.messages} captions={state.captions} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
@@ -23,7 +24,7 @@ function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./ass
       context={state.context} onCompact={state.compact}
       activity={state.activity} error={state.error} onDismissError={() => state.setError("")} onSubmit={state.send} onToggleVoice={state.toggleVoice} onInterrupt={state.interrupt}
     />
-  </AppShell>;
+  </AppShell></ResourceRequest.Provider>;
 }
 export function AssistantApp(props) {
   return <LocaleProvider><Assistant {...props} /></LocaleProvider>;

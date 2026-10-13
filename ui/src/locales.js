@@ -3,6 +3,10 @@
 export const languages = { fr: "Français", en: "English" };
 export const messages = {
   fr: {
+    fileEditor: "Éditeur des fichiers texte", systemEditor: "Éditeur système par défaut",
+    fileEditorHelp: "Choix enregistré immédiatement. Les dossiers et les fichiers non texte s’ouvrent dans l’explorateur système (dossier contenant le fichier).",
+    openLocalResource: "Ouvrir sur cet ordinateur : {path}", localResourcesOnly: "L’ouverture de fichiers et les préférences d’éditeur sont réservées à l’interface locale.",
+    plugin_local_files: "Fichiers locaux",
     settings_general: "Général", settings_conversation: "Conversation", settings_capabilities: "Capacités",
     settings_interface: "Interface", settings_advanced: "Avancé", settings_data: "Données",
     settingsSections: "Sections des réglages", backToConversation: "Retour à la conversation",
@@ -43,6 +47,10 @@ export const messages = {
     plugin_scheduler: "Planification", plugin_chromium: "Navigateur", plugin_system: "Système", plugin_registry: "Registre",
   },
   en: {
+    fileEditor: "Text file editor", systemEditor: "Default system text editor",
+    fileEditorHelp: "Saved immediately. Folders and non-text files open in the system file manager (the file’s containing folder).",
+    openLocalResource: "Open on this computer: {path}", localResourcesOnly: "File opening and editor preferences are only available in the local interface.",
+    plugin_local_files: "Local files",
     settings_general: "General", settings_conversation: "Conversation", settings_capabilities: "Capabilities",
     settings_interface: "Interface", settings_advanced: "Advanced", settings_data: "Data",
     settingsSections: "Settings sections", backToConversation: "Back to conversation",

@@ -43,6 +43,12 @@ async function request(path, options = {}) {
   if (path.startsWith('agent/') && window.holdSend)
     await new Promise(resolve => { window.releaseSend = resolve; });
   if (path === 'config' && options.method === 'PATCH' && window.failConfigSave) throw new Error('Config save failed');
+  if (path === 'local-files/settings') {
+    if (options.method === 'PUT' && window.failEditorSave) throw new Error('Editor save failed');
+    if (options.method === 'PUT') window.fileEditor = body.editor;
+    return { editor: window.fileEditor || 'system' };
+  }
+  if (path === 'local-files/open' && window.failFileOpen) throw new Error('File no longer exists');
   if (path === 'config') return { config: { model: 'test-model' } };
   if (path === 'surfaces') return { surfaces: [{ name: 'main', active: 'active', candidate: 'candidate', previous: 'previous', preview_route: '/preview/main', building: !!window.building }] };
   if (path === 'surfaces/main/cancel') { window.building = false; return { cancelled: true }; }
@@ -283,3 +289,37 @@ def test_settings_save_validation_and_visible_errors(page):
     page.wait_for_function("document.querySelector('.settings-footer').textContent.includes('Réglages enregistrés.')")
     assert settings.is_visible()
     assert save.is_disabled()
+
+
+def test_chat_paths_open_locally_and_errors_are_visible(page):
+    text = "Fichier `/home/baptiste/Documents/a b.md`, dossier /home/baptiste/Documents et [image](file:///tmp/image.png).\n\n```sh\ncat /tmp/a.md\n```\n\n[site](https://example.org)"
+    page.evaluate("text => window.emit({ type: 'command_event', event: { type: 'response.output_text.delta', item_id: 'paths', sequence_number: 1, delta: text } })", text)
+    message = page.locator(".message").last
+    message.locator(".resource-link").first.wait_for()
+    assert message.locator(".resource-link").count() == 3
+    assert message.locator("pre a").count() == 0
+    message.get_by_role("link", name="/home/baptiste/Documents/a b.md").click()
+    request = page.evaluate("window.requests.filter(r => r.path === 'local-files/open').at(-1)")
+    assert request["body"] == {"path": "/home/baptiste/Documents/a b.md"}
+    assert page.url == "https://harness.test/"
+    page.evaluate("window.failFileOpen = true")
+    message.get_by_role("link", name="image", exact=True).click()
+    message.get_by_role("alert").filter(has_text="File no longer exists").wait_for()
+    assert message.get_by_role("link", name="site", exact=True).get_attribute("target") == "_blank"
+
+
+def test_file_editor_preference_is_immediate_and_failed_save_keeps_previous_value(page):
+    page.get_by_role("button", name="Réglages", exact=True).click()
+    editor = page.get_by_label("Éditeur des fichiers texte", exact=True)
+    editor.wait_for()
+    page.wait_for_function("!document.querySelector('#file-editor').disabled")
+    assert editor.input_value() == "system"
+    page.evaluate("window.failEditorSave = true")
+    editor.select_option("vscode")
+    page.get_by_role("alert").filter(has_text="Editor save failed").wait_for()
+    assert editor.input_value() == "system"
+    page.evaluate("window.failEditorSave = false")
+    editor.select_option("vscode")
+    page.wait_for_function("document.querySelector('#file-editor').value === 'vscode'")
+    assert page.evaluate("window.fileEditor") == "vscode"
+    assert page.locator(".settings-footer").get_by_role("button", name="Enregistrer", exact=True).is_disabled()

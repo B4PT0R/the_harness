@@ -4,6 +4,7 @@ import { languages } from "../locales";
 import { Icon } from "./Icons";
 import { DangerZone } from "./DangerZone";
 import { SurfaceSettings } from "./SurfaceSettings";
+import { FileEditorSettings } from "./FileEditorSettings";
 import { pluginStatusKey } from "../plugins";
 
 export function Settings({ api, onClose }) {
@@ -118,6 +119,7 @@ export function Settings({ api, onClose }) {
                 </select>
               </div>
               <p className="setting-help">{t("languageImmediate")}</p>
+              <FileEditorSettings api={api} />
             </section>
             <section id="settings-conversation" hidden={section !== "conversation"}>
               <label className="setting-field">

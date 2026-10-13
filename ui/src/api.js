@@ -23,7 +23,8 @@ export async function api(path, { method = "GET", body, signal } = {}) {
   }
   if (!response.ok) {
     const message = payload?.error?.message || payload?.error || payload?.detail;
-    throw new Error(typeof message === "string" ? message : translate("requestFailed", { status: response.status }));
+    throw Object.assign(new Error(typeof message === "string" ? message : translate("requestFailed", { status: response.status })),
+      { status: response.status, code: payload?.error?.code });
   }
   return payload;
 }
