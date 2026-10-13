@@ -49,6 +49,7 @@ async function request(path, options = {}) {
     return { editor: window.fileEditor || 'system' };
   }
   if (path === 'local-files/open' && window.failFileOpen) throw new Error('File no longer exists');
+  if (path === 'browser/open-external' && window.failBrowserOpen) throw new Error('Integrated browser unavailable');
   if (path === 'config') return { config: { model: 'test-model' } };
   if (path === 'surfaces') return { surfaces: [{ name: 'main', active: 'active', candidate: 'candidate', previous: 'previous', preview_route: '/preview/main', building: !!window.building }] };
   if (path === 'surfaces/main/cancel') { window.building = false; return { cancelled: true }; }
@@ -296,7 +297,7 @@ def test_chat_paths_open_locally_and_errors_are_visible(page):
     page.evaluate("text => window.emit({ type: 'command_event', event: { type: 'response.output_text.delta', item_id: 'paths', sequence_number: 1, delta: text } })", text)
     message = page.locator(".message").last
     message.locator(".resource-link").first.wait_for()
-    assert message.locator(".resource-link").count() == 3
+    assert message.locator(".resource-link").count() == 4
     assert message.locator("pre a").count() == 0
     message.get_by_role("link", name="/home/baptiste/Documents/a b.md").click()
     request = page.evaluate("window.requests.filter(r => r.path === 'local-files/open').at(-1)")
@@ -305,7 +306,16 @@ def test_chat_paths_open_locally_and_errors_are_visible(page):
     page.evaluate("window.failFileOpen = true")
     message.get_by_role("link", name="image", exact=True).click()
     message.get_by_role("alert").filter(has_text="File no longer exists").wait_for()
-    assert message.get_by_role("link", name="site", exact=True).get_attribute("target") == "_blank"
+    site = message.get_by_role("link", name="site", exact=True)
+    site.click()
+    request = page.evaluate("window.requests.filter(r => r.path === 'browser/open-external').at(-1)")
+    assert request["body"] == {"url": "https://example.org"}
+    assert page.url == "https://harness.test/"
+    site.click(button="middle")
+    assert page.evaluate("window.requests.filter(r => r.path === 'browser/open-external').length") == 2
+    page.evaluate("window.failBrowserOpen = true")
+    site.click()
+    message.get_by_role("alert").filter(has_text="Integrated browser unavailable").wait_for()
 
 
 def test_file_editor_preference_is_immediate_and_failed_save_keeps_previous_value(page):

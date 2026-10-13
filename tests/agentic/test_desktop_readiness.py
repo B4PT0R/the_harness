@@ -101,6 +101,21 @@ def test_unpublished_ui_never_opens_a_browser_or_issues_a_ticket():
     assert api.tickets == {}
 
 
+def test_web_links_use_integrated_browser_and_reject_other_schemes():
+    calls = []
+
+    class Browser:
+        def call(self, *args, **kwargs):
+            calls.append((args, kwargs))
+
+    api = HostedUiApi(Browser(), browser_token="test")
+    assert asyncio.run(api.open_external("https://example.org")) == {"status": "opened"}
+    assert calls == [(("open_web", "https://example.org"), {"new_tab": True})]
+    for url in ("file:///tmp/a", "javascript:alert(1)", "relative/path"):
+        assert asyncio.run(api.open_external(url)).status_code == 422
+    assert len(calls) == 1
+
+
 def test_server_orders_initial_ui_build_before_surface_adoption():
     root = Path(__file__).parents[2] / "packaging/systemd"
     server, browser, tray = [ConfigParser(interpolation=None, strict=False) for _ in range(3)]
