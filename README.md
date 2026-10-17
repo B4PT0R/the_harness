@@ -27,6 +27,10 @@ artifacts. Tool and command artifacts return with the saved history; provider
 artifacts are temporary views for the current turn. Vision inputs alone do not
 request display. Custom UIs can supply `artifactRenderers` to `AssistantApp` for
 additional kinds; unsupported or failing widgets retain a readable fallback.
+All uploaded and published client files share `~/TheHarness/bucket/` (or
+`data_root/bucket/` when configured). Images, videos, audio and other files use
+this same tree and authenticated `/api/v1/bucket/...` URLs, including for authorized
+remote desktop clients. The session stores references and metadata only.
 
 ## Start using it
 

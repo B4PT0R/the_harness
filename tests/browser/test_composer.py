@@ -395,9 +395,9 @@ def test_artifact_rendering_replay_and_widget_fallback(page):
         assert '"value": 42' in page.locator(f".artifact-{kind} pre").inner_text()
     page.evaluate("item => window.publishArtifact(item)", {
         "type": "artifact", "id": "file", "kind": "file",
-        "payload": {"src": "/api/v1/artifacts/report.txt", "name": "rapport.txt"},
+        "payload": {"src": "/api/v1/bucket/report.txt", "name": "rapport.txt"},
     })
-    assert page.get_by_role("link", name="Télécharger rapport.txt").get_attribute("href") == "/api/v1/artifacts/report.txt"
+    assert page.get_by_role("link", name="Télécharger rapport.txt").get_attribute("href") == "/api/v1/bucket/report.txt"
     page.get_by_role("textbox", name="Message", exact=True).fill("Le chat fonctionne toujours")
 
 

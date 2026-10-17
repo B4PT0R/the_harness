@@ -61,10 +61,10 @@ composition belong there.
 During our development of these two projects, the current Framework architecture
 is open to substantial revision. It is a working first iteration, not a fixed
 endpoint: simplify or replace experimental mechanisms when concrete evidence
-supports a clearer design. Preserve existing framework APIs; when a necessary
-change affects them, explicitly coordinate the migration and adapt the Harness
-while maintaining its behavior. Test reusable changes in the Framework before
-adapting this application.
+supports a clearer design. Update the Framework, starter and Harness together
+when an API changes, remove obsolete forms and keep the current behavior working.
+Disposable test data does not require migration or compatibility layers.
+Test reusable changes in the Framework before adapting this application.
 
 The working Framework/Harness pair is the reference for evaluating improvements.
 The Harness is its canonical complete consumer and has grown beyond the minimal
@@ -124,6 +124,15 @@ headless session is not a requirement; opening a visible session and continuing
 there is acceptable.
 
 ## Working approach
+
+During this experimental phase, prefer one clear current contract shared by the
+Framework, starter and Harness. Adapt all consumers together when paths, schemas
+or APIs change, and remove the old forms. Current test files and sessions are
+disposable: do not accumulate migration code or compatibility aliases unless
+Baptiste explicitly asks to preserve existing data. When needed, use standalone,
+one-shot scripts under `migrations/`, removable after execution; never embed
+migration logic in application startup or runtime code. Keep normal conversation
+continuity and restart/reconnect behavior working under the current contract.
 
 Favor proportional safeguards for an experimental, user-controlled application.
 Preserve authentication, persistence, recovery and user intent without adding

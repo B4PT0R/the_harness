@@ -59,6 +59,26 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   version activée localement après aperçu. Serveur redémarré avec même session
   et même révision, navigateur conservé ; précédente interface disponible.
 
+- [x] **Bucket serveur commun — 18 octobre.** Toutes les nouvelles pièces jointes
+  et publications partagent `data_root/bucket/`, sans racine distincte par type.
+  Route authentifiée `/api/v1/bucket/...`, sous-dossiers et lecture par plages,
+  accessible aux clients desktop distants autorisés. État privé hors bucket ;
+  session limitée aux références et métadonnées. Baptiste précise que les données
+  de test actuelles sont jetables : pas de migration ni d'alias de compatibilité.
+  Si une migration est explicitement nécessaire ultérieurement, utiliser un script
+  ponctuel dans `migrations/`, supprimable après exécution ; jamais dans le runtime.
+  Validation : 616 tests Framework et scénario réel starter ; 132 tests backend
+  Harness et test d'accès distant. Installation redémarrée ; lecture HTTP locale
+  authentifiée avec Range validée sur un fichier temporaire du bucket nettoyé ensuite.
+  La suite complète Harness conserve un échec UI de défilement, consigné ci-dessous.
+
+- [ ] **Suivi du bas lors du chargement d'une image.** Le test navigateur
+  `test_artifact_rendering_replay_and_widget_fallback` échoue parfois avant le
+  contrôle des liens de fichiers : image chargée, conversation pas arrivée au
+  bas. Reproduit pendant le lot bucket, sans modification du code UI. Attendre
+  les fontes et stabiliser le viewport ne suffit pas ; investiguer la perte de
+  `follow.current` lors des changements de hauteur. Hors du lot stockage.
+
 ## Livré dans cette passe
 
 - [x] Ancienne application désinstallée et dépôt archivé dans `~/dev/the_succubus`.

@@ -71,3 +71,12 @@ def test_full_interface_reset_routes_are_exact_and_method_scoped():
         assert access.allowed("DELETE", path)
         assert not access.allowed("POST", path)
         assert not access.allowed("DELETE", path + "/anything")
+
+
+def test_remote_desktop_bucket_access_is_read_only_and_confined_to_its_route():
+    from the_harness.plugins.client_remote.policy import RemoteDesktopAccess
+    access = RemoteDesktopAccess()
+    assert access.allowed("GET", "/api/v1/bucket/project/video.mp4")
+    assert not access.allowed("POST", "/api/v1/bucket/project/video.mp4")
+    assert not access.allowed("GET", "/api/v1/bucket/../session.json")
+    assert not access.allowed("GET", "/api/v1/bucket-private/session.json")

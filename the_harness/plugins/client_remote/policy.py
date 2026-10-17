@@ -39,7 +39,7 @@ class RemoteDesktopAccess:
         self.frozen = False
         self.add_exact(*BASE_REMOTE_DESKTOP_API)
         self.add_subtree("/api/v1/client-remote/clients", ("DELETE",), include_base=False)
-        self.add_subtree("/api/v1/artifacts", ("GET",), include_base=False)
+        self.add_subtree("/api/v1/bucket", ("GET",), include_base=False)
 
     def _ensure_mutable(self):
         if self.frozen:

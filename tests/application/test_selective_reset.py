@@ -42,7 +42,7 @@ def test_reset_preserves_unrelated_data_and_restores_failed_reset(tmp_path, kind
         "session.auxiliaries/memory.jiminy/session.json",
         "session.auxiliaries/other/session.json",
         *MEMORY_RESET_ENTRIES[:3], "registry.json", "config.json",
-        "files/keep.txt", "scheduler.json", "plugins.json",
+        "bucket/keep.txt", "bucket/subtree/report.pdf", "scheduler.json", "plugins.json",
     ]
     for name in paths:
         path = tmp_path / name
