@@ -4,6 +4,32 @@ Relevé du 10 octobre 2026. Le but est une application canonique de The Framewor
 avec une identité configurable, des outils utiles et une composition lisible.
 Privilégier les propriétaires clairs et la suppression de code à des adaptateurs.
 
+## Remarques à reprendre après l'audit en cours — 17 octobre 2026
+
+- [ ] **Simplifier le parcours CLI de création et lancement.** Le bootstrap du
+  Framework copie actuellement le starter puis laisse l'installation npm,
+  Chromium, le build et le lancement à effectuer séparément. Viser un parcours
+  évident, avec environnement Python propre à l'application, préparation
+  reprenable et diagnostic des prérequis. Intégrer cette proposition à l'audit
+  des primitives ; implémentation dans un lot ultérieur.
+- [ ] **Diagnostiquer l'ouverture du navigateur de l'installation locale.**
+  Baptiste signale que l'interface ne s'ouvre plus alors qu'elle fonctionnait.
+  Première vérification en lecture seule : unités serveur et navigateur actives,
+  unité de compilation UI terminée avec succès. Cela ne confirme ni la santé
+  applicative ni l'ouverture de la fenêtre. Reprendre le diagnostic après avoir
+  livré l'audit ; aucun redémarrage ni changement de données effectué.
+- [ ] **Stabiliser la langue des tests navigateur.** État de départ de l'audit :
+  `uv run pytest -q` donne 137 succès et 6 échecs, tous en attente d'un bouton
+  « Réglages ». Cause confirmée sur le même montage de test : navigateur en
+  `en-US`, bouton « Settings » présent, puis bouton « Réglages » disponible après
+  sélection explicite du français. Fixer la locale des scénarios pour les rendre
+  déterministes.
+  Ne pas assimiler ces échecs à la panne d'ouverture de l'installation.
+
+Pour la refonte envisagée, Baptiste accepte les ruptures des API Python du
+Framework et l'adaptation coordonnée du Harness. Ne pas conserver des couches de
+compatibilité sans consommateur réel ; préserver la conversation et les données.
+
 ## Livré dans cette passe
 
 - [x] Ancienne application désinstallée et dépôt archivé dans `~/dev/the_succubus`.
