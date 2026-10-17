@@ -181,8 +181,6 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
   .settings-back { max-width: 65%; }
   .settings .plugin-row { flex-wrap: wrap; }
   .settings .plugins small { width: 100%; margin-left: 0; }
-  .settings .surface-card dl { grid-template-columns: 1fr; }
-  .settings .surface-card dd { text-align: left; }
 }
 .attachments { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-block: var(--space-2); }
 .attachments button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-control); }
@@ -206,16 +204,4 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
   .context-gauge-fill { transition: none; }
 }
 
-/* Interface release controls share the settings content area. */
 .setting-help { color: var(--color-muted); font-size: var(--font-size-sm); line-height: var(--line-height-body); }
-.surface-settings { display: grid; gap: var(--space-3); font-size: var(--font-size-control); }
-.surface-settings > .setting-help { margin-bottom: 0; }
-.surface-settings > button { justify-self: start; }
-.surface-card { border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--radius-md); padding: var(--space-3); }
-.surface-card dl { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1) var(--space-2); margin-block: var(--space-3); font-size: var(--font-size-sm); }
-.surface-card dt { color: var(--color-muted); }
-.surface-card dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
-.surface-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.surface-actions button, .surface-actions a { font-size: var(--font-size-sm); }
-.surface-actions a { color: var(--color-link); text-underline-offset: var(--space-1); }
-.surface-confirmation { margin-top: var(--space-3); border-top: var(--border-width) solid var(--color-border); }

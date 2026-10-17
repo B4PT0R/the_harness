@@ -42,6 +42,11 @@ other clients. These services should run independently of the local desktop UI
 and an active conversation, with client-visible files using the shared bucket.
 This describes the project's direction; individual services remain to be built.
 
+The same server may serve different client surfaces for desktop, mobile, Quest
+or other devices. The agent can maintain each surface's source, build, routes,
+preview and publication independently, while clients share the server and durable
+conversation. Device-specific native clients remain future work.
+
 ## Start using it
 
 The current installation targets Ubuntu with a systemd user session. You need
@@ -160,6 +165,9 @@ both layers. See [test discipline](tests/README.md) for classification and clean
 
 For UI changes, inspect the rendered result as well as the tests, and use the
 candidate build/preview/publication workflow to update the running interface.
+Deployment controls belong to the agent's `system` plugin, rather than the base
+settings interface. The agent inspects the authenticated preview through its
+browser tools before publishing; the previous release remains available for rollback.
 For shared framework changes, verify the framework independently before relying
 on them here. The [UI guide](ui/README.md) and
 [framework composition guide](../the_framework/docs/framework.md) are the next

@@ -5,7 +5,6 @@ import asyncio
 import json
 import os
 import sys
-from pathlib import Path
 
 from the_framework.server.runtime.local import LocalServer
 
@@ -38,19 +37,12 @@ def main():
     load_runtime_environment(session_path)
     descriptor = paths.descriptor_path
     with LocalServer(descriptor, port=args.port) as process:
-        source_ui = Path(__file__).parents[1] / "desktop" / ".surface-build"
-        ui_root = (
-            args.ui_root
-            or os.environ.get("THE_HARNESS_UI_ROOT")
-        )
-        if ui_root is None and source_ui.is_dir():
-            ui_root = source_ui
         app = create_app(
             session_path=session_path,
             token=process.token,
             browser_token=process.browser_token,
             allowed_origins=set(args.origin),
-            ui_root=ui_root,
+            ui_root=args.ui_root or os.environ.get("THE_HARNESS_UI_ROOT"),
             restart=process.request_restart,
             browser_runtime_root=paths.machine_root,
             client_remote_root=paths.machine_root,

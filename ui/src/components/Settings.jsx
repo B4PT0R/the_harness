@@ -3,7 +3,6 @@ import { useLocale } from "../i18n";
 import { languages } from "../locales";
 import { Icon } from "./Icons";
 import { DangerZone } from "./DangerZone";
-import { SurfaceSettings } from "./SurfaceSettings";
 import { FileEditorSettings } from "./FileEditorSettings";
 import { pluginStatusKey } from "../plugins";
 
@@ -91,7 +90,7 @@ export function Settings({ api, onClose }) {
       setChangingPlugin(null);
     }
   }
-  const sections = ["general", "conversation", "capabilities", "interface", "advanced", "data"];
+  const sections = ["general", "conversation", "capabilities", "advanced", "data"];
   return (
     <section className="settings" aria-label={t("settings")}>
       <header className="settings-header">
@@ -147,9 +146,6 @@ export function Settings({ api, onClose }) {
                   <small>{t(changingPlugin === plugin.name ? "saving" : pluginStatusKey(plugin))}</small>
                 </div>)}
               </div>
-            </section>
-            <section id="settings-interface" hidden={section !== "interface"}>
-              <SurfaceSettings api={api} active={section === "interface"} />
             </section>
             <section id="settings-advanced" hidden={section !== "advanced"}>
               <label className="setting-field" htmlFor="config">{t("configJson")}</label>

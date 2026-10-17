@@ -79,29 +79,6 @@ def test_worker_recovery_clears_only_the_disconnect_error(page):
     assert page.locator("textarea").input_value() == "Keep this unsent draft"
 
 
-@pytest.mark.parametrize("width", [1280, 390])
-def test_interface_release_confirmations_and_external_build(page, width):
-    page.set_viewport_size({"width": width, "height": 800})
-    page.locator("button[aria-label='Réglages']").click()
-    page.locator(".settings-nav").get_by_role("button", name="Interface", exact=True).click()
-    panel = page.locator(".surface-settings")
-    panel.get_by_role("button", name="Publier", exact=True).click()
-    assert panel.locator(".surface-confirmation").is_visible()
-    assert not page.evaluate("window.requests.some(r => r.path === 'surfaces/main/publish')")
-    panel.get_by_role("button", name="Annuler", exact=True).click()
-    assert panel.locator(".surface-confirmation").count() == 0
-    panel.get_by_role("button", name="Publier", exact=True).click()
-    panel.get_by_role("button", name="Confirmer", exact=True).click()
-    page.wait_for_function("window.requests.some(r => r.path === 'surfaces/main/publish')")
-    assert page.evaluate("window.requests.find(r => r.path === 'surfaces/main/publish').body") == {"release": "candidate"}
-    page.evaluate("window.building = true")
-    panel.get_by_role("button", name="Actualiser", exact=True).click()
-    panel.get_by_role("button", name="Annuler la compilation", exact=True).wait_for()
-    assert panel.get_by_role("button", name="Construire un aperçu", exact=True).is_disabled()
-    panel.get_by_role("button", name="Annuler la compilation", exact=True).click()
-    page.wait_for_function("window.requests.some(r => r.path === 'surfaces/main/cancel')")
-    page.wait_for_function("!window.building")
-    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
 
 
 @pytest.mark.parametrize("width", [1280, 390])
@@ -115,6 +92,8 @@ def test_fullscreen_settings_preserve_drafts_and_keyboard_navigation(page, width
     assert page.locator(".workspace > main").is_hidden()
     assert settings.evaluate("el => el.getBoundingClientRect().width") == width
     nav = settings.get_by_role("navigation", name="Sections des réglages")
+    assert nav.get_by_role("button", name="Interface", exact=True).count() == 0
+    assert not page.evaluate("window.requests.some(r => r.path.startsWith('surfaces'))")
     nav.get_by_role("button", name="Conversation", exact=True).click()
     instructions = settings.get_by_role("textbox", name="Instructions personnelles")
     instructions.fill("Une instruction conservée entre les sections")

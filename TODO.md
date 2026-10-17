@@ -6,6 +6,29 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 
 ## Remarques à reprendre après l'audit en cours — 17 octobre 2026
 
+- [x] **Livraison des surfaces et contrôles agentiques — 18 octobre.** Le service
+  de surfaces initialise les bundles déclarés ; le Harness retire son chemin
+  de secours dupliqué. Candidat persisté, publication/rollback explicites, copie
+  atomique des versions et priorité à une version connue. Les contrôles ont été
+  retirés des réglages à la demande de Baptiste, avec composant/CSS/traductions
+  et anciens tests UI supprimés ; outils conservés dans `system`, état disponible
+  via `system.surfaces`. Interface inspectée sur bureau/mobile et publiée sur
+  l'installation ; même conversation, candidat retrouvé après restart et rollback
+  disponible. Chaque device peut avoir sa propre surface, maintenue par l'agent :
+  test desktop/mobile/Quest sur trois sources et historiques indépendants.
+- [ ] **Aperçu dans le navigateur agentique — authentification à raccorder.**
+  Le contexte web séparé du Harness reçoit un 401 sans cookie, tandis qu'un
+  navigateur distinct authentifié charge l'aperçu avec le desktop connecté.
+  Prévoir un accès privé normal par les outils, sans déplacer la page de chat ni
+  affaiblir l'authentification. Le refus 1013 d'une seconde socket du bridge
+  `/api/v1/application` est une contrainte distincte, à revoir avec les clients
+  mobile/Quest ; le flux de chat `/api/v1/events` accepte plusieurs connexions.
+- [ ] **Identifiants DOM du navigateur agentique.** Une nouvelle capture attribue
+  des identifiants réutilisés sans retirer ceux des éléments devenus cachés :
+  après ouverture des réglages, clic sur Retour refusé car un élément de chat
+  masqué porte le même ID. Corriger le snapshot/locator et vérifier ce changement
+  d'écran ; observation faite pendant la validation de cette tranche.
+
 - [x] **Parcours CLI de création et lancement — 18 octobre.** Le Framework prépare
   désormais l'environnement Python propre à l'application, Chromium, npm et UI
   dès `bootstrap` ; `--run` permet le lancement immédiat. Commandes `prepare`
