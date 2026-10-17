@@ -5,13 +5,14 @@ import { voiceSession } from "../voice";
 import { translate } from "../locales.js";
 import { contextState, initialContext } from "../context.js";
 import { pluginRunning } from "../plugins";
-import { conversationBusy, conversationCommand, eventMessages, snapshot, voiceCaptions } from "../session";
+import { conversationBusy, conversationCommand, eventMessages, providerArtifacts, snapshot, voiceCaptions } from "../session";
 
 // Browser client state only. Conversation history remains owned by the server.
 // Hosts can supply their request function and event endpoint without changing UI.
 export function useAssistant({ request = defaultApi, eventsUrl = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/api/v1/events`, eventProtocol = "the-harness", refreshKey } = {}) {
   const api = request;
   const [messages, setMessages] = useState([]);
+  const [artifacts, setArtifacts] = useState([]);
   const [before, setBefore] = useState(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const historyInitialized = useRef(false);
@@ -73,6 +74,9 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   }, [context.phase]);
   const scroll = useRef(null);
   const follow = useRef(true);
+  const followLatest = useCallback(() => {
+    if (follow.current) scroll.current?.scrollTo({ top: scroll.current.scrollHeight });
+  }, []);
   const onScroll = useCallback(() => {
     const element = scroll.current;
     follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
@@ -153,6 +157,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           refreshStatus().catch(fail);
         if (output.type === "command_failed" && output.error) setError(output.error);
         if (["worker_exited", "worker_transport_error"].includes(output.type)) {
+          setArtifacts([]);
           workerError = output.error || translate("workerDisconnected");
           setError(workerError);
         }
@@ -169,6 +174,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         }
         if (output.type === "command_event") {
           const event = output.event;
+          setArtifacts((items) => providerArtifacts(items, event));
           setMessages((items) => eventMessages(items, event));
           if (event.user_feedback) setActivity(event.user_feedback);
         }
@@ -182,12 +188,14 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           ["command_completed", "command_failed"].includes(output.type) &&
           (conversationCommand(output) || output.command?.type === "compact_request")
         ) {
+          if (conversationCommand(output)) setArtifacts([]);
           setActivity("");
           reconcile().catch(fail);
         }
       };
       active.onclose = () => {
         if (!current()) return;
+        setArtifacts([]);
         void voice.current?.stop();
         transcripts.reset();
         setCaptions({});
@@ -218,9 +226,8 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     };
   }, [api, eventsUrl, eventProtocol]);
   useEffect(() => {
-    if (follow.current)
-      scroll.current?.scrollTo({ top: scroll.current.scrollHeight });
-  }, [messages, activity, captions]);
+    followLatest();
+  }, [messages, artifacts, activity, captions, followLatest]);
   useLayoutEffect(() => {
     if (historyScroll.current && scroll.current) {
       const { height, top } = historyScroll.current;
@@ -291,7 +298,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   }
   return {
     context, compact,
-    messages, captions, before, loadingHistory, loadHistory, scroll, follow, onScroll,
+    messages, artifacts, captions, before, loadingHistory, loadHistory, scroll, follow, onScroll, onContentLoad: followLatest,
     sending, connection, activity, busy,
     error, setError, chatAvailable, voiceAvailable, voiceState, send,
     toggleVoice: () => voiceState === "idle" ? voice.current.start() : voice.current.stop(),

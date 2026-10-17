@@ -30,6 +30,11 @@ class Socket {
 }
 window.WebSocket = Socket;
 window.emit = (event) => window.socket.onmessage({ data: JSON.stringify(event) });
+window.publishArtifact = (item) => {
+  const saved = JSON.parse(localStorage.getItem('test-artifacts') || '[]');
+  localStorage.setItem('test-artifacts', JSON.stringify([...saved.filter(value => value.id !== item.id), item]));
+  window.emit({type: 'command_event', event: {type: 'agent.response_item.added', item}});
+};
 const text = '# Message\\n\\nSome **rich text**, a [link](https://example.org), and $x^2$.\\n\\n- First\\n- Second\\n\\n```python\\nprint(42)\\n```';
 const items = Array.from({ length: 80 }, (_, id) => ({
   type: 'message', id: String(id), role: id % 2 ? 'assistant' : 'user', content: [{ text }],
@@ -55,11 +60,13 @@ async function request(path, options = {}) {
   if (path === 'surfaces/main/cancel') { window.building = false; return { cancelled: true }; }
   if (path === 'plugins') return { plugins: [{ name: 'chat', running: true }] };
   if (path === 'status') return { foreground_active: false, foreground_pending: 0 };
-  if (path.startsWith('session')) return { turns: [{ items }], has_more: true, next_before: 'older' };
+  if (path.startsWith('session')) return { turns: [{ items: [...items, ...JSON.parse(localStorage.getItem('test-artifacts') || '[]')] }], has_more: true, next_before: 'older' };
   if (path.startsWith('agent/') && window.failSend) throw new Error('Send failed');
   return {};
 }
-createRoot(document.getElementById('root')).render(<AssistantApp request={request} />);
+const renderers = { weather: ({payload}) => <p>{payload.city} · {payload.temperature} °C</p>,
+  broken: () => { throw new Error('Widget failed'); } };
+createRoot(document.getElementById('root'), {onCaughtError: () => {}}).render(<AssistantApp request={request} artifactRenderers={renderers} />);
 """
     build = """
 import { build } from 'esbuild';
@@ -80,6 +87,12 @@ await build({
 });
 """.replace("ENTRY", json.dumps(entry)).replace("OUTPUT", json.dumps(str(output / "app.js")))
     subprocess.run(["node", "--input-type=module", "-e", build], cwd=ROOT, check=True, capture_output=True)
+    from PIL import Image, ImageDraw
+    image = Image.new("RGB", (640, 200), "#153b39")
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((30, 30, 610, 170), radius=16, fill="#23544f")
+    draw.line([(55, 145), (150, 115), (250, 130), (365, 65), (480, 85), (585, 45)], fill="#a7e4d2", width=4)
+    image.save(output / "artifact-fixture.png")
     return output
 
 
@@ -102,6 +115,8 @@ def page(bundle):
             name = route.request.url.rsplit("/", 1)[-1]
             if name in {"app.js", "app.css"}:
                 route.fulfill(path=str(bundle / name), content_type="text/javascript" if name.endswith("js") else "text/css")
+            elif name == "artifact-fixture.png":
+                route.fulfill(path=str(bundle / name), content_type="image/png")
             else:
                 route.fulfill(body='<div id="root"></div><link rel="stylesheet" href="/app.css"><script src="/app.js"></script>', content_type="text/html")
 
@@ -347,3 +362,53 @@ def test_file_editor_preference_is_immediate_and_failed_save_keeps_previous_valu
     page.wait_for_function("document.querySelector('#file-editor').value === 'vscode'")
     assert page.evaluate("window.fileEditor") == "vscode"
     assert page.locator(".settings-footer").get_by_role("button", name="Enregistrer", exact=True).is_disabled()
+
+
+def test_artifact_rendering_replay_and_widget_fallback(page):
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.evaluate("const el = document.querySelector('.conversation'); el.scrollTop = el.scrollHeight")
+    page.wait_for_timeout(100)
+    page.screenshot(path="/tmp/harness-artifacts-before.png")
+    artifact = {"type": "artifact", "id": "plot", "kind": "image", "payload": {
+        "src": "/artifact-fixture.png", "title": "Résultat de l’analyse", "description": "Un aperçu conservé dans la conversation.",
+    }}
+    page.evaluate("item => window.publishArtifact(item)", artifact)
+    page.locator(".artifact img").wait_for()
+    page.wait_for_function("document.querySelector('.artifact img').naturalWidth === 640")
+    page.wait_for_function("(() => {const el = document.querySelector('.conversation'); return el.scrollHeight - el.scrollTop - el.clientHeight < 5;})()")
+    page.screenshot(path="/tmp/harness-artifacts-after.png")
+    page.evaluate("item => window.publishArtifact(item)", artifact)
+    assert page.locator(".artifact").count() == 1
+    page.reload()
+    page.wait_for_function("document.querySelector('.artifact img')?.naturalWidth === 640")
+    assert page.locator(".artifact").count() == 1
+    page.evaluate("item => window.publishArtifact(item)", {
+        "type": "artifact", "id": "weather", "kind": "weather",
+        "payload": {"city": "Paris", "temperature": 18, "title": "Météo"},
+    })
+    page.get_by_text("Paris · 18 °C", exact=True).wait_for()
+    for kind in ["unknown", "broken"]:
+        page.evaluate("item => window.publishArtifact(item)", {
+            "type": "artifact", "id": kind, "kind": kind, "payload": {"value": 42},
+        })
+        page.locator(f".artifact-{kind} summary").click()
+        assert '"value": 42' in page.locator(f".artifact-{kind} pre").inner_text()
+    page.evaluate("item => window.publishArtifact(item)", {
+        "type": "artifact", "id": "file", "kind": "file",
+        "payload": {"src": "/api/v1/artifacts/report.txt", "name": "rapport.txt"},
+    })
+    assert page.get_by_role("link", name="Télécharger rapport.txt").get_attribute("href") == "/api/v1/artifacts/report.txt"
+    page.get_by_role("textbox", name="Message", exact=True).fill("Le chat fonctionne toujours")
+
+
+def test_provider_artifacts_replace_then_disappear_without_replay(page):
+    for index in [1, 2]:
+        page.evaluate("index => window.emit({type: 'command_event', event: {type: 'agent.provider_artifacts.updated', items: ["
+                      "{type: 'artifact', id: 'screen-' + index, kind: 'image', payload: {src: '/artifact-fixture.png', title: 'Vue ' + index}}]}})", index)
+        page.get_by_role("heading", name=f"Vue {index}", exact=True).wait_for()
+        assert page.locator(".artifact").count() == 1
+    page.evaluate("window.emit({type: 'command_event', event: {type: 'agent.turn.end'}})")
+    page.wait_for_function("document.querySelectorAll('.artifact').length === 0")
+    page.reload()
+    page.wait_for_function("document.querySelectorAll('.message').length === 80")
+    assert page.locator(".artifact").count() == 0

@@ -92,6 +92,13 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .message th { background: var(--color-surface-raised); }
 .message blockquote { margin-left: 0; border-left: var(--space-1) solid var(--color-accent); padding-left: var(--space-4); color: var(--color-muted); }
 .message img { max-width: 100%; }
+.artifact { border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--radius-lg); padding: var(--space-5); background: var(--color-surface-raised); }
+.artifact h3 { margin: 0 0 var(--space-3); }
+.artifact img { display: block; width: auto; max-height: 32rem; object-fit: contain; border-radius: var(--radius-md); }
+.artifact-description { margin-top: var(--space-3) !important; color: var(--color-muted); }
+.artifact-download { display: inline-block; font-weight: var(--font-weight-strong); }
+.artifact-fallback summary { cursor: pointer; color: var(--color-muted); }
+.artifact-fallback pre { margin-bottom: 0; max-height: 20rem; }
 .message .katex-display { overflow-x: auto; overflow-y: hidden; padding: var(--space-2); }
 .composer-area { padding: 0 var(--page-padding) var(--space-5); width: min(100%, var(--composer-width)); margin: auto; }
 .activity { font-size: var(--font-size-sm); color: var(--color-muted); padding: var(--space-1); margin-bottom: var(--space-2); }

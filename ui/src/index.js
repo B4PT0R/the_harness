@@ -1,6 +1,7 @@
 export { AssistantApp } from "./AssistantApp.jsx";
 export { AppShell } from "./components/AppShell.jsx";
 export { Conversation } from "./components/Conversation.jsx";
+export { Artifact } from "./components/Artifact.jsx";
 export { Composer } from "./components/Composer.jsx";
 export { Settings } from "./components/Settings.jsx";
 export { DangerZone } from "./components/DangerZone.jsx";

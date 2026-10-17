@@ -22,6 +22,12 @@ attachments, memory, a structured registry and scheduled tasks. Settings control
 which optional tools are exposed to the agent. The application runs locally;
 model inference uses the backend account you authenticate below.
 
+Images, files and application widgets can appear as explicit conversation
+artifacts. Tool and command artifacts return with the saved history; provider
+artifacts are temporary views for the current turn. Vision inputs alone do not
+request display. Custom UIs can supply `artifactRenderers` to `AssistantApp` for
+additional kinds; unsupported or failing widgets retain a readable fallback.
+
 ## Start using it
 
 The current installation targets Ubuntu with a systemd user session. You need

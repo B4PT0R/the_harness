@@ -10,14 +10,14 @@ import { ResourceRequest } from "./components/ResourceLink";
 import "./theme.css";
 import "./style.css";
 
-function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./assistant.svg" }) {
+function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./assistant.svg", artifactRenderers }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const state = useAssistant({ request, eventsUrl, eventProtocol, refreshKey: settingsOpen });
   return <ResourceRequest.Provider value={request}><AppShell connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
     settings={settingsOpen && <Settings api={request} onClose={() => setSettingsOpen(false)} />}
   >
-    <Conversation messages={state.messages} captions={state.captions} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
-      onScroll={state.onScroll}
+    <Conversation messages={state.messages} artifacts={state.artifacts} captions={state.captions} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
+      onScroll={state.onScroll} onContentLoad={state.onContentLoad} artifactRenderers={artifactRenderers}
     />
     <Composer sending={state.sending}
       chatAvailable={state.chatAvailable} voiceAvailable={state.voiceAvailable} voiceState={state.voiceState} busy={state.busy} connected={state.connection === "Connected"}

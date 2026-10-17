@@ -48,6 +48,17 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   préservé et même conversation. Interface vérifiée puis publiée localement,
   avec version précédente disponible pour rollback.
 
+- [x] **Artefacts natifs — 18 octobre.** Plugin partagé `ARTIFACTS` assemblé dans
+  le Harness et le starter. Sorties d'outils/commandes persistées dans la session,
+  sorties de providers temporaires pour le tour courant, sans persistance.
+  Images vision exclues du chat ; artefacts image/fichier rendus, widgets par
+  renderers applicatifs et fallback isolé. Copies durables authentifiées, route
+  accessible aux clients desktop déjà autorisés. Tests de replay, renouvellement
+  éphémère et résilience du chat ; aucune seconde timeline à maintenir.
+  Validation : 146 tests Python Harness, 46 tests JS, build et contrôle visuel ;
+  version activée localement après aperçu. Serveur redémarré avec même session
+  et même révision, navigateur conservé ; précédente interface disponible.
+
 ## Livré dans cette passe
 
 - [x] Ancienne application désinstallée et dépôt archivé dans `~/dev/the_succubus`.

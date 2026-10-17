@@ -14,6 +14,7 @@ from the_framework.plugins.web_search import WEB_SEARCH
 
 from .agent_definition import ASSISTANT_AGENT
 from .plugins.browser import PLUGIN as CHROMIUM
+from the_framework.plugins.artifacts import ARTIFACTS
 from the_framework.plugins.chat import CHAT
 from .plugins.client_remote import PLUGIN as CLIENT_REMOTE
 from .plugins.desktop_notifications import PLUGIN as DESKTOP_NOTIFICATIONS
@@ -39,7 +40,7 @@ application = ApplicationSpec(
         LOCAL_FILES,
         CLIENT_REMOTE,
         HOSTED_UI,
-        CHAT,
+        CHAT, ARTIFACTS,
         BASH,
         WEB_SEARCH,
         SCHEDULER,

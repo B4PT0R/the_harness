@@ -3,6 +3,9 @@
 export const languages = { fr: "Français", en: "English" };
 export const messages = {
   fr: {
+    artifactTemporary: "Vue du tour en cours", artifact: "Artefact", artifactImage: "Image partagée", artifactFile: "Fichier",
+    artifactUnavailable: "Ce contenu est indisponible.", artifactDownload: "Télécharger {name}",
+    artifactDetails: "Contenu {kind} — afficher les données", plugin_artifacts: "Artefacts",
     fileEditor: "Éditeur des fichiers texte", systemEditor: "Éditeur système par défaut",
     fileEditorHelp: "Choix enregistré immédiatement. Les dossiers et les fichiers non texte s’ouvrent dans l’explorateur système (dossier contenant le fichier).",
     openLocalResource: "Ouvrir sur cet ordinateur : {path}", localResourcesOnly: "L’ouverture de fichiers et les préférences d’éditeur sont réservées à l’interface locale.",
@@ -47,6 +50,9 @@ export const messages = {
     plugin_scheduler: "Planification", plugin_chromium: "Navigateur", plugin_system: "Système", plugin_registry: "Registre",
   },
   en: {
+    artifactTemporary: "Current turn view", artifact: "Artifact", artifactImage: "Shared image", artifactFile: "File",
+    artifactUnavailable: "This content is unavailable.", artifactDownload: "Download {name}",
+    artifactDetails: "{kind} content — show data", plugin_artifacts: "Artifacts",
     fileEditor: "Text file editor", systemEditor: "Default system text editor",
     fileEditorHelp: "Saved immediately. Folders and non-text files open in the system file manager (the file’s containing folder).",
     openLocalResource: "Open on this computer: {path}", localResourcesOnly: "File opening and editor preferences are only available in the local interface.",
