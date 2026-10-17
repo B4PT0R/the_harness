@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { api } from "./api.js";
-import { translate } from "./locales.js";
+import { api } from "../../src/api.js";
+import { translate } from "../../src/locales.js";
 
 for (const [label, status, body, message] of [
   ["structured error", 409, '{"error":{"message":"Build failed"}}', "Build failed"],

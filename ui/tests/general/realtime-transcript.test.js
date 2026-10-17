@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { RemoteRealtimeTranscriptAssembler } from "./realtime-transcript.js";
+import { RemoteRealtimeTranscriptAssembler } from "../../src/realtime-transcript.js";
 
 const caption = (text, role = "user") => ({ type: "realtime_event", event: {
   type: role === "user" ? "input_transcript.added" : "output_transcript.added", item: { text },

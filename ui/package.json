@@ -9,7 +9,7 @@
     "./style.css": "./src/style.css"
   },
   "scripts": {
-    "test": "node --test src/*.test.js"
+    "test": "node --test"
   },
   "peerDependencies": {
     "react": "^19.0.0"

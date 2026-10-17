@@ -148,6 +148,10 @@ npm test
 npm run build
 ```
 
+Python and UI suites distinguish durable contracts in `tests/general/` from
+revisable implementation feedback in `tests/agentic/`. The default commands run
+both layers. See [test discipline](tests/README.md) for classification and cleanup.
+
 For UI changes, inspect the rendered result as well as the tests, and use the
 candidate build/preview/publication workflow to update the running interface.
 For shared framework changes, verify the framework independently before relying

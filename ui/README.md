@@ -11,9 +11,10 @@ mobile/Quest hosts. It has no dependency on the desktop entry point.
   otherwise the draft is preserved. Sending status remains application-owned.
 - `Conversation` and its messages are memoized; keep its callback props stable so
   composer edits never reparse the transcript's Markdown. Unchanged messages also
-  stay cached while another message streams. Browser regressions live in
-  `tests/browser/test_composer.py` and run with pytest when Node dependencies and
-  Playwright Chromium are installed.
+  stay cached while another message streams. Browser behavior contracts live in
+  `tests/general/test_chat_ui.py`; current render-count feedback lives in
+  `tests/agentic/test_composer_rendering.py`. Both run with pytest when Node
+  dependencies and Playwright Chromium are installed.
 - Visual components receive data and actions through props. `Settings` receives
   its request function; it does not choose a desktop backend.
 - Hosts can configure `request`, `eventsUrl`, `eventProtocol` and `brandIcon` on

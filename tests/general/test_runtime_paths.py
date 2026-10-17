@@ -83,3 +83,10 @@ def test_moving_data_keeps_machine_state_in_place(tmp_path):
     assert paths.data_root == selected
     assert paths.machine_root == machine
     assert paths.descriptor_path == machine / "runtime/server.json"
+
+
+def test_default_machine_and_data_roots(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("THE_HARNESS_MACHINE_ROOT", raising=False)
+    assert bootstrap_root() == tmp_path / ".the_harness_assistant"
+    assert resolve_data_root() == tmp_path / "TheHarness"

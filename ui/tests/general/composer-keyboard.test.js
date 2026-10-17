@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { handleComposerKeyDown } from "./composer-keyboard.js";
+import { handleComposerKeyDown } from "../../src/composer-keyboard.js";
 
 function press(overrides = {}, canSubmit = true) {
   let prevented = 0;

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { localPath, remarkLocalPaths } from "./local-paths.js";
+import { localPath, remarkLocalPaths } from "../../src/local-paths.js";
 
 const transform = (children) => {
   const tree = { type: "root", children: [{ type: "paragraph", children }] };

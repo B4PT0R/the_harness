@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { contextState, contextPercent, initialContext } from "./context.js";
+import { contextState, contextPercent, initialContext } from "../../src/context.js";
 const event = (type, command_id = "turn") => ({ type: "command_event", command_id, event: { type } });
 const status = (extra = {}) => ({ type: "worker_status", local_input_tokens: 50, context_token_limit: 200, ...extra });
 
