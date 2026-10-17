@@ -6,12 +6,12 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 
 ## Remarques à reprendre après l'audit en cours — 17 octobre 2026
 
-- [ ] **Simplifier le parcours CLI de création et lancement.** Le bootstrap du
-  Framework copie actuellement le starter puis laisse l'installation npm,
-  Chromium, le build et le lancement à effectuer séparément. Viser un parcours
-  évident, avec environnement Python propre à l'application, préparation
-  reprenable et diagnostic des prérequis. Intégrer cette proposition à l'audit
-  des primitives ; implémentation dans un lot ultérieur.
+- [x] **Parcours CLI de création et lancement — 18 octobre.** Le Framework prépare
+  désormais l'environnement Python propre à l'application, Chromium, npm et UI
+  dès `bootstrap` ; `--run` permet le lancement immédiat. Commandes `prepare`
+  reprenable et `run`, diagnostic uv/Node/npm, reconstruction de l'UI éditée.
+  Huit tests CLI/wheel, 621 tests Framework et essai réel hors dépôt avec chemins
+  contenant des espaces ; aucun appel d'inférence pour cette validation.
 - [x] **Ouverture du navigateur local rétablie.** Le daemon avait accumulé 337
   pilotes Node/Playwright et atteint sa limite de descripteurs (1019 ouverts,
   limite souple de 1024). `BrowserSession` dans le Framework nettoie désormais
@@ -77,8 +77,9 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   de scroll, au lieu d'un effet passif susceptible de perdre `follow.current`.
   Même correction dans le starter. Tests Chromium avec chargement immédiat ou
   retardé, conservation de la position pendant la lecture de l'historique et
-  reprise du suivi au retour en bas. Suite Harness : 148 succès, puis quatre
-  scénarios ciblés ; Framework 616 succès, tests/builds JS et rendu vérifiés.
+  reprise du suivi au retour en bas. Suite Harness : 150 succès avec la matrice
+  chargement immédiat/retardé ; tests/builds JS et rendu vérifiés. Correction
+  activée localement après aperçu, avec version précédente disponible.
 
 ## Livré dans cette passe
 
