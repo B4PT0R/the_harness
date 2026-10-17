@@ -97,8 +97,9 @@ await build({
 
 
 @pytest.fixture
-def page(bundle):
+def page(bundle, request):
     errors = []
+    image_delay = request.getfixturevalue("image_delay") if "image_delay" in request.fixturenames else 0
     with sync_playwright() as playwright:
         executables = list((ROOT / ".playwright-browsers").glob("chromium-*/chrome-linux*/chrome"))
         options = {"executable_path": str(executables[-1])} if executables else {}
@@ -116,7 +117,11 @@ def page(bundle):
             if name in {"app.js", "app.css"}:
                 route.fulfill(path=str(bundle / name), content_type="text/javascript" if name.endswith("js") else "text/css")
             elif name == "artifact-fixture.png":
+                if image_delay:
+                    page.wait_for_timeout(image_delay)
                 route.fulfill(path=str(bundle / name), content_type="image/png")
+            elif name == "assistant.svg":
+                route.fulfill(path=str(ROOT / "desktop/public/assistant.svg"), content_type="image/svg+xml")
             else:
                 route.fulfill(body='<div id="root"></div><link rel="stylesheet" href="/app.css"><script src="/app.js"></script>', content_type="text/html")
 
@@ -364,7 +369,8 @@ def test_file_editor_preference_is_immediate_and_failed_save_keeps_previous_valu
     assert page.locator(".settings-footer").get_by_role("button", name="Enregistrer", exact=True).is_disabled()
 
 
-def test_artifact_rendering_replay_and_widget_fallback(page):
+@pytest.mark.parametrize("image_delay", [0, 250])
+def test_artifact_rendering_replay_and_widget_fallback(page, image_delay):
     page.set_viewport_size({"width": 1280, "height": 900})
     page.evaluate("const el = document.querySelector('.conversation'); el.scrollTop = el.scrollHeight")
     page.wait_for_timeout(100)
@@ -412,3 +418,22 @@ def test_provider_artifacts_replace_then_disappear_without_replay(page):
     page.reload()
     page.wait_for_function("document.querySelectorAll('.message').length === 80")
     assert page.locator(".artifact").count() == 0
+
+
+@pytest.mark.parametrize("image_delay", [0, 250])
+def test_late_artifact_does_not_pull_a_reader_out_of_history(page, image_delay):
+    page.evaluate("document.fonts.ready")
+    page.evaluate("""() => {
+      const el = document.querySelector('.conversation');
+      el.scrollTop = el.scrollHeight - el.clientHeight - 500;
+    }""")
+    page.wait_for_timeout(100)
+    before = page.locator('.conversation').evaluate('(el) => el.scrollTop')
+    page.evaluate("window.publishArtifact({type:'artifact', id:'late-image', kind:'image', payload:{src:'/artifact-fixture.png'}})")
+    page.wait_for_function("document.querySelector('.artifact img')?.naturalWidth === 640")
+    after = page.locator('.conversation').evaluate('(el) => el.scrollTop')
+    assert abs(after - before) < 2
+    page.evaluate("const el=document.querySelector('.conversation'); el.scrollTop=el.scrollHeight")
+    page.wait_for_timeout(100)
+    page.evaluate("window.publishArtifact({type:'artifact', id:'next-view', kind:'weather', payload:{city:'Paris',temperature:18}})")
+    page.wait_for_function("(() => {const el=document.querySelector('.conversation'); return el.scrollHeight-el.scrollTop-el.clientHeight<5;})()")

@@ -72,12 +72,13 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   authentifiée avec Range validée sur un fichier temporaire du bucket nettoyé ensuite.
   La suite complète Harness conserve un échec UI de défilement, consigné ci-dessous.
 
-- [ ] **Suivi du bas lors du chargement d'une image.** Le test navigateur
-  `test_artifact_rendering_replay_and_widget_fallback` échoue parfois avant le
-  contrôle des liens de fichiers : image chargée, conversation pas arrivée au
-  bas. Reproduit pendant le lot bucket, sans modification du code UI. Attendre
-  les fontes et stabiliser le viewport ne suffit pas ; investiguer la perte de
-  `follow.current` lors des changements de hauteur. Hors du lot stockage.
+- [x] **Suivi du bas lors du chargement d'une image — 18 octobre.** L'ajustement
+  est maintenant un effet de layout, exécuté avant l'affichage et les événements
+  de scroll, au lieu d'un effet passif susceptible de perdre `follow.current`.
+  Même correction dans le starter. Tests Chromium avec chargement immédiat ou
+  retardé, conservation de la position pendant la lecture de l'historique et
+  reprise du suivi au retour en bas. Suite Harness : 148 succès, puis quatre
+  scénarios ciblés ; Framework 616 succès, tests/builds JS et rendu vérifiés.
 
 ## Livré dans cette passe
 

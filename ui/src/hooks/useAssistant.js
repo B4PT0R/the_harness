@@ -225,7 +225,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       socket?.close();
     };
   }, [api, eventsUrl, eventProtocol]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     followLatest();
   }, [messages, artifacts, activity, captions, followLatest]);
   useLayoutEffect(() => {
