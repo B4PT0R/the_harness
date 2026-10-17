@@ -131,6 +131,12 @@ the agent definition and the server assembly. The main entry points are:
 The shared interface is intended for reuse by future mobile and Quest hosts.
 Those native applications are not currently bundled.
 
+The HTTP entry point uses the Framework's shared `LocalServer` lifecycle.
+systemd owns server replacement on the configured loopback port, while the
+browser daemon independently owns Chromium and its open pages. Restarting the
+server preserves the browser cookie and canonical conversation; process-control
+tokens rotate. Custom supervisors must reuse the same port across replacements.
+
 ## Work on the application
 
 Read [AGENTS.md](AGENTS.md) before changing the code. It records the ownership,

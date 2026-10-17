@@ -6,11 +6,11 @@ import argparse
 import asyncio
 import json
 import os
-import signal
 from pathlib import Path
 
 from the_framework.server.clients.browser import DEFAULT_VIEWPORT, BrowserService
 from the_framework.server.clients.browser_rpc import BrowserRPCServer, browser_socket_path
+from the_framework.server.runtime.local import shutdown_event
 from .client_mode import ClientModeStore
 from .configuration import AgentConfigStore
 from .environment import load_runtime_environment
@@ -71,22 +71,13 @@ async def run(machine_root=None):
         },
         application_ui_origins=(client.get("endpoint"),) if client.get("endpoint") else (),
     )
-    rpc = await BrowserRPCServer(browser_socket_path(machine_root), service).start()
-    stopped = asyncio.Event()
-    loop = asyncio.get_running_loop()
-    for signum in (signal.SIGINT, signal.SIGTERM):
-        try:
-            loop.add_signal_handler(signum, stopped.set)
-        except NotImplementedError:
-            pass
-    print(json.dumps({
-        "status": "ready",
-        "socket": str(rpc.socket_path),
-    }, separators=(",", ":")), flush=True)
-    try:
-        await stopped.wait()
-    finally:
-        await rpc.close()
+    with shutdown_event() as stopped:
+        async with BrowserRPCServer(browser_socket_path(machine_root), service) as rpc:
+            print(json.dumps({
+                "status": "ready",
+                "socket": str(rpc.socket_path),
+            }, separators=(",", ":")), flush=True)
+            await stopped.wait()
 
 
 def main():

@@ -130,18 +130,20 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   déplacement des données ; les instances personnalisées ne peuvent pas piloter
   les unités installées. Un test multiprocessus couvre deux serveurs et deux
   daemons navigateur isolés, leurs credentials et leur nettoyage.
-- [ ] **Cycle de vie desktop — assemblage à harmoniser.**
-  `server_process.py`, `browser_process.py`, `control.py`, `tray_process.py`,
-  `packaging/systemd/`, `scripts/install-services.sh`.
-  Comparaison avec `the_framework/starter/desktop.py` faite : systemd possède ici
-  les processus, le serveur possède les workers et le navigateur reste indépendant.
-  Compilation initiale ordonnée avant le serveur ; readiness exige un état sain ;
-  ouverture réessayée sur 503 et absence de release signalée sans ouvrir de fenêtre.
-  Arrêt SIGTERM nettoie le descripteur malgré le replay de signal d'Uvicorn.
-  Tests : deux instances réelles, credentials non croisés, remplacement serveur,
-  navigateur conservé, doublon refusé, fermeture et attente bornée.
-  Restent la session Ubuntu complète (launcher/tray/fermeture de fenêtre), une UI
-  compilée tardivement en vrai et le changement majeur du Python système.
+- [x] **Cycle de vie desktop — assemblage partagé le 18 octobre.**
+  `server_process.py` délègue verrou, socket, découverte, credentials et arrêt
+  à `LocalServer`, également utilisé par le starter. Le navigateur conserve son
+  processus indépendant et son contexte RPC possède explicitement Chromium.
+  systemd reste le superviseur du Harness, sans nouvelle couche de supervision.
+  Remplacement serveur sur la même adresse : conversation, cookie navigateur,
+  page et brouillon conservés ; tests avec vrais processus et Chromium isolé.
+  Validation : 626 tests Framework, 148 tests Harness et reprise Chromium des
+  deux applications. Installation locale redémarrée : même conversation, même
+  processus/onglets navigateur, même port et token de contrôle renouvelé.
+- [ ] **Compléments d'intégration Ubuntu.** Session desktop complète
+  (launcher/tray/fermeture de fenêtre), UI compilée tardivement en vrai et
+  changement majeur du Python système. Ces essais manuels restent distincts
+  de l'assemblage et de la continuité maintenant couverts automatiquement.
 - [ ] **Client distant restant — simplification possible.**
   `plugins/client_remote/{api,composition,policy,service}.py`, `client_mode.py`.
   Beaucoup de code reste côté app alors que le transport est générique. Cartographier

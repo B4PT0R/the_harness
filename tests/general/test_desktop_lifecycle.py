@@ -1,6 +1,9 @@
 """Real isolated daemons: no user data, model turns or browser windows."""
 
 import os
+import json
+
+import pytest
 import signal
 import subprocess
 import sys
@@ -10,8 +13,11 @@ from pathlib import Path
 
 import httpx
 
-from the_framework.server.clients.browser_rpc import browser_socket_path
+from the_framework.server.clients.browser_rpc import BrowserRPCClient, browser_socket_path
+from the_framework.agent.context.session import Session
+from the_framework.agent.models.responses import Message
 from the_harness.control import HarnessControl
+from the_harness.configuration import AgentConfigStore
 
 ROOT = Path(__file__).parents[2]
 
@@ -56,6 +62,9 @@ def test_two_instances_cold_start_restart_and_clean_shutdown(tmp_path):
     roots = [tmp_path / name for name in ("first", "second")]
     for root in roots:
         root.mkdir()
+        session = Session.open(root / "data/session.json")
+        session.append(Message(role="user", content=[{"type": "input_text", "text": "Durable conversation marker"}]))
+        session.save()
     controls = [HarnessControl(root) for root in roots]
     args = ("--ui-root", str(artifact), "--exit-on-parent-stdin-close")
     with ExitStack() as stack:
@@ -96,6 +105,7 @@ def test_two_instances_cold_start_restart_and_clean_shutdown(tmp_path):
         wait_for(replacement, lambda: controls[0].status().get("status") == "ok")
         assert controls[0].descriptor.read()["token"] != descriptors[0]["token"]
         assert (roots[0] / "runtime/ui-session.key").read_text() == secrets[0]
+        assert "Durable conversation marker" in json.dumps(controls[0].request("GET", "/api/v1/session"))
         assert controls[1].status()["status"] == "ok"
         replacement.terminate()
         assert replacement.wait(timeout=15) == 0
@@ -107,3 +117,63 @@ def test_two_instances_cold_start_restart_and_clean_shutdown(tmp_path):
     for root, control in zip(roots, controls):
         assert not control.descriptor.path.exists()
         assert not browser_socket_path(root).exists()
+
+
+@pytest.mark.skipif(not os.environ.get("PLAYWRIGHT_BROWSERS_PATH"),
+                    reason="requires an explicitly configured Chromium installation")
+def test_server_replacement_preserves_live_browser_cookie_and_draft(tmp_path):
+    ui = tmp_path / "ui"
+    ui.mkdir()
+    (ui / "index.html").write_text("""<!doctype html><title>Loading</title>
+<textarea aria-label="Draft"></textarea><button onclick="load()">Refresh history</button>
+<h1 id="history"></h1><script>
+document.title = crypto.randomUUID();
+async function load() {
+  document.querySelector('#history').textContent = 'Loading';
+  const response = await fetch('/api/v1/session');
+  document.querySelector('#history').textContent = response.ok && (await response.text()).includes('Recovered conversation') ? 'Recovered conversation' : 'Unauthorized';
+}
+load();
+</script>""")
+    machine = tmp_path / "machine"
+    data = machine / "data"
+    data.mkdir(parents=True)
+    AgentConfigStore(data / "config.json").save({"chromium": {"ui_headless": True}})
+    session = Session.open(data / "session.json")
+    session.append(Message(role="user", content=[{"type": "input_text", "text": "Recovered conversation"}]))
+    session.save()
+    control = HarnessControl(machine)
+    rpc = BrowserRPCClient(browser_socket_path(machine))
+    args = ("--ui-root", str(ui), "--exit-on-parent-stdin-close")
+    with ExitStack() as stack:
+        browser = stack.enter_context(daemon("the_harness.browser_process", machine))
+        wait_for(browser, lambda: browser_socket_path(machine).exists())
+        server = stack.enter_context(daemon("the_harness.server_process", machine, *args))
+        wait_for(server, lambda: control.status().get("status") == "ok")
+        descriptor = control.descriptor.read()
+        assert control.request("POST", "/api/v1/ui/open")["status"] == "opened"
+
+        def observe():
+            return rpc.call("observe", "harness_ui", str(tmp_path / "browser.png"))[0]
+
+        wait_for(browser, lambda: "Recovered conversation" in json.dumps(observe()))
+        snapshot = observe()
+        field = next(item for item in snapshot["elements"] if item["name"] == "Draft")
+        rpc.session_call("harness_ui", "fill", field["id"], "Unsent draft")
+        before = rpc.session_call("harness_ui", "status")
+        server.stdin.close()
+        assert server.wait(timeout=15) == 0
+        assert browser.poll() is None
+        replacement = stack.enter_context(daemon(
+            "the_harness.server_process", machine, *args, "--port", str(descriptor["port"]),
+        ))
+        wait_for(replacement, lambda: control.status().get("status") == "ok")
+        assert control.descriptor.read()["token"] != descriptor["token"]
+        assert rpc.session_call("harness_ui", "status") == before
+        snapshot = observe()
+        field = next(item for item in snapshot["elements"] if item["name"] == "Draft")
+        assert field["value"] == "Unsent draft"
+        refresh = next(item for item in snapshot["elements"] if item["name"] == "Refresh history")
+        rpc.session_call("harness_ui", "click", refresh["id"])
+        wait_for(browser, lambda: "Recovered conversation" in json.dumps(observe()))
+        assert "Unauthorized" not in json.dumps(observe())
