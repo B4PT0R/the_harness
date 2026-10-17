@@ -12,12 +12,15 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   évident, avec environnement Python propre à l'application, préparation
   reprenable et diagnostic des prérequis. Intégrer cette proposition à l'audit
   des primitives ; implémentation dans un lot ultérieur.
-- [ ] **Diagnostiquer l'ouverture du navigateur de l'installation locale.**
-  Baptiste signale que l'interface ne s'ouvre plus alors qu'elle fonctionnait.
-  Première vérification en lecture seule : unités serveur et navigateur actives,
-  unité de compilation UI terminée avec succès. Cela ne confirme ni la santé
-  applicative ni l'ouverture de la fenêtre. Reprendre le diagnostic après avoir
-  livré l'audit ; aucun redémarrage ni changement de données effectué.
+- [x] **Ouverture du navigateur local rétablie.** Le daemon avait accumulé 337
+  pilotes Node/Playwright et atteint sa limite de descripteurs (1019 ouverts,
+  limite souple de 1024). `BrowserSession` dans le Framework nettoie désormais
+  les échecs et annulations de lancement, sérialise start/stop et ignore les
+  événements tardifs d'un ancien contexte. Tests de régression et quatre vrais
+  lancements échoués sans processus enfant restant. Seul le service navigateur
+  a été redémarré ; serveur et identifiant de conversation conservés. Ouverture
+  et rendu contrôlés, fonctionnement confirmé par Baptiste. Après reprise :
+  un pilote et 11 descripteurs pour le daemon.
 - [ ] **Stabiliser la langue des tests navigateur.** État de départ de l'audit :
   `uv run pytest -q` donne 137 succès et 6 échecs, tous en attente d'un bouton
   « Réglages ». Cause confirmée sur le même montage de test : navigateur en
