@@ -32,6 +32,16 @@ All uploaded and published client files share `~/TheHarness/bucket/` (or
 this same tree and authenticated `/api/v1/bucket/...` URLs, including for authorized
 remote desktop clients. The session stores references and metadata only.
 
+## A private cloud for your clients
+
+An architectural goal is for the app server to double as a small private cloud
+server, reachable by your devices through a tailnet subnet. Beyond interacting
+with the agent remotely, future plugins can provide small cloud services such
+as notifications, shared storage and other persistent services for mobile and
+other clients. These services should run independently of the local desktop UI
+and an active conversation, with client-visible files using the shared bucket.
+This describes the project's direction; individual services remain to be built.
+
 ## Start using it
 
 The current installation targets Ubuntu with a systemd user session. You need

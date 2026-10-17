@@ -111,6 +111,16 @@ other remote clients, for example through explicitly configured Tailscale access
 Keep server ownership, durable conversation and connected clients conceptually
 separate. Remote access is optional and is not enabled by the installer.
 
+The app server should also be usable as a small private cloud server reachable
+through a tailnet subnet. This is an architectural goal beyond remote access to
+the agent: future plugins can host small cloud services for connected clients,
+such as notifications, shared storage and other persistent client services.
+Keep these services owned by the server and reusable across local, mobile and
+other remote clients. They must be able to operate without a local desktop UI
+or an active conversation; use the shared bucket for client-visible file storage.
+This is a direction for future capabilities, not a claim that those services are
+already implemented.
+
 The bundled Chromium browser, controlled through Playwright and a tools plugin,
 has three roles: display the local desktop UI, let the agent inspect and verify
 that UI through screenshots and DOM snapshots, and provide web browsing whose
