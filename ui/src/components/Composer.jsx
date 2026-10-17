@@ -6,7 +6,7 @@ import { IconButton } from "./Icons";
 import { handleComposerKeyDown } from "../composer-keyboard.js";
 import { resizeComposerTextarea } from "../composer-size.js";
 
-export function Composer({ sending, chatAvailable, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
+export function Composer({ readOnly = false, sending, chatAvailable, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
   const { t } = useLocale();
   const [draft, setDraft] = useState("");
   const [files, setFiles] = useState([]);
@@ -27,7 +27,7 @@ export function Composer({ sending, chatAvailable, voiceAvailable, voiceState, b
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const canSubmit = !sending && chatAvailable === true && (Boolean(draft.trim()) || files.length > 0) && connected;
+  const canSubmit = !readOnly && !sending && chatAvailable === true && (Boolean(draft.trim()) || files.length > 0) && connected;
   async function submit(event) {
     event.preventDefault();
     if (!canSubmit || submitting.current) return;
@@ -59,14 +59,14 @@ export function Composer({ sending, chatAvailable, voiceAvailable, voiceState, b
         <input ref={fileInput} type="file" multiple hidden onChange={(event) => { setFiles([...files, ...event.target.files]); event.target.value = ""; }} />
         <IconButton icon="attach" label={t("attach")} disabled={sending || chatAvailable !== true || voiceState !== "idle"} onClick={() => fileInput.current.click()} />
         <div className="composer-main-actions">
-          <ContextGauge context={context} disabled={!connected || sending || voiceState !== "idle"} onCompact={onCompact} />
+          <ContextGauge context={context} disabled={readOnly || !connected || sending || voiceState !== "idle"} onCompact={onCompact} />
           {voiceAvailable && <IconButton
             icon={voiceState === "idle" ? "mic" : voiceState === "connecting" ? "close" : "stop"}
             label={t(voiceLabel)} aria-pressed={voiceState !== "idle"}
-            disabled={voiceState === "stopping" || (voiceState === "idle" && (busy || sending || files.length > 0 || !connected))}
+            disabled={readOnly || voiceState === "stopping" || (voiceState === "idle" && (busy || sending || files.length > 0 || !connected))}
             onClick={onToggleVoice}
           />}
-          {busy && <IconButton icon="stop" label={t("stop")} onClick={onInterrupt} />}
+          {busy && <IconButton icon="stop" label={t("stop")} disabled={readOnly} onClick={onInterrupt} />}
           <IconButton icon="send" label={t("send")} type="submit" className="primary composer-send" disabled={!canSubmit} />
         </div>
       </div>

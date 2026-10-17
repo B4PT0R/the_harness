@@ -138,7 +138,7 @@ load();
     machine = tmp_path / "machine"
     data = machine / "data"
     data.mkdir(parents=True)
-    AgentConfigStore(data / "config.json").save({"chromium": {"ui_headless": True}})
+    AgentConfigStore(data / "config.json").save({"chromium": {"ui_headless": True, "web_headless": True}})
     session = Session.open(data / "session.json")
     session.append(Message(role="user", content=[{"type": "input_text", "text": "Recovered conversation"}]))
     session.save()
@@ -161,6 +161,15 @@ load();
         field = next(item for item in snapshot["elements"] if item["name"] == "Draft")
         rpc.session_call("harness_ui", "fill", field["id"], "Unsent draft")
         before = rpc.session_call("harness_ui", "status")
+        link = control.request('POST', '/api/v1/surfaces/main/preview')['url']
+        rpc.call('open_web', link, new_tab=True)
+        def preview():
+            return rpc.call('observe', 'web', str(tmp_path / 'preview.png'))[0]
+        wait_for(browser, lambda: 'Recovered conversation' in json.dumps(preview()))
+        assert rpc.session_call('harness_ui', 'status') == before
+        principal_snapshot = observe()
+        principal_field = next(item for item in principal_snapshot['elements'] if item['name'] == 'Draft')
+        assert principal_field['value'] == 'Unsent draft'
         server.stdin.close()
         assert server.wait(timeout=15) == 0
         assert browser.poll() is None
@@ -177,3 +186,8 @@ load();
         rpc.session_call("harness_ui", "click", refresh["id"])
         wait_for(browser, lambda: "Recovered conversation" in json.dumps(observe()))
         assert "Unauthorized" not in json.dumps(observe())
+        preview_snapshot = preview()
+        refresh_preview = next(item for item in preview_snapshot['elements'] if item['name'] == 'Refresh history')
+        rpc.session_call('web', 'click', refresh_preview['id'])
+        wait_for(browser, lambda: 'Recovered conversation' in json.dumps(preview()))
+        assert 'Unauthorized' not in json.dumps(preview())

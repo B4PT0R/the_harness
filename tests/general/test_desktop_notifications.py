@@ -7,7 +7,7 @@ from the_harness.plugins.desktop_notifications.service import DesktopNotificatio
 
 
 class Transport:
-    event_connection_count = 0
+    primary_event_connection_count = 0
 
 
 class Sender:
@@ -30,7 +30,7 @@ def test_desktop_notification_is_only_delivered_while_local_ui_is_closed(tmp_pat
         )
 
         await service.notify("closed-message")
-        transport.event_connection_count = 1
+        transport.primary_event_connection_count = 1
         await service.notify("visible-message")
         return sender.messages
 
@@ -106,17 +106,17 @@ def test_real_event_sockets_suppress_only_local_host_notifications(tmp_path):
     headers = {"Host": "127.0.0.1:48887", "Origin": "http://127.0.0.1:48887"}
     with client.websocket_connect("/remote/v1/events", headers=dict(headers),
                                   subprotocols=[REMOTE_EVENT_SUBPROTOCOL, token]) as phone:
-        assert transport.event_connection_count == 0
+        assert transport.primary_event_connection_count == 0
         assert remote.event_connections
         phone.portal.call(notifications.notify, "remote-only")
         assert len(sender.messages) == 1
         with client.websocket_connect("/api/v1/events", headers=dict(headers),
                                       subprotocols=[EVENT_SUBPROTOCOL, "local"]) as local:
-            assert transport.event_connection_count == 1
+            assert transport.primary_event_connection_count == 1
             assert not extensions["runtime"].service.application.connected
             local.portal.call(notifications.notify, "local-open")
             assert len(sender.messages) == 1
-        assert transport.event_connection_count == 0
+        assert transport.primary_event_connection_count == 0
         phone.portal.call(notifications.notify, "local-closed")
         assert len(sender.messages) == 2
     assert not remote.event_connections

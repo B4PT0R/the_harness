@@ -97,6 +97,7 @@ await build({
 @pytest.fixture
 def page(bundle, request):
     errors = []
+    preview_client = request.getfixturevalue("preview_client") if "preview_client" in request.fixturenames else False
     image_delay = request.getfixturevalue("image_delay") if "image_delay" in request.fixturenames else 0
     with sync_playwright() as playwright:
         executables = list((ROOT / ".playwright-browsers").glob("chromium-*/chrome-linux*/chrome"))
@@ -121,7 +122,7 @@ def page(bundle, request):
             elif name == "assistant.svg":
                 route.fulfill(path=str(ROOT / "desktop/public/assistant.svg"), content_type="image/svg+xml")
             else:
-                route.fulfill(body='<div id="root"></div><link rel="stylesheet" href="/app.css"><script src="/app.js"></script>', content_type="text/html")
+                route.fulfill(body=('<meta name="framework-client-role" content="preview">' if preview_client else '') + '<div id="root"></div><link rel="stylesheet" href="/app.css"><script src="/app.js"></script>', content_type="text/html")
 
         page.route("**/*", respond)
         page.goto("https://harness.test/")

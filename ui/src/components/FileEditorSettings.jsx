@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocale } from "../i18n";
 
-export function FileEditorSettings({ api }) {
+export function FileEditorSettings({ api, readOnly = false }) {
   const { t } = useLocale();
   const [editor, setEditor] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -31,7 +31,7 @@ export function FileEditorSettings({ api }) {
     {localOnly ? <p className="setting-help">{t("localResourcesOnly")}</p> : <>
       <div className="setting-field">
       <label htmlFor="file-editor">{t("fileEditor")}</label>
-      <select id="file-editor" value={editor || "system"} disabled={!editor || saving}
+      <select id="file-editor" value={editor || "system"} disabled={readOnly || !editor || saving}
         onChange={(event) => change(event.target.value)}>
         <option value="system">{t("systemEditor")}</option>
         <option value="vscode">Visual Studio Code</option>

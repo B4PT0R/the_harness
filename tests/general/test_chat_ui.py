@@ -251,3 +251,24 @@ def test_late_artifact_does_not_pull_a_reader_out_of_history(page, image_delay):
     page.wait_for_timeout(100)
     page.evaluate("window.publishArtifact({type:'artifact', id:'next-view', kind:'weather', payload:{city:'Paris',temperature:18}})")
     page.wait_for_function("(() => {const el=document.querySelector('.conversation'); return el.scrollHeight-el.scrollTop-el.clientHeight<5;})()")
+
+
+@pytest.mark.parametrize('width', [1280, 390])
+@pytest.mark.parametrize('preview_client', [False, True])
+def test_preview_drafts_and_settings_do_not_write_to_the_principal(page, width, preview_client):
+    page.set_viewport_size({'width': width, 'height': 900})
+    if preview_client:
+        page.get_by_text('Aperçu · lecture seule', exact=True).wait_for()
+    field = page.get_by_role('textbox', name='Message', exact=True)
+    field.fill('Draft to exercise the candidate')
+    assert page.get_by_role('button', name='Envoyer', exact=True).is_disabled() == preview_client
+    if preview_client:
+        field.press('Enter')
+        assert 'Draft to exercise' in field.input_value()
+        assert not page.evaluate("window.requests.some(r => r.path === 'agent/prompt')")
+    page.screenshot(path=f'/tmp/preview-chat-{preview_client}-{width}.png')
+    page.get_by_role('button', name='Réglages', exact=True).click()
+    page.get_by_role('navigation', name='Sections des réglages').get_by_role('button', name='Conversation', exact=True).click()
+    page.get_by_role('textbox', name='Modèle', exact=True).fill('Edited locally')
+    assert page.get_by_role('button', name='Enregistrer', exact=True).is_disabled() == preview_client
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

@@ -6,7 +6,7 @@ import { DangerZone } from "./DangerZone";
 import { FileEditorSettings } from "./FileEditorSettings";
 import { pluginStatusKey } from "../plugins";
 
-export function Settings({ api, onClose }) {
+export function Settings({ api, onClose, readOnly = false }) {
   const { locale, setLocale, t } = useLocale();
   const [section, setSection] = useState("general");
   const [original, setOriginal] = useState("");
@@ -118,7 +118,7 @@ export function Settings({ api, onClose }) {
                 </select>
               </div>
               <p className="setting-help">{t("languageImmediate")}</p>
-              <FileEditorSettings api={api} />
+              <FileEditorSettings readOnly={readOnly} api={api} />
             </section>
             <section id="settings-conversation" hidden={section !== "conversation"}>
               <label className="setting-field">
@@ -140,7 +140,7 @@ export function Settings({ api, onClose }) {
                   {plugin.binding_available && <input type="checkbox"
                     aria-label={t("enablePlugin", { name: pluginLabel(plugin.name) })}
                     checked={plugin.binding_enabled}
-                    disabled={plugin.binding_required || !plugin.running || changingPlugin !== null}
+                    disabled={readOnly || plugin.binding_required || !plugin.running || changingPlugin !== null}
                     title={plugin.binding_required ? t("requiredPlugin") : undefined} onChange={() => toggle(plugin)} />}
                   <span>{pluginLabel(plugin.name)}</span>
                   <small>{t(changingPlugin === plugin.name ? "saving" : pluginStatusKey(plugin))}</small>
@@ -154,7 +154,7 @@ export function Settings({ api, onClose }) {
               {!parsed && config && <p className="error" role="alert">{t("invalidConfig")}</p>}
             </section>
             <section id="settings-data" hidden={section !== "data"}>
-              <DangerZone api={api} disabled={saving || changingPlugin !== null} />
+              <DangerZone api={api} disabled={readOnly || saving || changingPlugin !== null} />
             </section>
           </div>
         </div>
@@ -165,7 +165,7 @@ export function Settings({ api, onClose }) {
             : <p className="setting-help">{config !== original ? t("unsavedSettings") : notice}</p>}
         </div>
         <button type="button" className="primary settings-save"
-          disabled={saving || config === original || typeof parsed?.model !== "string" || !parsed.model.trim()}
+          disabled={readOnly || saving || config === original || typeof parsed?.model !== "string" || !parsed.model.trim()}
           onClick={save}><Icon name="save" />{t(saving ? "saving" : "save")}</button>
       </footer>
     </section>

@@ -205,3 +205,5 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 }
 
 .setting-help { color: var(--color-muted); font-size: var(--font-size-sm); line-height: var(--line-height-body); }
+
+.preview-badge { color: var(--color-link); font-size: var(--font-size-sm); font-weight: 500; white-space: normal; }

@@ -117,7 +117,7 @@ class DesktopNotificationService:
         # The local UI consumes canonical events, not the capability bridge.
         # Paired clients have a separate transport and cannot suppress host notices.
         # Connectivity is intentionally not a claim about focus or visibility.
-        if not self.enabled or self.transport.event_connection_count:
+        if not self.enabled or self.transport.primary_event_connection_count:
             return
         try:
             await self.sender(

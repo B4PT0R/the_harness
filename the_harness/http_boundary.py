@@ -2,8 +2,9 @@
 
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-
 from the_framework import ServerExtension
+from the_framework.server.clients.previews import preview_access
+
 from .security import local_request_allowed
 
 
@@ -18,7 +19,8 @@ class HarnessAccessMiddleware(BaseHTTPMiddleware):
         # Ticket exchange and remote pairing are explicitly public declarations.
         # Other remote endpoints enforce their own credentials/scopes through
         # the Framework registry. Private static mounts need this outer guard.
-        if request.url.path == "/ui/bootstrap" or request.url.path.startswith("/remote/v1/"):
+        previews = preview_access(request)
+        if request.url.path == "/ui/bootstrap" or request.url.path.startswith("/remote/v1/") or (previews is not None and previews.is_exchange(request.url.path)):
             return await call_next(request)
         principal = await self.security.authenticate(request)
         if not self.security.http_access_allowed(principal, request):

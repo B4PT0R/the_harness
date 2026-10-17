@@ -168,6 +168,12 @@ candidate build/preview/publication workflow to update the running interface.
 Deployment controls belong to the agent's `system` plugin, rather than the base
 settings interface. The agent inspects the authenticated preview through its
 browser tools before publishing; the previous release remains available for rollback.
+`system.preview_surface(name="main")` opens a private preview in a separate web
+tab without replacing the single principal desktop. It works for other named
+surfaces too. Previews show the conversation and allow local drafts/navigation,
+but cannot send prompts, start voice, persist settings or claim the desktop
+application bridge. Authentication is handled automatically by a one-use link;
+preview access survives server restart.
 For shared framework changes, verify the framework independently before relying
 on them here. The [UI guide](ui/README.md) and
 [framework composition guide](../the_framework/docs/framework.md) are the next

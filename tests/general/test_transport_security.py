@@ -163,3 +163,36 @@ def test_websocket_registry_rejects_invalid_local_and_remote_handshakes(assemble
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/remote", subprotocols=protocols, headers=dict(origin)):
             pytest.fail("Revoked token was accepted")
+
+
+def test_preview_ticket_crosses_the_http_boundary_without_granting_desktop_authority(tmp_path):
+    app = create_app(WorkerSupervisor(tmp_path / 'session.json'), token='control', browser_token='principal',
+                     browser_runtime_root=tmp_path, client_remote_root=tmp_path,
+                     origin='http://127.0.0.1:48887')
+    artifact = tmp_path / 'bundle'
+    artifact.mkdir()
+    (artifact / 'index.html').write_text('<html><head></head><body>Preview</body></html>')
+    app.state.application.surface_service.bootstrap('main', artifact)
+    client = TestClient(app, base_url='http://127.0.0.1:48887')
+    client.headers['authorization'] = 'Bearer control'
+    link = client.post('/api/v1/surfaces/main/preview')
+    assert link.status_code == 200, link.text
+    client.headers.clear()
+    opened = client.get(link.json()['url'])
+    assert opened.status_code == 200, opened.text
+    assert 'framework-client-role' in opened.text
+    assert client.get('/api/v1/surfaces').status_code == 200
+    assert client.get('/ui/').status_code in {401, 403}
+    for method, path, payload in (
+        ('POST', '/api/v1/agent/prompt', {'prompt': 'Must not reach the worker'}),
+        ('PATCH', '/api/v1/config', {'model': 'Must not persist'}),
+        ('POST', '/api/v1/surfaces/main/publish', {}),
+        ('POST', '/api/v1/ui/open', {}),
+    ):
+        assert client.request(method, path, json=payload).status_code in {401, 403}
+    origin = {'origin': 'http://127.0.0.1:48887'}
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect('ws://127.0.0.1:48887/api/v1/application', headers=dict(origin), subprotocols=['the-harness-application']):
+            pytest.fail('preview acquired the principal bridge')
+    with client.websocket_connect('ws://127.0.0.1:48887/api/v1/events', headers=dict(origin), subprotocols=['the-harness']):
+        assert app.state.application.server_extensions['canonical_transport'].service.primary_event_connection_count == 0

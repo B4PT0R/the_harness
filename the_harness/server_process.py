@@ -40,6 +40,7 @@ def main():
         app = create_app(
             session_path=session_path,
             token=process.token,
+            origin=process.origin,
             browser_token=process.browser_token,
             allowed_origins=set(args.origin),
             ui_root=args.ui_root or os.environ.get("THE_HARNESS_UI_ROOT"),

@@ -16,13 +16,15 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   l'installation ; même conversation, candidat retrouvé après restart et rollback
   disponible. Chaque device peut avoir sa propre surface, maintenue par l'agent :
   test desktop/mobile/Quest sur trois sources et historiques indépendants.
-- [ ] **Aperçu dans le navigateur agentique — authentification à raccorder.**
-  Le contexte web séparé du Harness reçoit un 401 sans cookie, tandis qu'un
-  navigateur distinct authentifié charge l'aperçu avec le desktop connecté.
-  Prévoir un accès privé normal par les outils, sans déplacer la page de chat ni
-  affaiblir l'authentification. Le refus 1013 d'une seconde socket du bridge
-  `/api/v1/application` est une contrainte distincte, à revoir avec les clients
-  mobile/Quest ; le flux de chat `/api/v1/events` accepte plusieurs connexions.
+- [x] **Aperçus authentifiés et desktop principal unique — 18 octobre.**
+  `system.preview_surface` ouvre un onglet web privé par ticket unique, sans
+  déplacer le desktop ni recopier ses cookies. Rôle lecture seule, badge explicite,
+  brouillons/navigation testables mais écritures/voix/bridge refusés. Une seule
+  connexion primaire aux événements ; aperçus concurrents sans effet sur la présence
+  desktop ni les notifications. Cookie signé conservé au restart. Contrats partagés
+  Framework/starter/Harness, scénarios Chromium réels et essai sur l'installation :
+  même conversation et même onglet principal pendant l'aperçu. Validation :
+  640 tests Framework, 151 Harness, suites JS et builds des deux interfaces.
 - [ ] **Identifiants DOM du navigateur agentique.** Une nouvelle capture attribue
   des identifiants réutilisés sans retirer ceux des éléments devenus cachés :
   après ouverture des réglages, clic sur Retour refusé car un élément de chat

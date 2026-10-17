@@ -25,6 +25,7 @@ def create_app(
     realtime_client_factory=None,
     fleet_factory=None,
     ui_root=None,
+    origin=None,
     restart=None,
     browser_client_factory=BrowserRPCClient,
     browser_runtime_root=None,
@@ -36,7 +37,7 @@ def create_app(
     token = token or secrets.token_urlsafe(32)
     browser_token = browser_token or token
     context = BuildContext(
-        data_root=data_root, session_path=session_path, ui_root=ui_root,
+        data_root=data_root, session_path=session_path, ui_root=ui_root, origin=origin,
         machine_root=Path(browser_runtime_root or data_root),
         plugins={
             "realtime": {"client_factory": realtime_client_factory},

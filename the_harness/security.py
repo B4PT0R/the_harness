@@ -4,6 +4,11 @@ from hmac import compare_digest
 from urllib.parse import urlsplit
 
 from the_framework.server.api.endpoints import Principal
+from the_framework.server.clients.previews import (
+    authorize_preview,
+    is_preview,
+    preview_access,
+)
 
 
 def local_request_allowed(request, *, allowed_origins=()):
@@ -56,6 +61,10 @@ class HarnessSecurityPolicy:
     async def authenticate(self, request):
         if not local_request_allowed(request):
             return None
+        previews = preview_access(request)
+        if previews is not None and previews.cookie in request.cookies:
+            principal = previews.authenticate(request)
+            return principal if previews.allows_http(request) else None
         authorization = request.headers.get("authorization", "")
         bearer = authorization[7:] if authorization.startswith("Bearer ") else None
         local = self._local_principal(request, supplied_token=bearer)
@@ -74,6 +83,8 @@ class HarnessSecurityPolicy:
         """Protect private mounts and retain the paired-desktop route allowlist."""
         if principal is None:
             return False
+        if is_preview(principal):
+            return preview_access(request).allows_http(request)
         client = principal.attributes.get("client")
         if client is None:
             return principal.id in {"local-bearer", "local-browser"}
@@ -85,6 +96,8 @@ class HarnessSecurityPolicy:
         )
 
     async def authorize(self, principal, requirement, _request):
+        if is_preview(principal):
+            return authorize_preview(principal, requirement)
         if requirement is None or "*" in principal.scopes:
             return True
         if isinstance(requirement, str):
@@ -109,6 +122,11 @@ class HarnessSecurityPolicy:
             origins = self.allowed_origins if token is not None else ()
             if not local_request_allowed(socket, allowed_origins=origins):
                 return None
+            previews = preview_access(socket)
+            if previews is not None and previews.cookie in socket.cookies:
+                if previews.authenticate(socket) is None or socket.url.path != '/api/v1/events':
+                    return None
+                return {'subprotocol': protocols[0], 'client_role': 'preview'}
             if self._local_principal(socket, supplied_token=token) is None:
                 return None
             return {"subprotocol": protocols[0]}
