@@ -7,7 +7,7 @@ import pytest
 
 from the_framework import ApplicationSpec
 from the_framework.agent.runtime.protocol import SessionPageRequest, StatusRequest
-from the_framework.plugins.chat.server import ChatApi
+from the_framework.server.api.chat import ChatApi
 from the_framework.plugins.realtime.api import RealtimeApi
 from the_framework.server.api.endpoints import HttpError, Principal
 from the_framework.server.clients.remote import ClientRemoteService
@@ -35,6 +35,7 @@ def test_application_injects_the_installed_chat_ingress(tmp_path, monkeypatch, w
         WorkerSupervisor(tmp_path / "session.json"), token="local", browser_token="browser",
         browser_runtime_root=tmp_path, client_remote_root=tmp_path,
     )
+    assert "chat" not in app.state.application.plugins
     services = app.state.application.server_extensions
     chat = services["chat"].service
     remote = services["client_remote_api"].service
@@ -43,16 +44,6 @@ def test_application_injects_the_installed_chat_ingress(tmp_path, monkeypatch, w
     assert remote.ingress.lock is (services["realtime"].service.lock if with_voice else chat.ingress.lock)
     assert (remote.ingress.voice is not None) == with_voice
     assert services["client_remote_api"].requires_services == ("client_remote", "chat")
-
-
-def test_remote_feature_requires_a_declared_ingress_provider():
-    from the_harness.application import application
-
-    without_chat = ApplicationSpec({
-        **application, "plugins": tuple(plugin for plugin in application.plugins if plugin.name != "chat"),
-    })
-    with pytest.raises(ValueError, match="conversation.ingress"):
-        without_chat.compile()
 
 
 @pytest.mark.parametrize("active_voice", [False, True])

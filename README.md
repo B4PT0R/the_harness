@@ -111,11 +111,11 @@ duplicate it in the application. Keep the framework lean and general; product
 choices belong here. The [framework composition guide](../the_framework/docs/framework.md)
 explains its contracts and APIs.
 
-Local and paired-client prompts share the Framework's `conversation.ingress`
-capability and the installed chat service's text/voice barrier. Remote pairing,
-permissions, wire projections and persistent command receipts remain separate
+Local and paired-client prompts share the host-owned chat service and its
+text/voice barrier, assembled by `build_conversation()` rather than a plugin.
+Remote pairing, permissions, wire projections and persistent command receipts remain separate
 application responsibilities. This checkout requires the sibling Framework's
-unreleased ingress capability, not just the published 0.2.1 package.
+unreleased conversation assembly, not just the published 0.2.1 package.
 
 ## Find your way through the code
 

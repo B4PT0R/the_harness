@@ -56,7 +56,7 @@ async function request(path, options = {}) {
   if (path === 'local-files/open' && window.failFileOpen) throw new Error('File no longer exists');
   if (path === 'browser/open-external' && window.failBrowserOpen) throw new Error('Integrated browser unavailable');
   if (path === 'config') return { config: { model: 'test-model' } };
-  if (path === 'plugins') return { plugins: [{ name: 'chat', running: true }] };
+  if (path === 'plugins') return { plugins: [{ name: 'hosted_ui', running: true }] };
   if (path === 'status') return { foreground_active: false, foreground_pending: 0 };
   if (path.startsWith('session')) return { turns: [{ items: [...items, ...JSON.parse(localStorage.getItem('test-artifacts') || '[]')] }], has_more: true, next_before: 'older' };
   if (path.startsWith('agent/') && window.failSend) throw new Error('Send failed');

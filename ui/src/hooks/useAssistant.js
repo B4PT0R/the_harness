@@ -26,7 +26,6 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   const contextRevision = useRef(0);
   const [error, setError] = useState("");
   const [voiceState, setVoiceState] = useState("idle");
-  const [chatAvailable, setChatAvailable] = useState(null);
   const [voiceAvailable, setVoiceAvailable] = useState(false);
   const [captions, setCaptions] = useState({});
   const voice = useRef(null);
@@ -34,7 +33,6 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     const controller = new AbortController();
     api("plugins", { signal: controller.signal })
       .then((result) => {
-        setChatAvailable(pluginRunning(result.plugins, "chat"));
         setVoiceAvailable(pluginRunning(result.plugins, "realtime"));
       })
       .catch((cause) => {
@@ -255,7 +253,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   }, [api, before, loadingHistory]);
   // Return acceptance so the composer only clears its local draft after success.
   async function send({ text, files }) {
-    if (chatAvailable !== true || sending || connection !== "Connected" || (!text.trim() && !files.length)) return false;
+    if (sending || connection !== "Connected" || (!text.trim() && !files.length)) return false;
     setError("");
     if (voiceState === "idle") setBusy(true);
     setSending(true);
@@ -300,7 +298,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     context, compact,
     messages, artifacts, captions, before, loadingHistory, loadHistory, scroll, follow, onScroll, onContentLoad: followLatest,
     sending, connection, activity, busy,
-    error, setError, chatAvailable, voiceAvailable, voiceState, send,
+    error, setError, voiceAvailable, voiceState, send,
     toggleVoice: () => voiceState === "idle" ? voice.current.start() : voice.current.stop(),
     interrupt: () => api("agent/interrupt", { method: "POST", body: {} }).catch((error) => setError(error.message)),
   };

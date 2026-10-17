@@ -6,7 +6,7 @@ import { IconButton } from "./Icons";
 import { handleComposerKeyDown } from "../composer-keyboard.js";
 import { resizeComposerTextarea } from "../composer-size.js";
 
-export function Composer({ readOnly = false, sending, chatAvailable, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
+export function Composer({ readOnly = false, sending, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
   const { t } = useLocale();
   const [draft, setDraft] = useState("");
   const [files, setFiles] = useState([]);
@@ -27,7 +27,7 @@ export function Composer({ readOnly = false, sending, chatAvailable, voiceAvaila
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const canSubmit = !readOnly && !sending && chatAvailable === true && (Boolean(draft.trim()) || files.length > 0) && connected;
+  const canSubmit = !readOnly && !sending && (Boolean(draft.trim()) || files.length > 0) && connected;
   async function submit(event) {
     event.preventDefault();
     if (!canSubmit || submitting.current) return;
@@ -43,7 +43,7 @@ export function Composer({ readOnly = false, sending, chatAvailable, voiceAvaila
     queued: "compactionQueued", running: "compacting", done: "compactionDone", failed: "compactionFailed",
   }[context.phase];
   const activityText = activityLabel ? t(activityLabel)
-    : chatAvailable === false ? t("chatUnavailable") : busy ? activity || t("working") : "";
+    : busy ? activity || t("working") : "";
   const voiceLabel = voiceState === "idle" ? "voiceStart" : voiceState === "connecting" ? "cancel" : voiceState === "stopping" ? "voiceStopping" : "voiceEnd";
   return <div className="composer-area">
     {error && <div className="error" role="alert">{error}<IconButton icon="close" label={t("close")} onClick={onDismissError} /></div>}
@@ -54,10 +54,10 @@ export function Composer({ readOnly = false, sending, chatAvailable, voiceAvaila
         onClick={() => setFiles(files.filter((_, i) => i !== index))}
       >{file.name} ×</button>)}</div>}
       <label className="sr-only" htmlFor="message">{t("message")}</label>
-      <textarea ref={textarea} id="message" placeholder={t("messagePlaceholder")} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => handleComposerKeyDown(event, canSubmit)} rows={1} disabled={sending || chatAvailable !== true} />
+      <textarea ref={textarea} id="message" placeholder={t("messagePlaceholder")} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => handleComposerKeyDown(event, canSubmit)} rows={1} disabled={sending} />
       <div className="composer-actions">
         <input ref={fileInput} type="file" multiple hidden onChange={(event) => { setFiles([...files, ...event.target.files]); event.target.value = ""; }} />
-        <IconButton icon="attach" label={t("attach")} disabled={sending || chatAvailable !== true || voiceState !== "idle"} onClick={() => fileInput.current.click()} />
+        <IconButton icon="attach" label={t("attach")} disabled={sending || voiceState !== "idle"} onClick={() => fileInput.current.click()} />
         <div className="composer-main-actions">
           <ContextGauge context={context} disabled={readOnly || !connected || sending || voiceState !== "idle"} onCompact={onCompact} />
           {voiceAvailable && <IconButton

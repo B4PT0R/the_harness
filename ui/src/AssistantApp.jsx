@@ -22,7 +22,7 @@ function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./ass
       onScroll={state.onScroll} onContentLoad={state.onContentLoad} artifactRenderers={artifactRenderers}
     />
     <Composer readOnly={preview} sending={state.sending}
-      chatAvailable={state.chatAvailable} voiceAvailable={state.voiceAvailable} voiceState={state.voiceState} busy={state.busy} connected={state.connection === "Connected"}
+      voiceAvailable={state.voiceAvailable} voiceState={state.voiceState} busy={state.busy} connected={state.connection === "Connected"}
       context={state.context} onCompact={state.compact}
       activity={state.activity} error={state.error} onDismissError={() => state.setError("")} onSubmit={state.send} onToggleVoice={state.toggleVoice} onInterrupt={state.interrupt}
     />

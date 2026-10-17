@@ -16,6 +16,13 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   l'installation ; même conversation, candidat retrouvé après restart et rollback
   disponible. Chaque device peut avoir sa propre surface, maintenue par l'agent :
   test desktop/mobile/Quest sur trois sources et historiques indépendants.
+- [x] **Chat intégré à l’hôte — 18 octobre.** `build_conversation()` fournit
+  texte, pièces jointes et ingress partagé avec la voix ; plugin `CHAT` retiré
+  du Harness et du starter. Clients distants injectés sur le même service, sans
+  capacité artificielle. Aucun changement des routes ou du format de session.
+  Installation redémarrée et UI publiée après aperçu ; même session et navigateur.
+  Validation texte/voix, pièces jointes et clients distants ; suite Harness :
+  151 succès, 46 tests JS et build.
 - [x] **Aperçus authentifiés et desktop principal unique — 18 octobre.**
   `system.preview_surface` ouvre un onglet web privé par ticket unique, sans
   déplacer le desktop ni recopier ses cookies. Rôle lecture seule, badge explicite,
@@ -25,6 +32,10 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   Framework/starter/Harness, scénarios Chromium réels et essai sur l'installation :
   même conversation et même onglet principal pendant l'aperçu. Validation :
   640 tests Framework, 151 Harness, suites JS et builds des deux interfaces.
+- [ ] **Suivi d’image : intermittence à isoler.** Le test durable
+  `test_artifact_rendering_replay_and_widget_fallback[0]` a de nouveau échoué sur
+  le suivi du bas dans une exécution complète, puis passé à la suivante. Conserver
+  la garantie ; distinguer une course de rendu du scénario de test avant correction.
 - [ ] **Identifiants DOM du navigateur agentique.** Une nouvelle capture attribue
   des identifiants réutilisés sans retirer ceux des éléments devenus cachés :
   après ouverture des réglages, clic sur Retour refusé car un élément de chat
@@ -178,7 +189,7 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   Premier lot livré : suppression des projecteurs sans consommateurs et de la
   branche de révocation vocale inactive ; état `assistant: {}` conservé sans
   snapshots worker inutiles. Soumissions locales/distantes via le même ingress
-  du framework, injecté par la capacité `conversation.ingress`. Reçus idempotents,
+  du framework, injecté par le service `chat` de l’hôte conversationnel. Reçus idempotents,
   protocoles et filtrage des chemins locaux préservés et testés. L'API distante
   et ses permissions restent côté application ; frontière HTTP/WebSocket désormais
   harmonisée avec les contrats de sécurité du Framework.
