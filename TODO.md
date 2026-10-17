@@ -21,17 +21,32 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   a été redémarré ; serveur et identifiant de conversation conservés. Ouverture
   et rendu contrôlés, fonctionnement confirmé par Baptiste. Après reprise :
   un pilote et 11 descripteurs pour le daemon.
-- [ ] **Stabiliser la langue des tests navigateur.** État de départ de l'audit :
+- [x] **Stabiliser la langue des tests navigateur.** État de départ de l'audit :
   `uv run pytest -q` donne 137 succès et 6 échecs, tous en attente d'un bouton
   « Réglages ». Cause confirmée sur le même montage de test : navigateur en
   `en-US`, bouton « Settings » présent, puis bouton « Réglages » disponible après
-  sélection explicite du français. Fixer la locale des scénarios pour les rendre
-  déterministes.
+  sélection explicite du français. La fixture fixe désormais `fr-FR` pour rendre
+  les scénarios déterministes ; la suite Python complète passe.
   Ne pas assimiler ces échecs à la panne d'ouverture de l'installation.
 
 Pour la refonte envisagée, Baptiste accepte les ruptures des API Python du
 Framework et l'adaptation coordonnée du Harness. Ne pas conserver des couches de
 compatibilité sans consommateur réel ; préserver la conversation et les données.
+
+- [x] **Premier lot d'assemblage partagé — 17 octobre.** Le starter et le Harness
+  utilisent `ApplicationSpec.build_conversation` pour le socle conversationnel.
+  `server_process` délègue la création du superviseur ; contexte à entrées fixes,
+  options par plugin et vue en lecture seule des services démarrés. Proxies de
+  construction pour la voix et la sécurité distante retirés, paramètres sans
+  consommateur supprimés. Validation : 600 tests Framework, 144 tests Harness,
+  tests et builds JavaScript des deux interfaces. Scénario Chromium réel du
+  starter : redémarrage, historique, aperçu, publication et rollback. Instance
+  installée redémarrée avec conversation et processus navigateur conservés.
+- [x] **Reconnexion sans alerte périmée.** Le client efface seulement l'erreur
+  de déconnexion lorsque le worker répond de nouveau, en conservant les erreurs
+  d'envoi. Régression navigateur et aperçu réel après restart, avec brouillon
+  préservé et même conversation. Interface vérifiée puis publiée localement,
+  avec version précédente disponible pour rollback.
 
 ## Livré dans cette passe
 

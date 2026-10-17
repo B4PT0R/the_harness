@@ -6,14 +6,12 @@ from .composition import RemoteClientAssembly, build_api
 
 
 def build_server_extensions(context):
-    assembly = context.provide(
-        "remote_clients",
-        RemoteClientAssembly(
-            context.require("machine_root"),
-            context=context,
-            storage_root=context.get("client_remote_root"),
-            advertised_endpoint=context.get("advertised_remote_endpoint"),
-        ),
+    options = context.plugin("client_remote")
+    assembly = RemoteClientAssembly(
+        context.require("machine_root"),
+        context=context,
+        storage_root=options.get("storage_root"),
+        advertised_endpoint=options.get("advertised_endpoint"),
     )
 
     def build_client_remote_api(client_remote, chat):

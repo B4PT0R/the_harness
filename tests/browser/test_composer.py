@@ -95,7 +95,7 @@ def page(bundle):
             if "Executable doesn't exist" in str(error):
                 pytest.skip("Install Playwright Chromium to run browser tests")
             raise
-        page = browser.new_page()
+        page = browser.new_page(locale="fr-FR")
         page.on("pageerror", lambda error: errors.append(str(error)))
 
         def respond(route):
@@ -208,6 +208,20 @@ def test_voice_completion_clears_caption_without_replacing_canonical_history(pag
     page.evaluate("window.emit({ type: 'realtime_event', call_id: 'call', event: { type: 'turn.done', turn: { role: 'user', transcript: '' } } })")
     page.wait_for_function("document.querySelectorAll('.message').length === 80")
     assert page.locator(".message").count() == before
+
+
+def test_worker_recovery_clears_only_the_disconnect_error(page):
+    page.evaluate("window.emit({ type: 'worker_exited', returncode: 1, stderr: [] })")
+    page.get_by_role("alert").filter(has_text="Le worker s’est déconnecté.").wait_for()
+    page.evaluate("window.emit({ type: 'worker_status', foreground_active: false, foreground_pending: 0 })")
+    page.get_by_role("alert").wait_for(state="detached")
+    page.evaluate("window.failSend = true")
+    page.locator("textarea").fill("Keep this unsent draft")
+    page.locator("textarea").press("Enter")
+    page.get_by_role("alert").filter(has_text="Send failed").wait_for()
+    page.evaluate("window.emit({ type: 'worker_status', foreground_active: false, foreground_pending: 0 })")
+    assert page.get_by_role("alert").inner_text().startswith("Send failed")
+    assert page.locator("textarea").input_value() == "Keep this unsent draft"
 
 
 @pytest.mark.parametrize("width", [1280, 390])

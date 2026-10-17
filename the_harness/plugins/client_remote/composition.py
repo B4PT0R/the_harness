@@ -16,7 +16,7 @@ from .service import ClientRemoteService
 
 
 class RemoteClientAssembly:
-    """Startup declarations shared with security before the transport exists."""
+    """Plugin-owned construction of the private-client transport and policy."""
 
     def __init__(
         self, machine_root, *, context,
@@ -34,12 +34,6 @@ class RemoteClientAssembly:
         if self.service is not None:
             raise RuntimeError("remote client policy is fixed after construction")
         self.policy = RemoteClientPolicy.compose(self.policy, contribution)
-
-    def authenticate(self, token):
-        return self.service.authenticate(token) if self.service is not None else None
-
-    def desktop_api_allowed(self, method, path):
-        return self.desktop_access.allowed(method, path)
 
     def build_service(self, runtime):
         if self.service is not None:

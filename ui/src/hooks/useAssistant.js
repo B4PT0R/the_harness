@@ -84,9 +84,16 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       voiceCallId,
       attempts = 0,
       revision = 0,
-      statusLoading = false;
+      statusLoading = false,
+      workerError = null;
     const controller = new AbortController();
     const transcripts = new RemoteRealtimeTranscriptAssembler();
+    function workerRecovered() {
+      if (workerError === null) return;
+      const recovered = workerError;
+      workerError = null;
+      setError((current) => current === recovered ? "" : current);
+    }
     function updateContext(output) {
       contextRevision.current++;
       setContext((current) => contextState(current, output));
@@ -98,6 +105,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       try {
         const status = await api("status", { signal: controller.signal });
         if (!disposed && requested === contextRevision.current) {
+          workerRecovered();
           setContext((current) => contextState(current, status));
           setBusy(conversationBusy(status));
         }
@@ -117,6 +125,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           historyInitialized.current = true;
         }
         if (requestedContext === contextRevision.current) {
+          workerRecovered();
           setBusy(conversationBusy(status));
           setContext((current) => contextState(current, status));
         }
@@ -143,7 +152,10 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         if (output.type === "command_event" && output.event?.type === "agent.compaction.end")
           refreshStatus().catch(fail);
         if (output.type === "command_failed" && output.error) setError(output.error);
-        if (["worker_exited", "worker_transport_error"].includes(output.type)) setError(output.error || translate("workerDisconnected"));
+        if (["worker_exited", "worker_transport_error"].includes(output.type)) {
+          workerError = output.error || translate("workerDisconnected");
+          setError(workerError);
+        }
         if (output.type === "realtime_event" && output.call_id !== voiceCallId) {
           voiceCallId = output.call_id;
           transcripts.reset();
@@ -160,7 +172,10 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           setMessages((items) => eventMessages(items, event));
           if (event.user_feedback) setActivity(event.user_feedback);
         }
-        if (output.type === "worker_status") setBusy(conversationBusy(output));
+        if (output.type === "worker_status") {
+          workerRecovered();
+          setBusy(conversationBusy(output));
+        }
         if (output.type === "command_accepted" && conversationCommand(output))
           setBusy(true);
         if (

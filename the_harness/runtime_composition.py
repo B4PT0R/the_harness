@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
 from datetime import datetime, timezone
 
 from the_framework.server.runtime.application import ApplicationRuntime
@@ -22,11 +21,11 @@ REMOTE_APPLICATION_SUBPROTOCOL = "the-harness-application-v1"
 class Harness(ApplicationRuntime):
     """The Harness service composition atop the generic application runtime."""
 
-    def __init__(self, supervisor, *, fleet_factory=None, restart=None, realtime_service=None):
-        self.restart = restart
-        self.realtime_service = realtime_service or (lambda: None)
+    def __init__(self, supervisor, *, fleet_factory=None, restart=None, services=None):
+        self.services = services if services is not None else {}
         super().__init__(
             supervisor,
+            restart=restart,
             fleet_factory=fleet_factory,
             application_subprotocol=APPLICATION_SUBPROTOCOL,
             activity_labels={
@@ -48,15 +47,15 @@ class Harness(ApplicationRuntime):
 
 
     async def restart_server(self, intent):
-        if self.restart is None:
-            raise RuntimeError("server restart is not configured")
         if intent.get("resume_route") == "realtime_delegation":
             realtime = self.realtime_service()
             if realtime is not None:
                 await realtime.wait_for_voice_turn_completion()
-        result = self.restart(intent)
-        if inspect.isawaitable(result):
-            await result
+        await super().restart_server(intent)
+
+    def realtime_service(self):
+        api = self.services.get("realtime")
+        return api.controller if api is not None else None
 
     async def surface_notify(self, payload):
         realtime = self.realtime_service()
@@ -68,9 +67,6 @@ class Harness(ApplicationRuntime):
             "type": "interface_refresh_requested",
             "requested_at": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
         })
-
-    async def surface_progress(self, payload):
-        await self.publish({"type": "surface_build_progress", **payload})
 
     async def reset_session(self):
         ready = await self.reset_runtime_state(

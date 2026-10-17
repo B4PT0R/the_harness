@@ -15,7 +15,6 @@ from the_framework.server.runtime.discovery import (
     ServerDescriptorStore,
     ServerLease,
 )
-from the_framework.server.runtime.supervisor import WorkerSupervisor
 
 from .app import create_app
 from .environment import load_runtime_environment
@@ -79,11 +78,6 @@ def main():
         browser_token = PersistentSecretStore(
             descriptor.with_name("ui-session.key")
         ).load_or_create()
-        supervisor = WorkerSupervisor(
-            session_path,
-            application_reference="the_harness.application:application",
-            plugin_state_path=session_path.parent / "plugins.json",
-        )
         source_ui = Path(__file__).parents[1] / "desktop" / ".surface-build"
         ui_root = (
             args.ui_root
@@ -94,7 +88,7 @@ def main():
             ui_root = source_ui
         advertised_remote_endpoint = None
         app = create_app(
-            supervisor,
+            session_path=session_path,
             token=token,
             browser_token=browser_token,
             allowed_origins=set(args.origin),
