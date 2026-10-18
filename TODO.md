@@ -317,3 +317,12 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   données intactes ; aucune publication réseau hors loopback.
 - [ ] Choisir une stratégie de versions framework/application et un dépôt distant
   pour la base neutre. Ne pas pousser vers l'ancien projet par défaut.
+
+- [ ] **Fermeture d'un aperçu via le navigateur installé.** Après validation et
+  publication de la tranche sessions, `close_web_tab(index)` expire côté RPC
+  (30 s puis nouvel essai à 5 s) sur l'onglet d'aperçu créé pour cette validation.
+  `status` et `observe` du desktop restent fonctionnels ; serveur sain, nouvelle
+  version active et conversation conservée. Ne pas redémarrer le navigateur pour
+  contourner ce problème : inspecter la fermeture de page dans le propriétaire
+  Playwright et protéger les autres onglets. À reprendre après la frontière
+  d'événements Framework demandée en priorité.
