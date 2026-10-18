@@ -144,7 +144,7 @@ def test_websocket_registry_rejects_invalid_local_and_remote_handshakes(assemble
     registry.install()
     client = TestClient(app, base_url="http://127.0.0.1:48887")
     origin = {"Host": "127.0.0.1:48887", "Origin": "http://127.0.0.1:48887"}
-    protocols = [remote.event_subprotocols[0], token]
+    protocols = ["the-harness-remote-v1", token]
     for path, selected in (("/local", ["events", "local"]), ("/remote", protocols)):
         with client.websocket_connect(path, subprotocols=selected, headers=dict(origin)) as socket:
             assert socket.accepted_subprotocol == selected[0]

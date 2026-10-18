@@ -113,9 +113,12 @@ explains its contracts and APIs.
 
 Local and paired-client prompts share the host-owned chat service and its
 text/voice barrier, assembled by `build_conversation()` rather than a plugin.
-Remote pairing, permissions, wire projections and persistent command receipts remain separate
-application responsibilities. This checkout requires the sibling Framework's
-unreleased conversation assembly, not just the published 0.2.1 package.
+The remote plugin's `server.py` directly assembles its service and API; `policy.py`
+owns product permissions and wire projections. The Framework transport owns
+credentials, leases, event delivery and persistent command receipts. The product
+API chooses the routes and command semantics, reusing the host's text/voice ingress.
+This checkout requires the sibling Framework's unreleased conversation assembly,
+not just the published 0.2.1 package.
 
 ## Find your way through the code
 

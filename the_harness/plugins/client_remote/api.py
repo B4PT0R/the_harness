@@ -4,42 +4,28 @@ import asyncio
 from urllib.parse import urlparse
 
 from starlette.websockets import WebSocketDisconnect
-
-from the_framework.server import endpoint
 from the_framework.agent.runtime.protocol import (
     InterruptRequest,
     PromptRequest,
     SessionPageRequest,
     StatusRequest,
 )
-from the_framework.utils.ids import timestamp_id
+from the_framework.server import endpoint
 from the_framework.server.api.endpoints import HttpError
 from the_framework.server.api.websockets import WebSocketEndpoint
+from the_framework.server.clients.remote import PROTOCOL_VERSION
+from the_framework.utils.ids import timestamp_id
 
 from ...security import local_request_allowed
+from .policy import RemoteProjection
 
 
 class ClientRemoteApi:
-    def __init__(
-        self,
-        service,
-        runtime,
-        *,
-        protocol_version,
-        advertised_endpoint=None,
-        session_projection,
-        ingress,
-        event_subprotocols=("the-harness-remote-v1",),
-        application_subprotocols=("the-harness-application-v1",),
-    ):
+    def __init__(self, service, ingress, *, advertised_endpoint=None):
         self.service = service
-        self.runtime = runtime
-        self.protocol_version = protocol_version
+        self.runtime = service.runtime
         self.advertised_endpoint = advertised_endpoint
-        self.session_projection = session_projection
         self.ingress = ingress
-        self.event_subprotocols = tuple(event_subprotocols)
-        self.application_subprotocols = tuple(application_subprotocols)
         self.events_socket = WebSocketEndpoint(
             path="/remote/v1/events",
             handler=self.serve_events,
@@ -71,11 +57,11 @@ class ClientRemoteApi:
             if value.strip()
         ]
 
-    def _remote_handshake(self, socket, supported):
+    def _remote_handshake(self, socket, subprotocol):
         if not local_request_allowed(socket):
             return None
         protocols = self._protocols(socket)
-        if len(protocols) != 2 or protocols[0] not in supported:
+        if len(protocols) != 2 or protocols[0] != subprotocol:
             return None
         client = self.service.authenticate(protocols[1])
         if client is None:
@@ -83,7 +69,7 @@ class ClientRemoteApi:
         return {"client": client, "subprotocol": protocols[0]}
 
     def event_handshake(self, socket):
-        connection = self._remote_handshake(socket, self.event_subprotocols)
+        connection = self._remote_handshake(socket, self.service.event_subprotocol)
         if connection is None:
             return None
         try:
@@ -99,7 +85,7 @@ class ClientRemoteApi:
         }
 
     def application_handshake(self, socket):
-        return self._remote_handshake(socket, self.application_subprotocols)
+        return self._remote_handshake(socket, self.service.application_subprotocol)
 
     async def serve_events(self, socket, connection):
         try:
@@ -132,7 +118,7 @@ class ClientRemoteApi:
         """Return paired private clients and the current remote transport state."""
         self.service.purge_pairings()
         return {
-            "version": self.protocol_version,
+            "version": PROTOCOL_VERSION,
             "suggested_endpoint": self.advertised_endpoint,
             "clients": self.service.clients.list(),
             "pending_pairings": len(self.service.pairings),
@@ -198,7 +184,7 @@ class ClientRemoteApi:
     )
     def claim(self, version, pairing_id, secret, device_name, platform="android"):
         """Exchange a valid pairing secret for one durable client credential."""
-        if version != self.protocol_version:
+        if version != PROTOCOL_VERSION:
             raise HttpError(
                 422,
                 "unsupported_protocol_version",
@@ -232,11 +218,11 @@ class ClientRemoteApi:
             self.runtime.request(StatusRequest(id=timestamp_id())),
         )
         return {
-            "version": self.protocol_version,
+            "version": PROTOCOL_VERSION,
             "client": self.service.clients.public(client),
             "event_cursor": self.service.sequence,
             "server_instance_id": self.service.instance_id,
-            "session": self.session_projection(client["id"], session_page),
+            "session": RemoteProjection().session_page(client["id"], session_page),
             "agent_status": agent_status,
             "application": {"connected": self.runtime.application.connected},
             "capabilities": self.service.lease_status(),

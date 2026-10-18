@@ -4,16 +4,15 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
-
 from the_framework import ApplicationSpec
 from the_framework.agent.runtime.protocol import SessionPageRequest, StatusRequest
-from the_framework.server.api.chat import ChatApi
 from the_framework.plugins.realtime.api import RealtimeApi
+from the_framework.server.api.chat import ChatApi
 from the_framework.server.api.endpoints import HttpError, Principal
 from the_framework.server.clients.remote import ClientRemoteService
 from the_framework.server.runtime.supervisor import WorkerSupervisor
-from the_harness.plugins.client_remote.composition import build_api
-from the_harness.plugins.client_remote.policy import RemoteProjection
+
+from the_harness.plugins.client_remote.api import ClientRemoteApi
 
 
 def client_call():
@@ -62,7 +61,7 @@ def test_remote_prompts_keep_ids_routes_and_persistent_receipts(tmp_path, active
         voice = RealtimeApi(runtime, SimpleNamespace(active=active_voice, send_text=send_text))
         chat = ChatApi(runtime, tmp_path, voice)
         service = ClientRemoteService(runtime, tmp_path / "clients.json")
-        api = build_api(runtime, service, chat.ingress, RemoteProjection())
+        api = ClientRemoteApi(service, chat.ingress)
         async with voice.lock:
             pending = asyncio.create_task(api.prompt(client_call(), "Hello", command_id="one"))
             await asyncio.sleep(0)
@@ -75,7 +74,7 @@ def test_remote_prompts_keep_ids_routes_and_persistent_receipts(tmp_path, active
         # A receipt survives a changed modality and a service reconstruction.
         voice.controller.active = not active_voice
         restored = ClientRemoteService(runtime, tmp_path / "clients.json")
-        replay = build_api(runtime, restored, chat.ingress, RemoteProjection())
+        replay = ClientRemoteApi(restored, chat.ingress)
         assert await replay.prompt(client_call(), "Hello", id="one") == {**result, "deduplicated": True}
         with pytest.raises(HttpError) as conflict:
             await replay.prompt(client_call(), "Different", id="one")
@@ -106,7 +105,7 @@ def test_failed_voice_submission_is_retryable_and_text_only_turns_are_preserved(
         controller = SimpleNamespace(active=True, ready=False, send_text=send_text)
         voice = RealtimeApi(runtime, controller)
         service = ClientRemoteService(runtime, tmp_path / "clients.json")
-        api = build_api(runtime, service, ChatApi(runtime, tmp_path, voice).ingress, RemoteProjection())
+        api = ClientRemoteApi(service, ChatApi(runtime, tmp_path, voice).ingress)
         with pytest.raises(HttpError) as failure:
             await api.prompt(client_call(), "Hello", id="retry")
         assert failure.value.status_code == 409 and not service.command_receipts
@@ -136,7 +135,7 @@ def test_empty_assistant_projection_needs_no_worker_snapshots(tmp_path):
 
         runtime = SimpleNamespace(request=request, application=SimpleNamespace(connected=False))
         service = ClientRemoteService(runtime, tmp_path / "clients.json")
-        api = build_api(runtime, service, None, RemoteProjection())
+        api = ClientRemoteApi(service, None)
         assert await api.state(client_call()) == {} and requested == []
         with pytest.raises(HttpError):
             await api.state(SimpleNamespace(principal=Principal(id="local")))
@@ -146,3 +145,49 @@ def test_empty_assistant_projection_needs_no_worker_snapshots(tmp_path):
         assert result["event_cursor"] == 0 and result["server_instance_id"] == service.instance_id
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("contribution_first", [False, True])
+def test_remote_policy_collects_all_features_before_accepting_clients(tmp_path, monkeypatch, contribution_first):
+    from starlette.testclient import TestClient
+    from the_framework import Plugin
+    from the_framework.server.clients.remote import RemoteClientPolicy
+
+    from the_harness import app as server
+    from the_harness.plugins.client_remote.contributions import DESKTOP_ACCESS, POLICY
+
+    def declare(context):
+        context.contribute(POLICY, RemoteClientPolicy(
+            capabilities=frozenset({"weather"}), platform_scopes={"quest": ("weather",)},
+        ))
+        context.contribute(DESKTOP_ACCESS, lambda access: access.add_exact(("GET", "/api/v1/weather")))
+        return ()
+
+    feature = Plugin(name="weather", server_extension=declare)
+    plugins = server.application.plugins
+    monkeypatch.setattr(server, "application", ApplicationSpec({
+        **server.application,
+        "plugins": (feature, *plugins) if contribution_first else (*plugins, feature),
+    }))
+    app = server.create_app(
+        session_path=tmp_path / 'session.json', token='local', browser_token='browser',
+        browser_runtime_root=tmp_path, client_remote_root=tmp_path,
+        advertised_remote_endpoint='https://harness.example/',
+    )
+    with TestClient(app, base_url="http://127.0.0.1:48887") as client:
+        service = app.state.application.services['client_remote']
+        assert service.policy.capabilities == {'conversation', 'notifications', 'weather'}
+        assert service.policy.scopes_for('quest') == ('chat', 'weather')
+        assert service.desktop_api_allowed('GET', '/api/v1/weather')
+        assert service.desktop_api_allowed('GET', '/api/v1/notifications/desktop')
+        assert not service.desktop_api_allowed('POST', '/api/v1/weather')
+        assert not service.desktop_api_allowed('GET', '/api/v1/local-files/open')
+        with pytest.raises(RuntimeError, match='fixed'):
+            service.desktop_access.add_exact(('POST', '/api/v1/weather'))
+        headers = {'Authorization': 'Bearer local'}
+        response = client.get('/api/v1/client-remote', headers=headers)
+        assert response.status_code == 200, response.text
+        status = response.json()
+        assert status['suggested_endpoint'] == 'https://harness.example'
+        pairing = client.post('/api/v1/client-remote/pairings', headers=headers, json={}).json()
+        assert pairing['endpoint'] == 'https://harness.example'

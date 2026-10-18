@@ -16,6 +16,15 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   l'installation ; même conversation, candidat retrouvé après restart et rollback
   disponible. Chaque device peut avoir sa propre surface, maintenue par l'agent :
   test desktop/mobile/Quest sur trois sources et historiques indépendants.
+- [x] **Assemblage du client distant compacté — 18 octobre.** La fabrique serveur
+  construit directement service et API, après collecte de toutes les contributions.
+  Classe `RemoteClientAssembly`, état intermédiaire et fichier `composition.py`
+  retirés ; l'API lit les protocoles et le runtime du service au lieu de les répéter
+  en paramètres. Politiques/projections et personnalisation vocale restent produit ;
+  aucune nouvelle primitive Framework. Contributions avant/après le plugin,
+  permissions figées, pairing, authentification, révocation et reçus texte/voix testés.
+  Validation : 153 tests Harness, 15 contrats Framework, 46 tests JS et build.
+  Serveur installé redémarré : conversation, navigateur et clients appairés conservés.
 - [x] **Chat intégré à l’hôte — 18 octobre.** `build_conversation()` fournit
   texte, pièces jointes et ingress partagé avec la voix ; plugin `CHAT` retiré
   du Harness et du starter. Clients distants injectés sur le même service, sans
@@ -180,10 +189,10 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   (launcher/tray/fermeture de fenêtre), UI compilée tardivement en vrai et
   changement majeur du Python système. Ces essais manuels restent distincts
   de l'assemblage et de la continuité maintenant couverts automatiquement.
-- [ ] **Client distant restant — simplification possible.**
-  `plugins/client_remote/{api,composition,policy,service}.py`, `client_mode.py`.
-  Beaucoup de code reste côté app alors que le transport est générique. Cartographier
-  ce qui relève de la lib, de l'autorisation produit et du client. La base livrée
+- [ ] **Clients distants — surfaces et autorité à concevoir.**
+  `plugins/client_remote/{api,server,policy,service}.py`, `client_mode.py`.
+  Assemblage nettoyé ; permissions et protocoles produit restent côté application.
+  La base livrée
   fournit les APIs de pairing ; elle n'inclut pas l'ancienne UI mobile/distante.
   Décider explicitement quelles surfaces distantes sont souhaitées avant refonte.
   Premier lot livré : suppression des projecteurs sans consommateurs et de la
@@ -202,7 +211,7 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   start/open/restart sans démarrer de services ni naviguer ; configuration et
   bases de pairing préservées pour le futur client.
 - [x] **Notifications et présence UI — transport canonique raccordé.**
-  Les notices utilisent `canonical_transport.event_connection_count`, plutôt que
+  Les notices utilisent `canonical_transport.primary_event_connection_count`, plutôt que
   `application.connected`. Les clients distants restent indépendants ; connexion
   ne signifie pas visibilité ou attention. Tests des sockets locaux et distants.
 
