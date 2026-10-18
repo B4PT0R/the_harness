@@ -327,3 +327,38 @@ test("agent controls start once and only stop the matching call", async () => {
   await voice.stop();
   assert.equal(closed, 2);
 });
+
+test("native screen stays awake during connection and call, then releases on stop or failure", async () => {
+  for (const failure of [false, true]) {
+    const messages = [];
+    const voice = voiceSession(async () => ({}), {}, () => {}, () => {}, async () => {
+      if (failure) throw new Error("microphone unavailable");
+      return { close() {} };
+    }, { screen: { postMessage: value => messages.push(value) } });
+    await voice.start();
+    assert.deepEqual(messages, failure ? ["keep-awake", "allow-sleep"] : ["keep-awake", "keep-awake"]);
+    await voice.stop();
+    assert.equal(messages.at(-1), "allow-sleep");
+  }
+});
+
+test("disposing suspended voice releases screen even if cleanup still reports connecting", async () => {
+  const messages = [];
+  const voice = voiceSession(async () => ({}), {}, () => {}, assert.fail,
+    async () => ({ close() {} }), { screen: { postMessage: value => messages.push(value) } });
+  await voice.start();
+  const suspension = voice.suspend();
+  const disposal = voice.dispose();
+  const released = messages.length - 1;
+  await Promise.all([suspension, disposal]);
+  assert.ok(messages.slice(released).every(value => value === "allow-sleep"));
+});
+
+test("unavailable native screen control cannot prevent a voice call", async () => {
+  const states = [];
+  const voice = voiceSession(async () => ({}), {}, value => states.push(value), assert.fail,
+    async () => ({ close() {} }), { screen: { postMessage() { throw new Error("host unavailable"); } } });
+  await voice.start();
+  await voice.stop();
+  assert.deepEqual(states, ["connecting", "live", "stopping", "idle"]);
+});

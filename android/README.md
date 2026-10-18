@@ -54,3 +54,9 @@ settings. It does not erase paired devices. Re-enabling restores their access.
 The server retains its listener port after an opted-in restart. No Serve command
 runs during startup, builds or tests. Test first-time pairing, reconnect, files
 and microphone on a real phone before relying on it away from the server.
+
+During a Realtime connection or call, the foreground app keeps its screen awake.
+Stopping the call restores normal screen timeout. This does not provide background
+calling. A main-frame-only message channel, restricted to the paired origin,
+controls this screen flag; it never exposes credentials. Instrumentation also
+checks screen-flag release, navigation and iframe isolation.

@@ -21,6 +21,9 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
+import androidx.webkit.WebMessageCompat;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -32,10 +35,11 @@ import org.json.JSONObject;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Thin native host: no JavaScript bridge and no embedded VPN. */
+/** Thin native host: origin-scoped screen control, no credential bridge or embedded VPN. */
 public final class MainActivity extends Activity {
     private final ExecutorService network = Executors.newSingleThreadExecutor();
     private CredentialStore credentials;
@@ -171,7 +175,20 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW); settings.setMediaPlaybackRequiresUserGesture(false);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, false);
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            WebViewCompat.addWebMessageListener(web, "harnessScreen", Collections.singleton(endpoint),
+                (view, message, origin, mainFrame, reply) -> {
+                    if (view != web || !mainFrame || !sameOrigin(origin)
+                        || message.getType() != WebMessageCompat.TYPE_STRING) return;
+                    String state = message.getData();
+                    if ("keep-awake".equals(state)) view.setKeepScreenOn(true);
+                    else if ("allow-sleep".equals(state)) view.setKeepScreenOn(false);
+                });
+        }
         web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                view.setKeepScreenOn(false);
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (sameOrigin(request.getUrl())) return false;
                 if (request.isForMainFrame() && request.hasGesture() && "https".equals(request.getUrl().getScheme()))
@@ -260,7 +277,7 @@ public final class MainActivity extends Activity {
     private void destroyWeb() {
         if (audioRequest != null) { audioRequest.deny(); audioRequest = null; }
         if (fileCallback != null) { fileCallback.onReceiveValue(null); fileCallback = null; }
-        if (web != null) { web.stopLoading(); web.destroy(); web = null; }
+        if (web != null) { web.setKeepScreenOn(false); web.stopLoading(); web.destroy(); web = null; }
     }
     @Override public void onBackPressed() { if (web != null && web.canGoBack()) web.goBack(); else super.onBackPressed(); }
     @Override protected void onDestroy() { destroyWeb(); network.shutdownNow(); super.onDestroy(); }

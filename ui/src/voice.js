@@ -8,9 +8,17 @@ export function voiceSession(
   changed,
   report,
   connect = connectRealtimeAudio,
-  { storage, storageKey = "voice-session" } = {},
+  { storage, storageKey = "voice-session", screen = globalThis.harnessScreen } = {},
 ) {
   let connection, attempt, stopping, callId, reconnecting, pendingReconnect;
+  let disposed = false;
+  const screenState = state => {
+    try { screen?.postMessage(state); } catch { /* An unavailable native host must not break voice. */ }
+  };
+  const change = state => {
+    screenState(!disposed && ["connecting", "live"].includes(state) ? "keep-awake" : "allow-sleep");
+    changed(state);
+  };
   let saved;
   try { saved = JSON.parse(storage?.getItem(storageKey) || "null"); } catch { /* Storage may be unavailable. */ }
   let wanted = saved?.wanted === true;
@@ -36,7 +44,7 @@ export function voiceSession(
     const previous = callId;
     attempt?.controller.abort();
     close();
-    changed("stopping");
+    change("stopping");
     stopping = (async () => {
       await attempt?.task;
       try {
@@ -45,7 +53,7 @@ export function voiceSession(
         report(error.message);
       } finally {
         stopping = null;
-        changed(wanted && suspended ? "connecting" : "idle");
+        change(wanted && suspended ? "connecting" : "idle");
       }
     })();
     return stopping;
@@ -55,7 +63,7 @@ export function voiceSession(
     const controller = new AbortController();
     callId = crypto.randomUUID();
     remember();
-    changed("connecting");
+    change("connecting");
     const current = { controller };
     attempt = current;
     current.task = (async () => {
@@ -76,7 +84,7 @@ export function voiceSession(
         if (controller.signal.aborted) result.close();
         else {
           connection = result;
-          changed("live");
+          change("live");
         }
       } catch (error) {
         if (["text_turn_active", "server_restarting"].includes(error.code)) suspended = true;
@@ -88,7 +96,7 @@ export function voiceSession(
           } catch (failure) {
             report(failure.message);
           }
-          changed(wanted && suspended ? "connecting" : "idle");
+          change(wanted && suspended ? "connecting" : "idle");
         }
       } finally {
         if (attempt === current) attempt = null;
@@ -107,14 +115,14 @@ export function voiceSession(
     wanted = false;
     remember();
     pendingReconnect = null;
-    if (wasWanted && !attempt && !connection && !stopping) changed("idle");
+    if (wasWanted && !attempt && !connection && !stopping) change("idle");
     return stopCurrent({ releaseCall: !suspended });
   }
   function suspend(request) {
     if (request && request.call_id !== callId) return;
     suspended = true;
     suspension++;
-    if (wanted) changed("connecting");
+    if (wanted) change("connecting");
     return stopCurrent({ releaseCall: false });
   }
   function resume() {
@@ -139,6 +147,8 @@ export function voiceSession(
     await suspend();
   }
   function dispose() {
+    disposed = true;
+    screenState("allow-sleep");
     return stopCurrent({ releaseCall: !suspended });
   }
   function reconnect(request) {
