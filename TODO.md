@@ -381,3 +381,14 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
 - [ ] **Suite de la revue API.** Examiner Session / Context / Compaction et
   AgentSpec / AgentTrigger / WorkerProfile, en distinguant runtime et payloads.
   Les modèles de payloads restent hors refonte.
+
+- [x] **Revue Session / Context / Compaction — 18 octobre.** Contrats et usages
+  Framework/starter/Harness examinés ; détail dans le TODO Framework. Conserver
+  Session canonique et ses mutations atomiques, Context comme préparation du modèle,
+  projections UI/voix distinctes. Priorité proposée : déplacer la conversion Responses
+  hors de Session vers Context, y réunir l'orchestration de compaction et retirer
+  le contrôleur Compaction distinct ainsi que ses branches sans usage utile.
+  Les recettes starter/Harness n'appellent pas ces objets directement ; leurs
+  projections et commandes worker restent les points de vérification. Aucun nouveau
+  manager, ni refonte de payload ou schéma proposée. 44 tests ciblés réussis ;
+  revue seulement, aucun changement runtime ni redémarrage installé.
