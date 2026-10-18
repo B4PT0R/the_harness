@@ -73,6 +73,47 @@ def test_composer_resize_submission_and_failure(page, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
 
 
+@pytest.mark.parametrize("width", [1280, 390])
+@pytest.mark.parametrize("via_button", [False, True])
+@pytest.mark.parametrize("fails", [False, True])
+def test_composer_recovers_focus_after_submission(page, width, via_button, fails):
+    page.set_viewport_size({"width": width, "height": 800})
+    field = page.locator(".composer textarea")
+    # Initial mount and background updates must not grab the keyboard.
+    assert not field.evaluate("el => el === document.activeElement")
+    field.fill("First message")
+    page.evaluate("fails => { window.holdSend = true; window.failSend = fails; }", fails)
+    if via_button:
+        page.get_by_role("button", name="Envoyer", exact=True).click()
+    else:
+        field.press("Enter")
+    page.wait_for_function("typeof window.releaseSend === 'function'")
+    assert field.is_disabled()
+    page.evaluate("window.releaseSend()")
+    page.wait_for_function("document.activeElement === document.querySelector('.composer textarea') && !document.activeElement.disabled")
+    assert field.input_value() == ("First message" if fails else "")
+    # Real keyboard input, not fill()/press() which would focus the field for us.
+    page.keyboard.type(" next")
+    assert field.input_value() == ("First message next" if fails else " next")
+
+
+def test_composer_does_not_steal_focus_when_user_opens_settings_during_send(page):
+    field = page.locator(".composer textarea")
+    field.fill("Delayed message")
+    page.evaluate("window.holdSend = true")
+    field.press("Enter")
+    page.wait_for_function("typeof window.releaseSend === 'function'")
+    page.get_by_role("button", name="Réglages", exact=True).click()
+    page.get_by_role("button", name="Conversation", exact=True).click()
+    instructions = page.get_by_role("textbox", name="Instructions personnelles")
+    instructions.fill("Keep my focus here")
+    page.evaluate("window.releaseSend()")
+    page.wait_for_function("!document.querySelector('.composer textarea').disabled")
+    assert instructions.evaluate("el => el === document.activeElement")
+    page.get_by_role("button", name="Retour à la conversation", exact=True).click()
+    assert not field.evaluate("el => el === document.activeElement")
+
+
 def test_attachments_and_draft_survive_updates_and_failed_send(page):
     field = page.locator("textarea")
     field.fill("With attachment")

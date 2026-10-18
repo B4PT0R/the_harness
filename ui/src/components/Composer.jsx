@@ -10,10 +10,21 @@ export function Composer({ readOnly = false, sending, voiceAvailable, voiceState
   const { t } = useLocale();
   const [draft, setDraft] = useState("");
   const [files, setFiles] = useState([]);
+  const [restoreFocus, setRestoreFocus] = useState(false);
   const submitting = useRef(false);
   const fileInput = useRef(null);
   const textarea = useRef(null);
   useLayoutEffect(() => { resizeComposerTextarea(textarea.current); }, [draft]);
+  useLayoutEffect(() => {
+    if (sending || !restoreFocus) return;
+    setRestoreFocus(false);
+    const element = textarea.current;
+    // Wait for re-enabling, without stealing focus from settings or another control.
+    if (element.getClientRects().length && (document.activeElement === document.body
+        || element.form.contains(document.activeElement))) {
+      element.focus({ preventScroll: true });
+    }
+  }, [sending, restoreFocus]);
   useLayoutEffect(() => {
     const element = textarea.current;
     let width = element.getBoundingClientRect().width;
@@ -37,7 +48,10 @@ export function Composer({ readOnly = false, sending, voiceAvailable, voiceState
         setDraft("");
         setFiles([]);
       }
-    } finally { submitting.current = false; }
+    } finally {
+      submitting.current = false;
+      setRestoreFocus(true);
+    }
   }
   const activityLabel = {
     queued: "compactionQueued", running: "compacting", done: "compactionDone", failed: "compactionFailed",
