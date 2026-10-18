@@ -322,16 +322,20 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
 - [ ] Choisir une stratégie de versions framework/application et un dépôt distant
   pour la base neutre. Ne pas pousser vers l'ancien projet par défaut.
 
-- [ ] **Cause du blocage historique de fermeture d'un aperçu.** Diagnostic du
-  18 octobre : seul l'ancien onglet est bloqué, même après navigation vers une page
-  vide. Onglet neuf et nouvel aperçu authentifié se ferment dans le même daemon.
-  Fermeture également correcte en contexte Chromium neuf, visible ou headless.
-  Cause initiale non isolée : conserver ce point si le problème réapparaît.
-  Le Framework annule désormais les opérations RPC quand leur client disparaît,
-  pour éviter les tâches abandonnées ; cela ne prouve pas la cause du blocage.
-  Daemon actualisé pour charger ces corrections après capture de l'état, chat
-  rouvert et même historique retrouvé. Fermeture d'aperçu neuf et Réglages/Retour
-  vérifiés après mise à jour ; aucun autre onglet utilisateur n'était ouvert.
+- [x] **Fermeture bloquée d'un aperçu — 18 octobre.** Bug Chromium/Playwright
+  reproduit en faisant courir reload et close : acquittement natif sans fermeture,
+  puis retries ordinaires bloqués même après navigation. Traces protocole locales
+  et source Playwright cohérentes avec le bug amont #42068. Le Framework reprend
+  désormais le seul onglet via une autre commande native et attend sa fermeture ;
+  chaque tentative est bornée, échec explicite si nécessaire. Aucun reset global
+  des autres onglets ou de la conversation. Essai avec le runtime du Harness :
+  30 cycles réussis, dont 29 fermetures récupérées ; autre onglet et brouillon
+  conservés. Déclencheur exact de l'ancien aperçu non prouvable après sa disparition.
+  Référence : https://github.com/microsoft/playwright/issues/42068.
+  Validation : 691 tests Framework réussis (3 skips), 157 Harness ; Chromium
+  visible 10 blocages/10 reprises. Correction activée dans le daemon installé,
+  trois aperçus authentifiés rechargés puis fermés, session et brouillon conservés.
+  Commit Framework : f44b75d.
 
 - [x] **Trois prérequis avant refonte API — 18 octobre.** Références navigateur
   corrigées, XML mémoire sorti de Realtime et migration de profils retirée,
