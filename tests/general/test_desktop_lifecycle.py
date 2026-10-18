@@ -17,7 +17,6 @@ from the_framework.server.clients.browser_rpc import BrowserRPCClient, browser_s
 from the_framework.agent.context.session import Session
 from the_framework.agent.models.responses import Message
 from the_harness.control import HarnessControl
-from the_harness.configuration import AgentConfigStore
 
 ROOT = Path(__file__).parents[2]
 
@@ -138,7 +137,7 @@ load();
     machine = tmp_path / "machine"
     data = machine / "data"
     data.mkdir(parents=True)
-    AgentConfigStore(data / "config.json").save({"chromium": {"ui_headless": True, "web_headless": True}})
+    Session.open(data / "session.json").update_agent(configuration={"chromium": {"ui_headless": True, "web_headless": True}})
     session = Session.open(data / "session.json")
     session.append(Message(role="user", content=[{"type": "input_text", "text": "Recovered conversation"}]))
     session.save()

@@ -12,7 +12,7 @@ from the_framework.server.clients.browser import DEFAULT_VIEWPORT, BrowserServic
 from the_framework.server.clients.browser_rpc import BrowserRPCServer, browser_socket_path
 from the_framework.server.runtime.local import shutdown_event
 from .client_mode import ClientModeStore
-from .configuration import AgentConfigStore
+from the_framework.agent.context.session import Session
 from .environment import load_runtime_environment
 from .runtime_paths import bootstrap_root, ensure_data_root_config
 
@@ -44,7 +44,7 @@ def ensure_graphical_environment(
 
 
 def browser_config(runtime_root):
-    config = AgentConfigStore(Path(runtime_root) / "config.json").load()
+    config = Session.open(Path(runtime_root) / "session.json").configuration
     value = config.get("chromium", {})
     return value if isinstance(value, dict) else {}
 

@@ -5,7 +5,7 @@ import { voiceSession } from "../voice";
 import { translate } from "../locales.js";
 import { contextState, initialContext } from "../context.js";
 import { pluginBindingEnabled } from "../plugins";
-import { conversationBusy, conversationCommand, eventMessages, providerArtifacts, snapshot, voiceCaptions } from "../session";
+import { conversationBusy, conversationCommand, eventMessages, providerArtifacts, snapshot, voiceCaptions, subagentActivities } from "../session";
 
 // Browser client state only. Conversation history remains owned by the server.
 // Hosts can supply their request function and event endpoint without changing UI.
@@ -28,6 +28,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   const [voiceState, setVoiceState] = useState("idle");
   const [voiceAvailable, setVoiceAvailable] = useState(false);
   const [captions, setCaptions] = useState({});
+  const [subagents, setSubagents] = useState({});
   const voice = useRef(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -151,12 +152,14 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       active.onopen = () => {
         if (!current()) return;
         attempts = 0;
+        setSubagents({});
         setConnection("Connected");
         reconcile().catch(fail);
       };
       active.onmessage = ({ data }) => {
         if (!current()) return;
         const output = JSON.parse(data);
+        if (output.type === "subagent_event") setSubagents((items) => subagentActivities(items, output));
         if (output.type === "realtime_reconnect_requested") {
           void voice.current?.reconnect(output);
         }
@@ -171,6 +174,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         if (output.type === "command_failed" && output.error) setError(output.error);
         if (["worker_exited", "worker_transport_error"].includes(output.type)) {
           setArtifacts([]);
+          setSubagents({});
           workerError = output.error || translate("workerDisconnected");
           setError(workerError);
         }
@@ -185,6 +189,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           location.reload();
           return;
         }
+        if (output.type === "subagent_event") setSubagents((items) => subagentActivities(items, output));
         if (output.type === "command_event") {
           const event = output.event;
           setArtifacts((items) => providerArtifacts(items, event));
@@ -240,7 +245,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   }, [api, eventsUrl, eventProtocol]);
   useLayoutEffect(() => {
     followLatest();
-  }, [messages, artifacts, activity, captions, followLatest]);
+  }, [messages, artifacts, activity, captions, subagents, followLatest]);
   useLayoutEffect(() => {
     if (historyScroll.current && scroll.current) {
       const { height, top } = historyScroll.current;
@@ -311,7 +316,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   }
   return {
     context, compact,
-    messages, artifacts, captions, before, loadingHistory, loadHistory, scroll, follow, onScroll, onContentLoad: followLatest,
+    messages, artifacts, captions, subagents, before, loadingHistory, loadHistory, scroll, follow, onScroll, onContentLoad: followLatest,
     sending, connection, activity, busy,
     error, setError, voiceAvailable, voiceState, send,
     toggleVoice: () => voiceState === "idle" ? voice.current.start() : voice.current.stop(),

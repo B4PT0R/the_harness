@@ -59,7 +59,7 @@ def create_app(
     return application.build_conversation(
         "the_harness.application:application", context,
         supervisor=supervisor, security=security,
-        runtime_factory=lambda worker: Harness(
+        runtime_factory=lambda worker, context: Harness(
             worker, fleet_factory=fleet_factory, restart=restart, services=context.services,
         ),
         session_projection="display", health_projection=health_projection,
@@ -68,7 +68,7 @@ def create_app(
         application_handshake=security.socket_handshake(supported=(APPLICATION_SUBPROTOCOL,)),
         extensions=lambda runtime: (
             ServerExtension(
-                name="memory_reset", endpoints=(MemoryResetApi(runtime),),
+                name="memory_reset", scope="session", endpoints=(MemoryResetApi(runtime),),
                 requires_services=("runtime",),
             ),
             access_boundary(security=security),

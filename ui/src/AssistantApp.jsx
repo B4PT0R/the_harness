@@ -18,7 +18,7 @@ function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./ass
   return <ResourceRequest.Provider value={request}><AppShell preview={preview} connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
     settings={settingsOpen && <Settings readOnly={preview} api={request} onClose={() => setSettingsOpen(false)} />}
   >
-    <Conversation messages={state.messages} artifacts={state.artifacts} captions={state.captions} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
+    <Conversation messages={state.messages} artifacts={state.artifacts} captions={state.captions} subagents={state.subagents} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
       onScroll={state.onScroll} onContentLoad={state.onContentLoad} artifactRenderers={artifactRenderers}
     />
     <Composer readOnly={preview} sending={state.sending}

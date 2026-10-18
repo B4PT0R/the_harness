@@ -6,6 +6,19 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
 
 ## Remarques à reprendre après l'audit en cours — 17 octobre 2026
 
+- [x] **Sessions canoniques et activité des sous-agents — 18 octobre.** Le Framework
+  peut héberger plusieurs workers indépendants. Le Harness garde sa conversation
+  par défaut, mais stocke désormais ses réglages, état d'extensions et bindings
+  dans la session ; magasins parallèles et callbacks de persistance retirés.
+  L'activité des sous-agents est étiquetée séparément, sans fusionner les historiques.
+  Validation : 156 tests Harness, 54 JS, build et contrôle visuel ; Framework
+  659 succès, 3 skips. Migration locale ponctuelle exécutée puis supprimée ;
+  même session, même historique, mêmes réglages et fenêtre Chromium conservée.
+- [ ] **Prochaine priorité Framework : vocabulaire d'événements propre.** Convertir
+  ou filtrer les événements Responses à la frontière backend ; compléter LocalEvent
+  pour que les consommateurs ne dépendent plus des signaux OpenAI verbatim.
+  Demande détaillée consignée dans le TODO Framework.
+
 - [x] **Livraison des surfaces et contrôles agentiques — 18 octobre.** Le service
   de surfaces initialise les bundles déclarés ; le Harness retire son chemin
   de secours dupliqué. Candidat persisté, publication/rollback explicites, copie

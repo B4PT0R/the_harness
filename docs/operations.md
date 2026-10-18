@@ -46,8 +46,10 @@ journalctl --user -u the-harness.service -n 100
 ## Data and configuration
 
 The default data directory is `~/TheHarness`. It contains the conversation and
-archive in `session.json`, the memory database, agent configuration, plugin state,
-auxiliary sessions and other feature storage. Bootstrap configuration, local
+archive, agent configuration, extension state and plugin bindings together in
+`session.json`, plus the memory database, auxiliary sessions and other feature
+storage. There are no separate agent `config.json`, `state.json` or `plugins.json`
+stores in this directory. Bootstrap configuration, local
 access secrets and the browser profile live under `~/.the_harness_assistant`.
 Backend authentication is managed separately by `codex-backend-sdk`; see its
 [authentication documentation](../../codex-backend-sdk/README.md#authentication-and-lifecycle).

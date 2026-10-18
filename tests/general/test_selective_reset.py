@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from the_framework.agent import Session, Message
 from the_harness.runtime_composition import Harness
 from the_harness.runtime_reset import SESSION_RESET_ENTRIES, MEMORY_RESET_ENTRIES
 
@@ -48,6 +49,12 @@ def test_reset_preserves_unrelated_data_and_restores_failed_reset(tmp_path, kind
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(name)
+    session = Session()
+    session.set_attr("path", tmp_path / "session.json")
+    session.append(Message(role="user", content=[]))
+    session.update_agent(configuration={"model": "retained"}, state={"feature": {"count": 2}})
+    session.set_plugin("feature", False)
+    original = session.path.read_text()
     runtime = FixtureHarness(tmp_path)
     runtime.fail_once = fail_start
     action = runtime.reset_session if kind == "session" else runtime.reset_memory
@@ -64,7 +71,17 @@ def test_reset_preserves_unrelated_data_and_restores_failed_reset(tmp_path, kind
     for name in paths:
         erased = any(name == item or name.startswith(item + "/") for item in selected)
         path = tmp_path / name
-        if erased:
+        if name == "session.json":
+            restored = Session.open(path)
+            assert restored.configuration == session.configuration
+            assert restored.state == session.state
+            assert restored.plugins == session.plugins
+            if erased:
+                assert restored.history == []
+                assert restored.id != session.id
+            else:
+                assert path.read_text() == original
+        elif erased:
             assert not path.exists()
         else:
             assert path.read_text() == name

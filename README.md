@@ -187,3 +187,9 @@ For shared framework changes, verify the framework independently before relying
 on them here. The [UI guide](ui/README.md) and
 [framework composition guide](../the_framework/docs/framework.md) are the next
 references once you have found the part you want to change.
+
+The Framework can host several independent concurrent agent sessions. The Harness
+keeps one default user conversation as its product policy. Its canonical session
+owns history, configuration, extension state and plugin bindings; process-local
+resources supply defaults. Sub-agent activity is shown separately in the chat and
+results return to the caller without merging specialist histories.

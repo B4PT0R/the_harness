@@ -151,3 +151,7 @@ Use the running Harness to check that framework simplification preserves real
 application behavior. Keep visual quality deliberate and inspect the rendered UI
 after UI changes. Run the relevant checks listed above for code changes; a
 prose-only instructions update does not require the application test suites.
+
+The Framework supports independent concurrent sessions; the Harness retains one
+default user conversation. Agent configuration, extension state and bindings live
+in that canonical session, not in parallel application settings stores.

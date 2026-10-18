@@ -323,3 +323,18 @@ def test_image_layout_scroll_before_load_keeps_following_latest(page):
     page.wait_for_function("document.querySelector('.artifact img')?.naturalWidth === 640")
     assert page.evaluate('window.imageGapBeforeLoad') > 80
     page.wait_for_function("(() => {const el=document.querySelector('.conversation'); return el.scrollHeight-el.scrollTop-el.clientHeight<5;})()", timeout=2000)
+
+
+def test_subagent_activity_has_its_own_label_without_changing_history(page):
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.evaluate("const el=document.querySelector('.conversation'); el.scrollTop=el.scrollHeight")
+    page.screenshot(path="/tmp/harness-subagent-before.png")
+    page.evaluate("window.emit({type:'subagent_event', session_id:'child', task_id:'review', agent:'reviewer', event:{type:'agent.tool_call.start', user_feedback:'Vérification des sources'}})")
+    activity = page.locator('.subagent-activity')
+    activity.get_by_text('Sous-agent · reviewer', exact=True).wait_for()
+    activity.get_by_text('Vérification des sources', exact=True).wait_for()
+    assert page.locator('.message:not(.subagent-activity)').count() == 80
+    page.screenshot(path="/tmp/harness-subagent-after.png")
+    page.evaluate("window.emit({type:'subagent_event', session_id:'child', task_id:'review', agent:'reviewer', event:{type:'agent.task.completed'}})")
+    activity.wait_for(state='detached')
+    assert page.locator('.message').count() == 80
