@@ -102,21 +102,23 @@ def test_real_event_sockets_suppress_only_local_host_notifications(tmp_path):
     sender = Sender()
     notifications.sender = sender
     _phone, token = remote.clients.issue("phone", platform="android")
-    client = TestClient(app, base_url="http://127.0.0.1:48887")
-    headers = {"Host": "127.0.0.1:48887", "Origin": "http://127.0.0.1:48887"}
-    with client.websocket_connect("/remote/v1/events", headers=dict(headers),
-                                  subprotocols=[REMOTE_EVENT_SUBPROTOCOL, token]) as phone:
-        assert transport.primary_event_connection_count == 0
-        assert remote.event_connections
-        phone.portal.call(notifications.notify, "remote-only")
-        assert len(sender.messages) == 1
-        with client.websocket_connect("/api/v1/events", headers=dict(headers),
-                                      subprotocols=[EVENT_SUBPROTOCOL, "local"]) as local:
-            assert transport.primary_event_connection_count == 1
-            assert not extensions["runtime"].service.bridge.connected
-            local.portal.call(notifications.notify, "local-open")
+    # Both sockets belong to one running server and event loop, as in production.
+    # A TestClient used outside its context creates a separate portal per socket.
+    with TestClient(app, base_url="http://127.0.0.1:48887") as client:
+        headers = {"Host": "127.0.0.1:48887", "Origin": "http://127.0.0.1:48887"}
+        with client.websocket_connect("/remote/v1/events", headers=dict(headers),
+                                      subprotocols=[REMOTE_EVENT_SUBPROTOCOL, token]) as phone:
+            assert transport.primary_event_connection_count == 0
+            assert remote.event_connections
+            phone.portal.call(notifications.notify, "remote-only")
             assert len(sender.messages) == 1
-        assert transport.primary_event_connection_count == 0
-        phone.portal.call(notifications.notify, "local-closed")
-        assert len(sender.messages) == 2
-    assert not remote.event_connections
+            with client.websocket_connect("/api/v1/events", headers=dict(headers),
+                                          subprotocols=[EVENT_SUBPROTOCOL, "local"]) as local:
+                assert transport.primary_event_connection_count == 1
+                assert not extensions["runtime"].service.bridge.connected
+                local.portal.call(notifications.notify, "local-open")
+                assert len(sender.messages) == 1
+            assert transport.primary_event_connection_count == 0
+            phone.portal.call(notifications.notify, "local-closed")
+            assert len(sender.messages) == 2
+        assert not remote.event_connections

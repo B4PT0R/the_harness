@@ -5,7 +5,7 @@ from the_framework.server.clients.browser_rpc import BrowserRPCClient
 
 from .api import HostedUiApi
 
-def build_server_extensions(context):
+def build_service(context):
     options = context.plugin("hosted_ui")
     browser = options.get("browser_client_factory", BrowserRPCClient)(
         browser_socket_path(context.require("machine_root"))

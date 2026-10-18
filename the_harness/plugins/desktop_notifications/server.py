@@ -17,17 +17,17 @@ def build_server_extensions(context):
         ),
     )
 
-    def build_notifications(canonical_transport, client_remote=None):
-        service = DesktopNotificationService(
-            Path(context.require("machine_root")) / "desktop-notifications.json",
-            canonical_transport,
-        )
-        if client_remote is not None:
-            client_remote.message_notification_listener = service.notify
-        return service
-
     return ServerExtension(
         name="desktop_notifications",
         service_factory=build_notifications,
-        endpoints="service",
     )
+
+
+def build_notifications(context, canonical_transport, client_remote=None):
+    service = DesktopNotificationService(
+        Path(context.require("machine_root")) / "desktop-notifications.json",
+        canonical_transport,
+    )
+    if client_remote is not None:
+        client_remote.message_notification_listener = service.notify
+    return service

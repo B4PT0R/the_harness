@@ -175,3 +175,12 @@ selects their explicit controller; no global mutable current-session pointer.
 The class receives its scoped service registry from the framework, so its custom
 constructor no longer needs a separately injected services mapping. The capability
 channels remain agent.bridge/runtime.bridge; runtime.application is the actual app.
+
+## Server feature construction
+
+Prefer direct ServerExtension service factories over nested builders. Request
+`context` explicitly for fixed BuildContext inputs and name dependent services in
+other parameters. Lazy `module:factory` references keep server implementations out
+of worker imports. Decorated routes/socket declarations are discovered by default;
+explicit empty tuples keep a surface private. Keep plugin-level builders only for
+declaration-time contributions or dynamic composition, including remote/voice policy.

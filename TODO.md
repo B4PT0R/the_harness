@@ -366,6 +366,18 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   conservé hors reçu technique du redémarrage ; chat, historique et contrôles retrouvés,
   aperçu authentifié ouvert/fermé. Le bridge de capacités n'est pas l'indicateur
   de connexion du chat.
-- [ ] **Prochaine tranche API.** Clarifier Plugin / AgentExtension /
-  ServerExtension et alléger options et injection de BuildContext, en s'appuyant
-  sur le propriétaire Application unique. Ne pas modifier les modèles de payloads.
+- [x] **Plugins et BuildContext — 18 octobre.** Factories plates recevant contexte
+  et services injectés ; références différées gardant les imports workers inertes.
+  Services/API distants, fichiers locaux et UI déclarés directement ; notifications
+  gardent leur contribution de politique avant construction. Découverte uniforme
+  des routes/socket sur le service construit, sans flag "service". Starter aligné
+  sur les défauts des plugins ; aucune nouvelle classe ou helper public, pas de
+  changement des payloads. Documentation et exemples Framework mis à jour.
+  Validation : Framework 704 succès / 3 skips avec Chromium et 6 tests ciblés
+  d'injection ; Harness 157 succès. Le test de notifications utilise désormais
+  un seul serveur/boucle pour ses deux sockets. Installation relancée : même
+  navigateur et conversation, contrôles chat/voix, settings fichiers, catalogue
+  et aperçu authentifié vérifiés.
+- [ ] **Suite de la revue API.** Examiner Session / Context / Compaction et
+  AgentSpec / AgentTrigger / WorkerProfile, en distinguant runtime et payloads.
+  Les modèles de payloads restent hors refonte.

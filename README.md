@@ -113,7 +113,8 @@ explains its contracts and APIs.
 
 Local and paired-client prompts share the host-owned chat service and its
 text/voice barrier, assembled by `build()` rather than a plugin.
-The remote plugin's `server.py` directly assembles its service and API; `policy.py`
+The remote plugin declares its service and API factories directly; `server.py`
+constructs each component from its injected services and BuildContext. `policy.py`
 owns product permissions and wire projections. The Framework transport owns
 credentials, leases, event delivery and persistent command receipts. The product
 API chooses the routes and command semantics, reusing the host's text/voice ingress.
