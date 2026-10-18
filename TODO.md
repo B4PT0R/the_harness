@@ -70,11 +70,10 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   supprimé). Suites JS 53/25 et builds réussis, récupération navigateur
   du starter vérifiée. Interface publiée après aperçu ; historique, navigateur
   principal et brouillon conservés.
-- [ ] **Identifiants DOM du navigateur agentique.** Une nouvelle capture attribue
-  des identifiants réutilisés sans retirer ceux des éléments devenus cachés :
-  après ouverture des réglages, clic sur Retour refusé car un élément de chat
-  masqué porte le même ID. Corriger le snapshot/locator et vérifier ce changement
-  d'écran ; observation faite pendant la validation de cette tranche.
+- [x] **Identifiants DOM du navigateur agentique.** Captures désormais remplacées
+  intégralement avec identifiants opaques et invalidation des anciennes références.
+  Test Chromium sur nœuds cachés/tronqués ; parcours Réglages/Retour vérifié dans
+  le navigateur installé le 18 octobre, sans ambiguïté de sélecteur.
 
 - [x] **Parcours CLI de création et lancement — 18 octobre.** Le Framework prépare
   désormais l'environnement Python propre à l'application, Chromium, npm et UI
@@ -323,11 +322,20 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
 - [ ] Choisir une stratégie de versions framework/application et un dépôt distant
   pour la base neutre. Ne pas pousser vers l'ancien projet par défaut.
 
-- [ ] **Fermeture d'un aperçu via le navigateur installé.** Après validation et
-  publication de la tranche sessions, `close_web_tab(index)` expire côté RPC
-  (30 s puis nouvel essai à 5 s) sur l'onglet d'aperçu créé pour cette validation.
-  `status` et `observe` du desktop restent fonctionnels ; serveur sain, nouvelle
-  version active et conversation conservée. Ne pas redémarrer le navigateur pour
-  contourner ce problème : inspecter la fermeture de page dans le propriétaire
-  Playwright et protéger les autres onglets. À reprendre après la frontière
-  d'événements Framework demandée en priorité.
+- [ ] **Cause du blocage historique de fermeture d'un aperçu.** Diagnostic du
+  18 octobre : seul l'ancien onglet est bloqué, même après navigation vers une page
+  vide. Onglet neuf et nouvel aperçu authentifié se ferment dans le même daemon.
+  Fermeture également correcte en contexte Chromium neuf, visible ou headless.
+  Cause initiale non isolée : conserver ce point si le problème réapparaît.
+  Le Framework annule désormais les opérations RPC quand leur client disparaît,
+  pour éviter les tâches abandonnées ; cela ne prouve pas la cause du blocage.
+  Daemon actualisé pour charger ces corrections après capture de l'état, chat
+  rouvert et même historique retrouvé. Fermeture d'aperçu neuf et Réglages/Retour
+  vérifiés après mise à jour ; aucun autre onglet utilisateur n'était ouvert.
+
+- [x] **Trois prérequis avant refonte API — 18 octobre.** Références navigateur
+  corrigées, XML mémoire sorti de Realtime et migration de profils retirée,
+  factories de services optionnels dégradables sans perdre le chat (y compris
+  sessions supplémentaires). Framework : 687 succès, 3 skips ; Harness : 157.
+  Serveur et navigateur installés actualisés. Conversation, archive, configuration
+  et bindings conservés ; aucun changement des payloads ni du code UI.
