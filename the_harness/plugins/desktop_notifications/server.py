@@ -2,24 +2,17 @@
 
 from pathlib import Path
 
-from the_framework import ServerExtension
-
 from ..client_remote.contributions import DESKTOP_ACCESS
 from .service import DesktopNotificationService
 
 
-def build_server_extensions(context):
+def configure(context):
     context.contribute(
         DESKTOP_ACCESS,
         lambda access: access.add_exact(
             ("GET", "/api/v1/notifications/desktop"),
             ("PUT", "/api/v1/notifications/desktop"),
         ),
-    )
-
-    return ServerExtension(
-        name="desktop_notifications",
-        service_factory=build_notifications,
     )
 
 

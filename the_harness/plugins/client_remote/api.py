@@ -213,7 +213,7 @@ class ClientRemoteApi:
         client = self._client(call)
         session_page, agent_status = await asyncio.gather(
             self.runtime.request(SessionPageRequest(
-                id=timestamp_id(), before=before, limit=limit, projection="remote",
+                id=timestamp_id(), before=before, limit=limit, projection="activity",
             ), timeout=15),
             self.runtime.request(StatusRequest(id=timestamp_id())),
         )

@@ -444,3 +444,19 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   Validation : Framework 712 succès / 3 skips avec Chromium, Harness 157 succès ;
   redémarrage réel sans changement de navigateur/fenêtre ni perte de conversation,
   chat/voix disponibles et Jiminy conforme au modèle mémoire enregistré.
+
+
+- [x] **Contributions serveur et services partagés — 18 octobre.** Plugins
+  déclarés par server_extensions ; configure(context) réservé aux contributions
+  avant construction. Notifications : déclaration statique et configure séparés.
+  API distante sur la vue activity, indépendante du type de client. Les services
+  application sont empruntés sans reprise de leur cycle de vie par les sessions ;
+  vues de lookup et santé restent cohérentes. CLI starter avec vérifications réelles
+  Python/Chromium avant installation, et prepare explicite pour rafraîchir.
+  Décorateurs de déclaration disponibles ensemble à la racine. Documentation et
+  tests adaptés ; payloads, persistance et garanties texte/voix inchangés.
+
+  Validation de cette tranche : Framework 719 succès / 3 skips et Harness 157 succès.
+  Bootstrap neuf puis préparation sans réinstallation/rebuild, démarrage UI et arrêt
+  réel vérifiés. Installation Harness relancée avec même navigateur et conversation,
+  contrôles chat/voix disponibles, Jiminy conforme à la configuration mémoire.

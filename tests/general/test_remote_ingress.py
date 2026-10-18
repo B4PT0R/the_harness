@@ -130,7 +130,7 @@ def test_empty_assistant_projection_needs_no_worker_snapshots(tmp_path):
             if isinstance(command, StatusRequest):
                 return {"foreground_pending": 0}
             assert isinstance(command, SessionPageRequest)
-            assert command.projection == "remote" and command.limit == 12
+            assert command.projection == "activity" and command.limit == 12
             return {"turns": [], "before": "cursor"}
 
         runtime = SimpleNamespace(request=request, bridge=SimpleNamespace(connected=False))
@@ -163,7 +163,7 @@ def test_remote_policy_collects_all_features_before_accepting_clients(tmp_path, 
         context.contribute(DESKTOP_ACCESS, lambda access: access.add_exact(("GET", "/api/v1/weather")))
         return ()
 
-    feature = Plugin(name="weather", server_extension=declare)
+    feature = Plugin(name="weather", configure=declare)
     plugins = server.application.plugins
     monkeypatch.setattr(server, "application", Application({
         **server.application,

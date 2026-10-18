@@ -4,7 +4,7 @@ from the_framework import Plugin, ServerExtension
 
 PLUGIN = Plugin(
     name="hosted_ui",
-    server_extension=ServerExtension(
+    server_extensions=ServerExtension(
         name="hosted_ui", service_factory="the_harness.plugins.hosted_ui.server:build_service",
     ),
 )
