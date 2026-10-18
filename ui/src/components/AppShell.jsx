@@ -12,6 +12,7 @@ export function AppShell({ preview = false, connection, settingsOpen, onToggleSe
         {preview && <span className="preview-badge">{t("previewReadOnly")}</span>}
         <span className="connection" data-state={connection} role="status" aria-label={t(connection)} title={t(connection)} />
       </div>
+      <button type="button" className="ui-publication-test" title="Repère temporaire pour tester la publication UI">Test UI</button>
       <IconButton icon="settings" label={t("settings")} aria-expanded={settingsOpen} onClick={onToggleSettings} />
     </header>
     <div className="workspace"><main hidden={settingsOpen}>{children}</main>{settings}</div>

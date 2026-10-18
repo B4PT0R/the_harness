@@ -51,6 +51,7 @@ select:focus-visible, a:focus-visible, summary:focus-visible {
 }
 .brand { display: flex; align-items: center; gap: var(--space-2); }
 .brand img { width: var(--brand-icon-size); height: var(--brand-icon-size); }
+.ui-publication-test { margin-left: auto; margin-right: 12px; padding: 5px 10px; border: 1px solid #f87171; border-radius: 8px; background: #b91c1c; color: #fff; font-size: 12px; }
 .connection { display: inline-flex; color: var(--color-muted); margin-left: var(--space-2); }
 .connection::before { content: ''; width: var(--status-dot-size); height: var(--status-dot-size); border-radius: 50%; background: var(--color-link); }
 .connection[data-state="Connecting"]::before, .connection[data-state="Reconnecting"]::before { background: var(--color-muted); }
