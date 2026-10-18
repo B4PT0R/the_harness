@@ -32,6 +32,7 @@ export function message(item) {
   return {
     id: item.id,
     role: item.role,
+    ...(item.kind ? { kind: item.kind } : {}),
     text: item.content.map((part) => part.text || "").join(""),
     final: true,
   };
@@ -52,7 +53,7 @@ export function snapshot(current, page) {
       const pending = live.get(item.id);
       return pending &&
         (pending.final || (pending.text?.length || 0) > (item.text?.length || 0))
-        ? pending
+        ? { ...pending, ...(item.kind ? { kind: item.kind } : {}) }
         : item;
     }),
     ...current.slice(prefix.length).filter((item) => !seen.has(item.id)),
@@ -82,6 +83,7 @@ export function eventMessages(current, event) {
   const item = {
     id: event.item_id,
     role: "assistant",
+    ...(event.kind || found?.kind ? { kind: event.kind || found.kind } : {}),
     text: (found?.text || "") + event.delta,
     sequence: event.sequence,
     final: false,
@@ -89,6 +91,19 @@ export function eventMessages(current, event) {
   return found
     ? current.map((value) => (value.id === item.id ? item : value))
     : [...current, item];
+}
+
+// Adjacent backend messages form one disclosure without reordering conversation items.
+export function conversationBlocks(messages) {
+  const blocks = [];
+  for (const item of messages) {
+    if (item.role === "assistant" && item.kind === "realtime_delegation") {
+      const previous = blocks.at(-1);
+      if (previous?.type === "delegation") previous.messages.push(item);
+      else blocks.push({ id: item.id, type: "delegation", messages: [item] });
+    } else blocks.push(item);
+  }
+  return blocks;
 }
 
 

@@ -211,6 +211,10 @@ function calls. These views need no application wiring. `HarnessSession.reset_se
 conversation reset, using the shared reset lifecycle and voice coordination.
 
 Chat, sub-agent activity and voice captions consume Framework/plugin events.
+Spoken answers are labelled **Voice agent**; delegated backend answers appear in
+collapsed **Text agent** disclosures, including after reconnect and history replay.
+The distinction follows canonical message provenance rather than the current
+client's voice toggle.
 Backend wire signals remain inside their adapters; plugins own events specific
 to their feature lifecycle. Session items remain the canonical replay source.
 

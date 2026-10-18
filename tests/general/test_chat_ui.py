@@ -2,6 +2,36 @@ import pytest
 
 
 @pytest.mark.parametrize("width", [1280, 390])
+def test_voice_and_delegated_answers_stay_distinct_live_and_after_reload(page, width):
+    page.set_viewport_size({"width": width, "height": 800})
+    backend = {"id": "backend-answer", "type": "message", "role": "assistant",
+               "kind": "realtime_delegation", "content": [{"text": "Résultat détaillé du backend."}]}
+    spoken = {"id": "voice-answer", "type": "message", "role": "assistant",
+              "kind": "realtime", "content": [{"text": "Voici la réponse prononcée."}]}
+    page.evaluate("window.emit({type:'realtime_event',call_id:'voice-call',event:{type:'voice.transcript.updated',role:'assistant',text:'Voici la réponse prononcée.'}})")
+    page.get_by_text("Voice agent", exact=False).wait_for()
+    page.evaluate("window.emit({type:'command_event',event:{type:'agent.text.delta',channel:'output',kind:'realtime_delegation',item_id:'backend-answer',sequence:1,delta:'Résultat détaillé du backend.'}})")
+    disclosure = page.locator(".text-agent-output")
+    assert disclosure.count() == 1
+    assert disclosure.locator("summary").inner_text() == "Text agent"
+    assert page.get_by_text("Résultat détaillé du backend.", exact=True).is_hidden()
+    assert page.get_by_text("Voici la réponse prononcée.", exact=True).is_visible()
+    for item in (backend, spoken):
+        page.evaluate("item => window.emit({type:'command_event',event:{type:'agent.response_item.added',item}})", item)
+    page.evaluate("window.emit({type:'realtime_event',call_id:'voice-call',event:{type:'voice.turn.completed',role:'assistant'}})")
+    disclosure.locator("summary").click()
+    assert page.get_by_text("Résultat détaillé du backend.", exact=True).is_visible()
+    assert page.locator(".message-source").get_by_text("Voice agent", exact=True).count() == 1
+    page.evaluate("items => localStorage.setItem('test-artifacts',JSON.stringify(items))", [backend, spoken])
+    page.reload()
+    page.locator(".text-agent-output summary").wait_for()
+    assert page.get_by_text("Résultat détaillé du backend.", exact=True).is_hidden()
+    assert page.get_by_text("Voici la réponse prononcée.", exact=True).is_visible()
+    assert page.locator(".message-source").get_by_text("Voice agent", exact=True).count() == 1
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+@pytest.mark.parametrize("width", [1280, 390])
 def test_registry_reset_requires_confirmation_and_targets_only_registry(page, width):
     page.set_viewport_size({"width": width, "height": 800})
     page.get_by_role("button", name="Réglages", exact=True).click()

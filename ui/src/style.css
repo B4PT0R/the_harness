@@ -74,6 +74,14 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   letter-spacing: var(--letter-spacing-label);
 }
 .message.user { background: var(--color-surface-raised); padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); }
+.message-source { display: block; color: var(--color-muted); font-size: var(--font-size-xs); margin-bottom: var(--space-2); }
+.text-agent-output { color: var(--color-text); margin-bottom: var(--space-3); }
+.text-agent-output > summary { color: var(--color-muted); cursor: pointer; font-size: var(--font-size-control); padding: var(--space-2) 0; width: fit-content; }
+.text-agent-output > summary:hover { color: var(--color-text); }
+.text-agent-output > summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: var(--space-1); border-radius: var(--radius-sm); }
+.text-agent-content { border-left: var(--border-width) solid var(--color-border); padding: var(--space-2) 0 var(--space-2) var(--space-4); margin-top: var(--space-1); }
+.text-agent-content > .message { margin-bottom: var(--space-3); }
+.text-agent-content > .message:last-child { margin-bottom: 0; }
 .message a { color: var(--color-link); text-underline-offset: var(--space-1); }
 .resource-link[aria-busy="true"] { opacity: var(--opacity-disabled); cursor: progress; }
 .resource-error { display: block; font-size: var(--font-size-sm); }

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   conversationBusy,
+  conversationBlocks,
   conversationCommand,
   eventMessages,
   providerArtifacts,
@@ -69,6 +70,28 @@ const delta = (text, sequence = 1) => ({
   item_id: "answer",
   delta: text,
   sequence,
+});
+
+test("voice provenance survives replay and delegated streaming stays in its disclosure", () => {
+  const voice = { ...item("voice", "Spoken answer"), kind: "realtime" };
+  const backend = { ...item("answer", "Backend answer"), kind: "realtime_delegation" };
+  let current = eventMessages([], { ...delta("Backend"), kind: "realtime_delegation" });
+  assert.equal(conversationBlocks(current)[0].type, "delegation");
+  current = eventMessages(current, { type: "agent.response_item.added", item: backend });
+  current = snapshot(current, page(backend, voice));
+  assert.equal(current[0].kind, "realtime_delegation");
+  assert.equal(current[1].kind, "realtime");
+  const replay = snapshot([], page(backend, voice));
+  assert.deepEqual(conversationBlocks(current), conversationBlocks(replay));
+});
+
+test("adjacent delegated answers share a disclosure without moving voice or artifacts", () => {
+  const backend = (id) => ({ id, role: "assistant", kind: "realtime_delegation", text: id });
+  const voice = { id: "voice", role: "assistant", kind: "realtime", text: "Spoken" };
+  const artifact = { id: "image", type: "artifact" };
+  const blocks = conversationBlocks([backend("a"), backend("b"), voice, artifact, backend("c")]);
+  assert.deepEqual(blocks.map((block) => block.id), ["a", "voice", "image", "c"]);
+  assert.deepEqual(blocks[0].messages.map((message) => message.id), ["a", "b"]);
 });
 
 test("late history preserves streamed text and chronological order", () => {

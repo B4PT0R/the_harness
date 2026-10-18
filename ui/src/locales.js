@@ -3,6 +3,7 @@
 export const languages = { fr: "Français", en: "English" };
 export const messages = {
   fr: {
+    voiceAgent: "Voice agent", textAgent: "Text agent",
     artifactTemporary: "Vue du tour en cours", artifact: "Artefact", artifactImage: "Image partagée", artifactFile: "Fichier",
     artifactUnavailable: "Ce contenu est indisponible.", artifactDownload: "Télécharger {name}",
     artifactDetails: "Contenu {kind} — afficher les données", plugin_artifacts: "Artefacts",
@@ -46,6 +47,7 @@ export const messages = {
     plugin_scheduler: "Planification", plugin_chromium: "Navigateur", plugin_system: "Système", plugin_registry: "Registre",
   },
   en: {
+    voiceAgent: "Voice agent", textAgent: "Text agent",
     artifactTemporary: "Current turn view", artifact: "Artifact", artifactImage: "Shared image", artifactFile: "File",
     artifactUnavailable: "This content is unavailable.", artifactDownload: "Download {name}",
     artifactDetails: "{kind} content — show data", plugin_artifacts: "Artifacts",
