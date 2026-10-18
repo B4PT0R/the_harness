@@ -537,7 +537,7 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
 
 ## Marqueurs de contexte du mode vocal
 
-- [ ] Après la séparation de l’affichage voix/délégation, persister des messages
+- [x] Après la séparation de l’affichage voix/délégation, persister des messages
   developer marquant le début et la fin de chaque appel vocal. Les agents texte
   et vocal doivent recevoir ces transitions dans leur contexte canonique, y
   compris après reprise. Garder un propriétaire clair et des écritures idempotentes.

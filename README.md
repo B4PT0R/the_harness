@@ -215,6 +215,8 @@ Spoken answers are labelled **Voice agent**; delegated backend answers appear in
 collapsed **Text agent** disclosures, including after reconnect and history replay.
 The distinction follows canonical message provenance rather than the current
 client's voice toggle.
+Developer markers record voice-call starts and ends in the canonical session,
+keeping both agents informed of mode changes without adding visible chat bubbles.
 Backend wire signals remain inside their adapters; plugins own events specific
 to their feature lifecycle. Session items remain the canonical replay source.
 
