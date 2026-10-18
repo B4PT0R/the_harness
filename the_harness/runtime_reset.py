@@ -19,3 +19,5 @@ MEMORY_RESET_ENTRIES = (
     "relational-memory.sqlite3", "relational-memory.sqlite3-shm",
     "relational-memory.sqlite3-wal", "session.auxiliaries/memory.jiminy",
 )
+
+REGISTRY_RESET_ENTRIES = ("registry.json",)

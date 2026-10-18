@@ -16,6 +16,7 @@ BASE_REMOTE_DESKTOP_API = (
     ("POST", "/api/v1/agent/compact"),
     ("DELETE", "/api/v1/session"),
     ("DELETE", "/api/v1/memory"),
+    ("DELETE", "/api/v1/registry"),
     ("GET", "/api/v1/config"),
     ("PATCH", "/api/v1/config"),
     ("GET", "/api/v1/client-remote"),

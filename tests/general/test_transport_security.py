@@ -1,6 +1,7 @@
 """HTTP and socket transports enforce the same application security boundary."""
 
 import asyncio
+import json
 import pytest
 from fastapi import FastAPI
 from starlette.requests import Request
@@ -125,6 +126,26 @@ def test_http_pairing_scopes_and_revocation_use_framework_declarations(assembled
     assert client.delete("/api/v1/client-remote/clients/" + desktop["id"], headers=local).status_code == 200
     assert client.get(private, headers=desktop_headers).status_code == 401
     assert client.get("/remote/v1/state", headers=desktop_headers).status_code == 401
+
+
+def test_registry_reset_is_authenticated_and_clears_only_registry(assembled):
+    client, remote = assembled
+    runtime = client.app.state.application.default_session
+    root = runtime.supervisor.session_path.parent
+    registry = root / "registry.json"
+    registry.write_text('{"user":{"name":"Fixture"}}')
+    conversation = json.loads(runtime.supervisor.session_path.read_text())
+    assert client.delete("/api/v1/registry").status_code == 401
+    assert registry.exists()
+    response = client.delete("/api/v1/registry", headers={"Authorization": "Bearer local"})
+    assert response.status_code == 200
+    assert response.json()["cleared"] == ["registry"]
+    assert not registry.exists()
+    restored = json.loads(runtime.supervisor.session_path.read_text())
+    # Restart may append internal worker-directory command receipts.
+    conversation.pop("commands")
+    restored.pop("commands")
+    assert restored == conversation
 
 
 def test_websocket_registry_rejects_invalid_local_and_remote_handshakes(assembled):

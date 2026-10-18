@@ -8,7 +8,7 @@ from the_framework.server.runtime.session import SessionRuntime
 
 from the_framework.server import FileResetTransaction
 
-from .runtime_reset import RESET_ENTRIES, SESSION_RESET_ENTRIES, MEMORY_RESET_ENTRIES
+from .runtime_reset import RESET_ENTRIES, SESSION_RESET_ENTRIES, MEMORY_RESET_ENTRIES, REGISTRY_RESET_ENTRIES
 
 
 EVENT_SUBPROTOCOL = "the-harness"
@@ -87,6 +87,16 @@ class HarnessSession(SessionRuntime):
             "status": "reset", "session_id": ready.session_id,
             "cleared": ["memory"],
             "preserved": ["conversation", "archive", "registry", "config", "files"],
+        }
+
+    async def reset_registry(self):
+        ready = await self.reset_runtime_state(
+            transaction_factory=lambda path: FileResetTransaction(path.parent, REGISTRY_RESET_ENTRIES),
+        )
+        return {
+            "status": "reset", "session_id": ready.session_id,
+            "cleared": ["registry"],
+            "preserved": ["conversation", "archive", "memory", "config", "files"],
         }
 
 

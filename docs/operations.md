@@ -78,7 +78,7 @@ It does not move existing data. Back up the data and bootstrap directories befor
 performing a manual migration. An instance does not import another instance's
 conversation, memory or files automatically.
 
-## Reset session or memory
+## Reset session, memory or registry
 
 Settings contains a **Danger zone** with a confirmation for each action:
 
@@ -86,13 +86,14 @@ Settings contains a **Danger zone** with a confirmation for each action:
 | --- | --- | --- |
 | Reset session | Primary conversation, archive and auxiliary sessions | Durable memory, registry, files, configuration and scheduled tasks |
 | Reset memory | Durable memory database and its curator session | Primary conversation, archive, registry, files, configuration and scheduled tasks |
+| Reset registry | Persistent registry | Primary conversation, archive, durable memory, files, configuration and scheduled tasks |
 
-Both actions interrupt ongoing agent and voice activity. Resetting memory leaves
+These actions interrupt ongoing agent and voice activity. Resetting memory or registry leaves
 the current conversation available to the agent; it does not erase information
-from that conversation. File attachments are not removed by either reset.
+from that conversation. File attachments are not removed by these resets.
 
-For integrations, the authenticated endpoints are `DELETE /api/v1/session` and
-`DELETE /api/v1/memory`. The application selects their scope; the framework
+For integrations, the authenticated endpoints are `DELETE /api/v1/session`,
+`DELETE /api/v1/memory` and `DELETE /api/v1/registry`. The application selects their scope; the framework
 coordinates service suspension, worker restart and restoration if startup fails.
 
 ## Update the running application

@@ -6,7 +6,7 @@ import pytest
 
 from the_framework.agent import Session, Message
 from the_harness.runtime_composition import HarnessSession
-from the_harness.runtime_reset import SESSION_RESET_ENTRIES, MEMORY_RESET_ENTRIES
+from the_harness.runtime_reset import SESSION_RESET_ENTRIES, MEMORY_RESET_ENTRIES, REGISTRY_RESET_ENTRIES
 
 
 class FixtureHarness(HarnessSession):
@@ -35,7 +35,7 @@ class FixtureHarness(HarnessSession):
         self.published.append(payload)
 
 
-@pytest.mark.parametrize("kind", ["session", "memory"])
+@pytest.mark.parametrize("kind", ["session", "memory", "registry"])
 @pytest.mark.parametrize("fail_start", [False, True])
 def test_reset_preserves_unrelated_data_and_restores_failed_reset(tmp_path, kind, fail_start):
     paths = [
@@ -57,7 +57,7 @@ def test_reset_preserves_unrelated_data_and_restores_failed_reset(tmp_path, kind
     original = session.path.read_text()
     runtime = FixtureHarness(tmp_path)
     runtime.fail_once = fail_start
-    action = runtime.reset_session if kind == "session" else runtime.reset_memory
+    action = getattr(runtime, f"reset_{kind}")
     if fail_start:
         with pytest.raises(RuntimeError, match="previous state was restored"):
             asyncio.run(action())
@@ -66,7 +66,9 @@ def test_reset_preserves_unrelated_data_and_restores_failed_reset(tmp_path, kind
     else:
         result = asyncio.run(action())
         assert result["status"] == "reset"
-        selected = SESSION_RESET_ENTRIES if kind == "session" else MEMORY_RESET_ENTRIES
+        selected = {"session": SESSION_RESET_ENTRIES, "memory": MEMORY_RESET_ENTRIES,
+                    "registry": REGISTRY_RESET_ENTRIES}[kind]
+        assert ("registry" in result["cleared"]) == (kind == "registry")
         assert runtime.published == ([{"type": "interface_refresh_requested"}] if kind == "session" else [])
     for name in paths:
         erased = any(name == item or name.startswith(item + "/") for item in selected)

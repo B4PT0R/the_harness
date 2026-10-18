@@ -2,6 +2,23 @@ import pytest
 
 
 @pytest.mark.parametrize("width", [1280, 390])
+def test_registry_reset_requires_confirmation_and_targets_only_registry(page, width):
+    page.set_viewport_size({"width": width, "height": 800})
+    page.get_by_role("button", name="Réglages", exact=True).click()
+    page.get_by_role("button", name="Données", exact=True).click()
+    page.get_by_role("button", name="Réinitialiser le registre", exact=True).click()
+    dialog = page.get_by_role("dialog")
+    assert "La conversation, la mémoire, les fichiers et les réglages sont conservés" in dialog.inner_text()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    dialog.get_by_role("button", name="Annuler", exact=True).click()
+    assert not page.evaluate("window.requests.some(r => r.path === 'registry')")
+    page.get_by_role("button", name="Réinitialiser le registre", exact=True).click()
+    dialog.get_by_role("button", name="Réinitialiser", exact=True).click()
+    page.get_by_text("Réinitialisation effectuée.", exact=True).wait_for()
+    assert page.evaluate("window.requests.filter(r => r.path === 'registry').length") == 1
+
+
+@pytest.mark.parametrize("width", [1280, 390])
 def test_composer_resize_submission_and_failure(page, width):
     page.set_viewport_size({"width": width, "height": 800})
     field = page.locator("textarea")

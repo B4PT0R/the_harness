@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useLocale } from "../i18n";
 import { Icon } from "./Icons";
 
+const resetLabels = { session: "resetSession", memory: "resetMemory", registry: "resetRegistry" };
+
 export function DangerZone({ api, disabled = false }) {
   const { t } = useLocale();
   const dialog = useRef(null);
@@ -40,16 +42,16 @@ export function DangerZone({ api, disabled = false }) {
     <section className="danger-zone" aria-labelledby="danger-zone-title">
       <h3 id="danger-zone-title">{t("dangerZone")}</h3>
       <div className="danger-actions">
-        {["session", "memory"].map((kind) => <button
+        {Object.keys(resetLabels).map((kind) => <button
           key={kind} type="button" className="danger-button" disabled={disabled || busy}
           onClick={() => { setDone(false); setTarget(kind); }}
-        ><Icon name="reset" />{t(kind === "session" ? "resetSession" : "resetMemory")}</button>)}
+        ><Icon name="reset" />{t(resetLabels[kind])}</button>)}
       </div>
       {done && <p className="reset-status" role="status">{t("resetDone")}</p>}
       <dialog ref={dialog} className="reset-dialog" aria-labelledby="reset-title" aria-describedby="reset-description"
         onCancel={(event) => { event.preventDefault(); dismiss(); }}>
-        <h2 id="reset-title">{t(target === "session" ? "resetSession" : "resetMemory")}</h2>
-        <p id="reset-description">{t(target === "session" ? "resetSessionWarning" : "resetMemoryWarning")}</p>
+        <h2 id="reset-title">{target && t(resetLabels[target])}</h2>
+        <p id="reset-description">{target && t(`${resetLabels[target]}Warning`)}</p>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="reset-dialog-actions">
           <button type="button" autoFocus disabled={busy} onClick={dismiss}>{t("cancel")}</button>

@@ -6,7 +6,7 @@ from the_framework.server.clients.browser_rpc import BrowserRPCClient
 
 from .application import application
 from .security import HarnessSecurityPolicy
-from .reset_api import MemoryResetApi
+from .reset_api import SelectiveResetApi
 from .runtime_composition import (
     HarnessSession,
     health_projection,
@@ -67,7 +67,7 @@ def create_app(
         application_handshake=security.socket_handshake(supported=(APPLICATION_SUBPROTOCOL,)),
         session_extensions=lambda runtime: (
             ServerExtension(
-                name="memory_reset", scope="session", endpoints=(MemoryResetApi(runtime),),
+                name="selective_reset", scope="session", endpoints=(SelectiveResetApi(runtime),),
                 requires_services=("runtime",),
             ),
         ),

@@ -58,6 +58,8 @@ def test_harness_security_distinguishes_local_and_scoped_remote_callers():
         assert not await policy.authorize(remote, {"scope": "images:read"}, request())
         assert not await policy.authorize(remote, {"scope": "memory:write"}, request())
         assert await policy.authorize(desktop, {"scope": "memory:write"}, request())
+        assert not await policy.authorize(remote, {"scope": "registry:write"}, request())
+        assert await policy.authorize(desktop, {"scope": "registry:write"}, request())
         assert await policy.authorize(desktop, {"scope": "images:read"}, request())
         assert await policy.authenticate(request(authorization="Bearer bad")) is None
 
@@ -67,7 +69,7 @@ def test_harness_security_distinguishes_local_and_scoped_remote_callers():
 def test_full_interface_reset_routes_are_exact_and_method_scoped():
     from the_harness.plugins.client_remote.policy import RemoteDesktopAccess
     access = RemoteDesktopAccess()
-    for path in ("/api/v1/session", "/api/v1/memory"):
+    for path in ("/api/v1/session", "/api/v1/memory", "/api/v1/registry"):
         assert access.allowed("DELETE", path)
         assert not access.allowed("POST", path)
         assert not access.allowed("DELETE", path + "/anything")
