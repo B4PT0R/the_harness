@@ -15,6 +15,15 @@ JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME="$HOME/Android/Sdk" \
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`. This is a development build,
 not a Play Store release. Install it manually or with `adb install -r ...`.
+Install updates over the existing app (same signing key); do not uninstall if you
+want to retain its pairing.
+
+With an emulator/device connected, `./gradlew :app:connectedDebugAndroidTest`
+checks actual WebView microphone capture and track release using the production
+permission handler and an isolated test page, without a server or Tailscale.
+Both `RECORD_AUDIO` (runtime permission) and `MODIFY_AUDIO_SETTINGS` (install-time
+permission for Chromium audio routing) are needed. This test does not validate
+the complete Realtime call or physical microphone/speaker quality.
 
 ## Pair
 
