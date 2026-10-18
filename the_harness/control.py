@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import subprocess
 import time
 
@@ -24,6 +25,7 @@ DEFAULT_SERVICE = "the-harness.service"
 DEFAULT_TRAY_SERVICE = "the-harness-tray.service"
 DEFAULT_UI_SERVICE = "the-harness-ui.service"
 DEFAULT_BROWSER_SERVICE = "the-harness-browser.service"
+logger = logging.getLogger(__name__)
 
 
 class HarnessControl:
@@ -126,10 +128,25 @@ class HarnessControl:
     def restart(self):
         self._require_local_ui()
         try:
-            self.request("POST", "/api/v1/server/prepare-restart", timeout=None)
+            # HTTP health alone does not prove that the conversation worker can
+            # answer controls. Never wait for its drain when it is already mute.
+            self.request("GET", "/api/v1/status", timeout=5)
+            self.request("POST", "/api/v1/server/prepare-restart", timeout=150)
         except (FileNotFoundError, httpx.ConnectError):
             # Recovery must also work when there is no living server to drain.
             pass
+        except httpx.TransportError as error:
+            logger.warning(
+                "Graceful restart preparation unavailable (%s); restarting through systemd",
+                type(error).__name__,
+            )
+        except httpx.HTTPStatusError as error:
+            if error.response.status_code < 500:
+                raise
+            logger.warning(
+                "Graceful restart preparation failed (HTTP %s); restarting through systemd",
+                error.response.status_code,
+            )
         # Keep the Chromium-owned Harness UI alive while the backend rolls.
         # Its HTTP and WebSocket transports reconnect to the fixed loopback
         # endpoint once the server is ready. Restarting the browser here would

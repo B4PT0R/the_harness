@@ -132,9 +132,12 @@ def test_control_restart_preserves_browser_and_waits_for_server(tmp_path):
     Client.calls = []
     control.restart()
     assert Client.calls[0][:3] == (
+        "GET", "http://127.0.0.1:43210/api/v1/status", None,
+    )
+    assert Client.calls[1][:3] == (
         "POST", "http://127.0.0.1:43210/api/v1/server/prepare-restart", None,
     )
-    assert Client.calls[0][3]["timeout"] is None
+    assert 0 < Client.calls[0][3]["timeout"] < Client.calls[1][3]["timeout"] < 180
 
     assert commands[0][0] == [
         "systemctl",
@@ -206,3 +209,51 @@ def test_data_root_cli_honors_machine_root(tmp_path, monkeypatch, capsys):
     main()
     assert json.loads(capsys.readouterr().out)["data_root"] == str(data)
     assert HarnessControl(machine).data_root() == {"data_root": str(data)}
+
+
+@pytest.mark.parametrize('failed_path', ['status', 'server/prepare-restart'])
+@pytest.mark.parametrize('failure', ['timeout', 'transport', 'upstream'])
+def test_restart_recovers_when_worker_probe_or_graceful_preparation_fails(tmp_path, monkeypatch, caplog, failed_path, failure):
+    import httpx
+    from unittest.mock import Mock
+
+    control = HarnessControl(tmp_path, service='fixture.service')
+    paths = []
+    def request(method, path, **kwargs):
+        paths.append(path)
+        assert kwargs['timeout'] is not None
+        if path != '/api/v1/' + failed_path:
+            return {}
+        if failure == 'timeout':
+            raise httpx.ReadTimeout('worker unresponsive')
+        if failure == 'transport':
+            raise httpx.RemoteProtocolError('server closed connection')
+        response = httpx.Response(503, request=httpx.Request(method, 'http://localhost' + path))
+        response.raise_for_status()
+    monkeypatch.setattr(control, 'request', request)
+    systemctl = Mock()
+    ready = Mock(return_value={'status': 'ok'})
+    monkeypatch.setattr(control, 'systemctl', systemctl)
+    monkeypatch.setattr(control, 'wait_until_ready', ready)
+    assert control.restart() == {'status': 'ok'}
+    systemctl.assert_called_once_with('restart', 'fixture.service')
+    ready.assert_called_once_with()
+    assert 'systemd' in caplog.text
+    if failed_path == 'status':
+        assert paths == ['/api/v1/status'], 'do not drain an unresponsive worker'
+
+
+def test_restart_does_not_treat_authentication_failure_as_an_unresponsive_server(tmp_path, monkeypatch):
+    import httpx
+    from unittest.mock import Mock
+
+    control = HarnessControl(tmp_path)
+    def request(method, path, **kwargs):
+        response = httpx.Response(403, request=httpx.Request(method, 'http://localhost' + path))
+        response.raise_for_status()
+    monkeypatch.setattr(control, 'request', request)
+    systemctl = Mock()
+    monkeypatch.setattr(control, 'systemctl', systemctl)
+    with pytest.raises(httpx.HTTPStatusError):
+        control.restart()
+    systemctl.assert_not_called()

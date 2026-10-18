@@ -1,5 +1,18 @@
 # The Harness — backlog de la base neutre
 
+- [x] **Redémarrage de secours indépendant du worker — 18 octobre.** L'API HTTP
+  répondait mais les requêtes d'état/historique du worker expiraient ; le contrôle
+  attendait alors la préparation gracieuse sans limite. Ajouter une sonde worker
+  courte et une préparation bornée, puis permettre la récupération systemd en cas
+  de panne réseau, timeout ou erreur serveur. Garder les erreurs d'authentification
+  explicites. Récupération effectuée, agent reparti ; aucune nouvelle relance
+  pendant son travail. Correctif du contrôle validé sur scénarios de panne isolés.
+- [ ] **Isoler le blocage initial worker/relais — 18 octobre vers 18 h 22.**
+  Barrière Realtime expirée à la fermeture, puis délais sur l'état et l'historique
+  malgré un HTTP vivant ; le worker exécutait encore des outils. La récupération
+  ne prouve pas l'origine de ce blocage. Examiner en priorité les tâches du relais
+  et ses observateurs si cela se reproduit, sans interrompre un agent occupé.
+
 - [x] **Continuité vocale sur redémarrage et publication UI — 18 octobre.**
   Pause de l'entrée, fin du tour vocal et des délégations, fermeture de l'appel
   puis drainage canonique avant remplacement. L'onglet conserve son intention
