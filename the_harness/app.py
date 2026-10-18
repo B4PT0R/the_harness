@@ -60,7 +60,7 @@ def create_app(
         "the_harness.application:application", context,
         supervisor=supervisor, security=security,
         session_factory=lambda worker, context: HarnessSession(
-            worker, fleet_factory=fleet_factory, restart=restart, services=context.services,
+            worker, fleet_factory=fleet_factory, restart=restart,
         ),
         session_projection="display", health_projection=health_projection,
         reset_handler=HarnessSession.reset_session,

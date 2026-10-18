@@ -21,8 +21,7 @@ REMOTE_APPLICATION_SUBPROTOCOL = "the-harness-application-v1"
 class HarnessSession(SessionRuntime):
     """The Harness service composition atop the generic application runtime."""
 
-    def __init__(self, supervisor, *, fleet_factory=None, restart=None, services=None):
-        self.services = services if services is not None else {}
+    def __init__(self, supervisor, *, fleet_factory=None, restart=None):
         super().__init__(
             supervisor,
             restart=restart,

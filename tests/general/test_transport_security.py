@@ -81,7 +81,7 @@ def test_socket_credentials_protocols_and_native_origins():
 def assembled(tmp_path):
     app = create_app(WorkerSupervisor(tmp_path / "session.json"), token="local", browser_token="browser",
                      browser_runtime_root=tmp_path, client_remote_root=tmp_path)
-    remote = app.state.application.server_extensions["client_remote_api"].service
+    remote = app.state.application.extensions["client_remote_api"].service
     with TestClient(app, base_url="http://127.0.0.1:48887") as client:
         yield client, remote
 
@@ -195,4 +195,4 @@ def test_preview_ticket_crosses_the_http_boundary_without_granting_desktop_autho
         with client.websocket_connect('ws://127.0.0.1:48887/api/v1/application', headers=dict(origin), subprotocols=['the-harness-application']):
             pytest.fail('preview acquired the principal bridge')
     with client.websocket_connect('ws://127.0.0.1:48887/api/v1/events', headers=dict(origin), subprotocols=['the-harness']):
-        assert app.state.application.server_extensions['canonical_transport'].service.primary_event_connection_count == 0
+        assert app.state.application.extensions['canonical_transport'].service.primary_event_connection_count == 0

@@ -35,7 +35,7 @@ def test_application_injects_the_installed_chat_ingress(tmp_path, monkeypatch, w
         browser_runtime_root=tmp_path, client_remote_root=tmp_path,
     )
     assert "chat" not in app.state.application.plugins
-    services = app.state.application.server_extensions
+    services = app.state.application.extensions
     chat = services["chat"].service
     remote = services["client_remote_api"].service
     assert remote.ingress is chat.ingress

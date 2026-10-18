@@ -353,16 +353,19 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   (3 skips), 157 Harness. Serveur installé actualisé, JSON de session strictement
   identique, même processus navigateur ; catalogue et aperçu authentifié vérifiés.
 
-- [ ] **Périmètre API précisé : une application active.** Baptiste ne demande pas
-  plusieurs instances simultanées de la même app. Simplifier la prochaine tranche
-  dans ce sens : sessions et clients multiples conservés, construction/reprise
-  fiables, aucun vocabulaire ou couche dédié aux copies concurrentes de l'app.
-  Définition importable par les workers sans démarrage serveur toujours nécessaire.
-
-- [ ] **Décision cible : singleton Application global.** Baptiste choisit finalement
-  un singleton au niveau du processus serveur, portant configuration et ressources
-  de l'app. Cela remplace l'avis précédent contre le singleton. Réexaminer la fusion
-  Application/ApplicationHost avec l'allègement de BuildContext et des plugins.
-  Import worker inerte, démarrage/arrêt explicite, reprise et isolation des sessions
-  restent requis. Aucun current_session global ; décision consignée, pas encore
-  implémentée dans le runtime.
+- [x] **Application unique et singleton — 18 octobre.** Application porte désormais
+  configuration et ressources ; ApplicationHost et les copies par session retirés.
+  Application.current() n'est disponible que pendant le lifespan du serveur,
+  avec libération après arrêt, échec ou annulation et exclusion des démarrages
+  concurrents. Imports workers inertes. Sessions multiples explicites et isolées,
+  aucun current_session global. BuildContext.application et les endpoints voient
+  le même propriétaire ; HarnessSession reçoit ses services depuis le Framework.
+  Starter et documentation alignés. Payloads et protocoles inchangés.
+  Validation : 699 tests Framework réussis (3 skips), 157 Harness ; Ruff critique
+  et diff vérifiés. Installation relancée : même navigateur, JSON de session
+  conservé hors reçu technique du redémarrage ; chat, historique et contrôles retrouvés,
+  aperçu authentifié ouvert/fermé. Le bridge de capacités n'est pas l'indicateur
+  de connexion du chat.
+- [ ] **Prochaine tranche API.** Clarifier Plugin / AgentExtension /
+  ServerExtension et alléger options et injection de BuildContext, en s'appuyant
+  sur le propriétaire Application unique. Ne pas modifier les modèles de payloads.

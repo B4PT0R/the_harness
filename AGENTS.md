@@ -162,16 +162,16 @@ feature lifecycle must be declared and emitted by that plugin. Public consumers
 receive typed Framework/plugin events; backend wire events remain inside their
 respective adapters and must be explicitly converted or filtered.
 
-The reusable `Application` definition is built through `application.build(...)`.
-The ASGI host owns shared services and sessions; `HarnessSession(SessionRuntime)`
-owns the product behavior of one conversation. Its factory/extra declarations use
-`session_factory`/`session_extensions`, once per session. `agent.bridge` and
-`runtime.bridge` are capability channels, not application definitions or hosts.
+The global `Application` owns this server and is built through `application.build`.
+The ASGI adapter's state.application is that same object; ApplicationHost is removed.
+Its lifespan reserves/releases Application.current(), including failure/cancellation.
+Imports in workers remain inert. `context.application` supplies the owner while
+constructing services; the live global lookup is available only during startup,
+request handling and shutdown. A running application cannot rebuild itself.
 
-Target a process-local global Application singleton for the unique server,
-as explicitly chosen by Baptiste. This supersedes the earlier advice against
-adding a singleton and the reusable-definition/multiple-host design goal.
-The current Application/ApplicationHost split is still implemented; merging their
-application-level ownership is part of the next refactor. Keep startup/shutdown
-explicit and worker imports inert. Sessions/workers remain isolated and their
-context explicit; do not add a global mutable current-session pointer.
+HarnessSession(SessionRuntime) owns one conversation's services/routes and points
+to that Application. Extra sessions do not clone Application. `state.session`
+selects their explicit controller; no global mutable current-session pointer.
+The class receives its scoped service registry from the framework, so its custom
+constructor no longer needs a separately injected services mapping. The capability
+channels remain agent.bridge/runtime.bridge; runtime.application is the actual app.

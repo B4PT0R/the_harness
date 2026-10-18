@@ -107,12 +107,12 @@ def test_launchers_use_argument_lists_and_default_text_editor(tmp_path, monkeypa
 
 def test_host_opening_and_settings_are_unavailable_to_paired_clients(tmp_path):
     app = create_app(WorkerSupervisor(tmp_path / "session.json"), token="local", browser_token="browser")
-    service = app.state.application.server_extensions["local_files"].service
+    service = app.state.application.extensions["local_files"].service
     launches = []
     async def launcher(*args):
         launches.append(args)
     service.launcher = launcher
-    remote = app.state.application.server_extensions["client_remote"].service
+    remote = app.state.application.extensions["client_remote"].service
     _, remote_token = remote.clients.issue("desktop", platform="desktop")
     client = TestClient(app, base_url="http://127.0.0.1:48887")
     file = tmp_path / "a.md"
