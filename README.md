@@ -37,6 +37,13 @@ All uploaded and published client files share `~/TheHarness/bucket/` (or
 this same tree and authenticated `/api/v1/bucket/...` URLs, including for authorized
 remote desktop clients. The session stores references and metadata only.
 
+The optional `images` plugin exposes the backend-hosted `image_generation` tool
+for creation and editing, plus `images.inspect_image` for local vision/reference
+inputs. Completed results are validated and frozen under the session's `images/`
+directory, then published once as durable image artifacts. Loading a local image
+alone does not display it. Binary decoding, storage and presentation belong to
+this application plugin; the Framework supplies only generic lifecycle hooks.
+
 ## A private cloud for your clients
 
 An architectural goal is for the app server to double as a small private cloud
