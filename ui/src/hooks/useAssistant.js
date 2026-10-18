@@ -171,6 +171,10 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         if (!current()) return;
         const output = JSON.parse(data);
         if (output.type === "subagent_event") setSubagents((items) => subagentActivities(items, output));
+        if (output.type === "realtime_control_requested") {
+          void voice.current?.control(output);
+        }
+        if (output.type === "realtime_control_failed") setError(output.error);
         if (output.type === "realtime_restarting") {
           transportReady = false;
           void voice.current?.suspend(output);
