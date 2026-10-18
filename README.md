@@ -227,3 +227,7 @@ application-owned, including while a conversation is closed.
 Agent recipes do not choose session lifetime. The host creates the durable default
 conversation; framework sessions own their storage path and history retention.
 The same recipe may therefore serve persistent conversations or temporary tasks.
+
+History retention is saved in the canonical session. Reopening it restores that
+behavior; changing a worker or specialist's defaults does not silently change an
+existing conversation. The server's storage path stays outside session JSON.

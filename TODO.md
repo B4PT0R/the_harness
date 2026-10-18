@@ -501,3 +501,18 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   arrêté proprement. Framework 725 succès / 3 skips. Installation Harness relancée avec
   même navigateur/fenêtre, conversation canonique inchangée, contrôles chat/voix,
   13 plugins et configuration mémoire de Jiminy vérifiés.
+
+
+- [x] **Politique de session explicite et persistée — 18 octobre.** retain_history
+  est maintenant un champ canonique sauvegardé et restauré à la reprise. Le chemin
+  reste runtime ; durable et retain_history remplacent les modes dans les triggers,
+  profils worker, CLI, superviseur et assemblage. Les retries de spécialistes suivent
+  la rétention effective annoncée par WorkerReady, même si leurs défauts ont changé.
+  Aucune migration runtime ni alias de l'ancien vocabulaire.
+
+  Validation : Framework 728 succès / 3 skips, puis 35 tests ciblés réussis incluant
+  2 nouveaux cas de retries sur politique restaurée ; Harness 157 succès. Starter
+  neuf préparé sans installations au second passage, rendu Chromium connecté et
+  arrêt propre vérifiés. Installation relancée avec même navigateur/fenêtre,
+  conversation conservée et champ retain_history=True sauvegardé ; contrôles
+  texte/voix, 13 plugins et configuration mémoire de Jiminy vérifiés.
