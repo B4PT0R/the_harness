@@ -1,5 +1,20 @@
 # The Harness — backlog de la base neutre
 
+- [x] **Continuité vocale sur redémarrage et publication UI — 18 octobre.**
+  Pause de l'entrée, fin du tour vocal et des délégations, fermeture de l'appel
+  puis drainage canonique avant remplacement. L'onglet conserve son intention
+  vocale et reprend après reconnexion ; arrêt explicite prioritaire, aperçus
+  exclus. Reprise des délégations du plugin system raccordée au service Realtime.
+  Validation : Framework 756 succès / 4 skips, Harness 167 succès / 1 skip,
+  tests JS et builds des deux interfaces ; véritable WebRTC avec audio après
+  rechargement UI et remplacement serveur. Installation actualisée, conversation,
+  réglages et fenêtre Chromium conservés lors du redémarrage contrôlé.
+
+- [ ] **Fermeture du navigateur interactif.** Après fermeture de sa fenêtre par
+  l'utilisateur, Chromium affiche parfois à la prochaine ouverture l'avertissement
+  de fermeture incorrecte. Examiner la fermeture du contexte/profil et la sortie
+  du processus ; traiter après la continuité vocale serveur/UI en cours.
+
 Relevé du 10 octobre 2026. Le but est une application canonique de The Framework,
 avec une identité configurable, des outils utiles et une composition lisible.
 Privilégier les propriétaires clairs et la suppression de code à des adaptateurs.

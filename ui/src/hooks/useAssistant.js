@@ -42,7 +42,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     return () => controller.abort();
   }, [api, refreshKey]);
   useEffect(() => {
-    if (!voiceAvailable) return undefined;
+    if (!voiceAvailable || document.querySelector('meta[name="framework-client-role"]')?.content === "preview") return undefined;
     let mounted = true;
     const session = voiceSession(
       api,
@@ -56,11 +56,18 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       (message) => {
         if (mounted) setError(message);
       },
+      undefined,
+      { storage: window.sessionStorage, storageKey: `voice:${eventsUrl}` },
     );
     voice.current = session;
+    if (connection === "Connected") {
+      api("status").then(status => {
+        if (mounted && !conversationBusy(status)) return session.resume();
+      }).catch(cause => { if (mounted) setError(cause.message); });
+    }
     return () => {
       mounted = false;
-      void session.stop();
+      void session.dispose();
       voice.current = null;
     };
   }, [api, voiceAvailable]);
@@ -92,6 +99,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   useEffect(() => {
     let disposed = false,
       socket,
+      transportReady = false,
       retry,
       voiceCallId,
       attempts = 0,
@@ -120,6 +128,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           workerRecovered();
           setContext((current) => contextState(current, status));
           setBusy(conversationBusy(status));
+          if (transportReady && !conversationBusy(status)) void voice.current?.resume();
         }
       } finally { statusLoading = false; }
     }
@@ -139,6 +148,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         if (requestedContext === contextRevision.current) {
           workerRecovered();
           setBusy(conversationBusy(status));
+          if (transportReady && !conversationBusy(status)) void voice.current?.resume();
           setContext((current) => contextState(current, status));
         }
       }
@@ -152,6 +162,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       active.onopen = () => {
         if (!current()) return;
         attempts = 0;
+        transportReady = true;
         setSubagents({});
         setConnection("Connected");
         reconcile().catch(fail);
@@ -160,10 +171,15 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         if (!current()) return;
         const output = JSON.parse(data);
         if (output.type === "subagent_event") setSubagents((items) => subagentActivities(items, output));
+        if (output.type === "realtime_restarting") {
+          transportReady = false;
+          void voice.current?.suspend(output);
+        }
         if (output.type === "realtime_reconnect_requested") {
           void voice.current?.reconnect(output);
         }
         if (output.type === "command_event" && output.event?.type === "agent.plugin.binding.updated" && output.event.plugin === "realtime") {
+          if (!output.event.enabled) void voice.current?.stop();
           setVoiceAvailable(Boolean(output.event.enabled));
         }
         if (["worker_status", "command_accepted", "command_completed", "command_failed", "worker_exited", "worker_transport_error"].includes(output.type) ||
@@ -189,7 +205,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           setCaptions((current) => voiceCaptions(current, transcript));
         }
         if (output.type === "interface_refresh_requested") {
-          location.reload();
+          Promise.resolve(voice.current?.prepareReload()).then(() => location.reload()).catch(fail);
           return;
         }
         if (output.type === "subagent_event") setSubagents((items) => subagentActivities(items, output));
@@ -202,6 +218,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         if (output.type === "worker_status") {
           workerRecovered();
           setBusy(conversationBusy(output));
+          if (transportReady && !conversationBusy(output)) void voice.current?.resume();
         }
         if (output.type === "command_accepted" && conversationCommand(output))
           setBusy(true);
@@ -216,8 +233,9 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       };
       active.onclose = () => {
         if (!current()) return;
+        transportReady = false;
         setArtifacts([]);
-        void voice.current?.stop();
+        void voice.current?.suspend();
         transcripts.reset();
         setCaptions({});
         revision++;

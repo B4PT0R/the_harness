@@ -432,3 +432,49 @@ def test_voice_phrases_remain_visible_while_delegation_delays_canonical_commits(
     assert page.locator(".text-agent-output .message-source").count() == 0
     assert page.locator(".message-source").get_by_text("Voice agent", exact=True).count() == 2
     page.screenshot(path=f"/tmp/harness-voice-pending-{width}.png")
+
+
+def test_voice_survives_server_reconnect_and_interface_publication(page):
+    page.add_init_script("window.voiceEnabled = true")
+    page.evaluate("""() => {
+      window.voiceEnabled = true;
+      window.emit({type:'command_event',event:{
+        type:'agent.plugin.binding.updated',plugin:'realtime',enabled:true}});
+    }""")
+    page.get_by_role('button', name='Démarrer la voix', exact=True).click()
+    page.wait_for_function("window.requests.filter(r => r.path === 'realtime/calls/current/ready').length === 1")
+    original = page.evaluate("window.requests.find(r => r.path === 'realtime/calls').body.call_id")
+    page.screenshot(path='/tmp/harness-voice-continuity-before.png')
+    page.evaluate("""id => {
+      window.emit({type:'realtime_restarting',call_id:id});
+      window.emit({type:'worker_status',foreground_active:false,foreground_pending:0});
+    }""", original)
+    assert page.evaluate("window.requests.filter(r => r.path === 'realtime/calls').length") == 1
+    page.evaluate("window.socket.readyState = 3; window.socket.onclose()")
+    page.wait_for_function("window.requests.filter(r => r.path === 'realtime/calls/current/ready').length === 2")
+    resumed = page.evaluate("window.requests.filter(r => r.path === 'realtime/calls').at(-1).body.call_id")
+    assert resumed != original
+    assert page.locator('.message').count() == 80
+    page.evaluate("window.emit({type:'interface_refresh_requested'})")
+    page.wait_for_function("window.requests?.some(r => r.path === 'realtime/calls/current/ready') && window.requests.filter(r => r.path === 'realtime/calls').length === 1")
+    page.get_by_role('button', name='Terminer la voix', exact=True).wait_for()
+    published = page.evaluate("window.requests.find(r => r.path === 'realtime/calls').body.call_id")
+    assert published != resumed
+    assert page.locator('.message').count() == 80
+    page.screenshot(path='/tmp/harness-voice-continuity-after.png')
+    page.get_by_role('button', name='Terminer la voix', exact=True).click()
+    page.get_by_role('button', name='Démarrer la voix', exact=True).wait_for()
+    page.reload()
+    page.wait_for_function("document.querySelectorAll('.message').length === 80")
+    assert not page.evaluate("window.requests.some(r => r.path === 'realtime/calls')")
+
+
+@pytest.mark.parametrize('preview_client', [True])
+def test_preview_never_resumes_voice_intent_inherited_from_the_owner(page, preview_client):
+    page.add_init_script("window.voiceEnabled = true")
+    page.evaluate("sessionStorage.setItem('voice:wss://harness.test/api/v1/events', JSON.stringify({wanted:true,callId:'owner'}))")
+    page.reload()
+    page.wait_for_function("document.querySelectorAll('.message').length === 80")
+    page.get_by_role('button', name='Démarrer la voix', exact=True).wait_for()
+    assert page.get_by_role('button', name='Démarrer la voix', exact=True).is_disabled()
+    assert not page.evaluate("window.requests.some(r => r.path.startsWith('realtime/calls'))")

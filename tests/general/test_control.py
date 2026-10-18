@@ -129,7 +129,12 @@ def test_control_restart_preserves_browser_and_waits_for_server(tmp_path):
         command_runner=run,
         client_factory=Client,
     )
+    Client.calls = []
     control.restart()
+    assert Client.calls[0][:3] == (
+        "POST", "http://127.0.0.1:43210/api/v1/server/prepare-restart", None,
+    )
+    assert Client.calls[0][3]["timeout"] is None
 
     assert commands[0][0] == [
         "systemctl",

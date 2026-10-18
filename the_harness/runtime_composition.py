@@ -45,13 +45,6 @@ class HarnessSession(SessionRuntime):
         )
 
 
-    async def restart_server(self, intent):
-        if intent.get("resume_route") == "realtime_delegation":
-            realtime = self.realtime_service()
-            if realtime is not None:
-                await realtime.wait_for_voice_turn_completion()
-        await super().restart_server(intent)
-
     def realtime_service(self):
         api = self.services.get("realtime")
         return api.controller if api is not None else None

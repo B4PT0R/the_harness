@@ -125,6 +125,11 @@ class HarnessControl:
 
     def restart(self):
         self._require_local_ui()
+        try:
+            self.request("POST", "/api/v1/server/prepare-restart", timeout=None)
+        except (FileNotFoundError, httpx.ConnectError):
+            # Recovery must also work when there is no living server to drain.
+            pass
         # Keep the Chromium-owned Harness UI alive while the backend rolls.
         # Its HTTP and WebSocket transports reconnect to the fixed loopback
         # endpoint once the server is ready. Restarting the browser here would

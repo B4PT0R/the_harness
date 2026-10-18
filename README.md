@@ -17,6 +17,11 @@ start a new one. Compaction keeps the active context manageable while retaining
 an archive of the conversation. Durable memory is a separate store for information
 the agent should retain across its work.
 
+An active voice conversation resumes automatically after a supervised server
+restart or an interface publication. The old call finishes its spoken turn and
+persists its final transcript before replacement; the same browser tab then
+reconnects in voice mode. Stopping voice explicitly cancels automatic recovery.
+
 The installed capabilities include a terminal, browser, web search, file
 attachments, memory, a structured registry and scheduled tasks. Settings controls
 which optional tools are exposed to the agent. The application runs locally;
