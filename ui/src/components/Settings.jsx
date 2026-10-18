@@ -3,6 +3,7 @@ import { useLocale } from "../i18n";
 import { languages } from "../locales";
 import { Icon } from "./Icons";
 import { DangerZone } from "./DangerZone";
+import { DeviceSettings } from "./DeviceSettings";
 import { VoiceSettings } from "./VoiceSettings";
 import { FileEditorSettings } from "./FileEditorSettings";
 import { pluginStatusKey } from "../plugins";
@@ -91,7 +92,7 @@ export function Settings({ api, onClose, readOnly = false }) {
       setChangingPlugin(null);
     }
   }
-  const sections = ["general", "conversation", "voice", "capabilities", "advanced", "data"];
+  const sections = ["general", "conversation", "voice", "devices", "capabilities", "advanced", "data"];
   return (
     <section className="settings" aria-label={t("settings")}>
       <header className="settings-header">
@@ -137,6 +138,9 @@ export function Settings({ api, onClose, readOnly = false }) {
             <section id="settings-voice" hidden={section !== "voice"}>
               <VoiceSettings config={parsed?.realtime} saving={saving}
                 onChange={(realtime) => change("realtime", realtime)} />
+            </section>
+            <section id="settings-devices" hidden={section !== "devices"}>
+              {section === "devices" && <DeviceSettings api={api} readOnly={readOnly} />}
             </section>
             <section id="settings-capabilities" hidden={section !== "capabilities"}>
               <p className="setting-help">{t("capabilitiesHelp")}</p>

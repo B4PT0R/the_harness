@@ -17,3 +17,8 @@ session.json*
 .idea/
 .vscode/
 .DS_Store
+
+android/.gradle/
+android/**/build/
+android/local.properties
+android/.kotlin/

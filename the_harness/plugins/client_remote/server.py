@@ -9,6 +9,7 @@ from ...runtime_composition import (
     REMOTE_EVENT_SUBPROTOCOL,
 )
 from .api import ClientRemoteApi
+from .network import PrivateNetwork
 from .contributions import DESKTOP_ACCESS, POLICY
 from .policy import BASE_REMOTE_POLICY, RemoteDesktopAccess, RemoteProjection
 from .service import ClientRemoteService
@@ -28,6 +29,7 @@ def build_service(context, runtime):
         event_subprotocol=REMOTE_EVENT_SUBPROTOCOL,
         policy=policy, desktop_access=desktop_access,
     )
+    service.network = PrivateNetwork(path.parent, context.get("origin"))
     service.event_payload_adapter = RemoteProjection().event
     runtime.bridge.register_router(service)
     return service

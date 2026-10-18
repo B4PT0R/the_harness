@@ -11,6 +11,9 @@ class ClientRemoteService(GenericRemoteService):
         self.desktop_access = desktop_access or RemoteDesktopAccess()
 
     async def start(self):
+        if hasattr(self, "network"):
+            import asyncio
+            await asyncio.to_thread(self.network.start)
         self.desktop_access.freeze()
         await super().start()
 

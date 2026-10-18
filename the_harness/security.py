@@ -37,6 +37,16 @@ def local_request_allowed(request, *, allowed_origins=()):
     return origin is None or origin == f"{scheme}://{host}" or origin in allowed_origins
 
 
+def private_request_allowed(request, endpoint):
+    if not endpoint or len(request.headers.getlist("host")) != 1 or len(request.headers.getlist("origin")) > 1:
+        return False
+    parsed = urlsplit(endpoint)
+    host = request.headers.get("host", "")
+    origin = request.headers.get("origin")
+    return (parsed.scheme == "https" and parsed.hostname.endswith(".ts.net")
+            and host == parsed.netloc and origin in (None, endpoint))
+
+
 def _matches(supplied, expected):
     return isinstance(supplied, str) and compare_digest(supplied.encode(), expected.encode())
 
@@ -58,20 +68,28 @@ class HarnessSecurityPolicy:
             return Principal(id="local-browser", scopes=frozenset({"*"}))
         return None
 
+    def request_allowed(self, request):
+        service = self.remote_clients()
+        network = getattr(service, "network", None)
+        return local_request_allowed(request) or private_request_allowed(request, getattr(network, "endpoint", None))
+
     async def authenticate(self, request):
-        if not local_request_allowed(request):
+        if not self.request_allowed(request):
             return None
         previews = preview_access(request)
-        if previews is not None and previews.cookie in request.cookies:
+        if local_request_allowed(request) and previews is not None and previews.cookie in request.cookies:
             principal = previews.authenticate(request)
             return principal if previews.allows_http(request) else None
         authorization = request.headers.get("authorization", "")
         bearer = authorization[7:] if authorization.startswith("Bearer ") else None
-        local = self._local_principal(request, supplied_token=bearer)
+        local = self._local_principal(request, supplied_token=bearer) if local_request_allowed(request) else None
         if local is not None:
             return local
         remote_clients = self.remote_clients()
-        client = remote_clients.authenticate(bearer) if remote_clients is not None and bearer else None
+        credential = bearer or request.cookies.get("harness_mobile")
+        client = remote_clients.authenticate(credential) if remote_clients is not None and credential else None
+        if not bearer and client is not None and "mobile" not in client.get("scopes", ()):
+            return None
         if client is None:
             return None
         scopes = frozenset(client.get("scopes", ()))
@@ -89,6 +107,9 @@ class HarnessSecurityPolicy:
         if client is None:
             return principal.id in {"local-bearer", "local-browser"}
         service = self.remote_clients()
+        if "mobile" in client.get("scopes", ()):
+            from .plugins.client_remote.policy import mobile_api_allowed
+            return mobile_api_allowed(request.method, request.url.path)
         return bool(
             {"desktop", "full_ui"} & set(client.get("scopes", ()))
             and service is not None

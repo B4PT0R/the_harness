@@ -12,12 +12,13 @@ from the_framework.agent.runtime.protocol import (
 )
 from the_framework.server import endpoint
 from the_framework.server.api.endpoints import HttpError
-from the_framework.server.api.websockets import WebSocketEndpoint
+from the_framework.server.api.websockets import WebSocketEndpoint, serve_event_stream_until_disconnect
 from the_framework.server.clients.remote import PROTOCOL_VERSION
 from the_framework.utils.ids import timestamp_id
 
-from ...security import local_request_allowed
-from .policy import RemoteProjection
+from ...security import local_request_allowed, private_request_allowed
+from ...runtime_composition import EVENT_SUBPROTOCOL
+from .policy import RemoteProjection, wire_mapping
 
 
 class ClientRemoteApi:
@@ -40,7 +41,42 @@ class ClientRemoteApi:
         )
 
     def websocket_declarations(self):
-        return (self.events_socket, self.application_socket)
+        return (self.events_socket, self.application_socket, WebSocketEndpoint(
+            path="/remote/v1/ui-events", handler=self.serve_ui_events,
+            name="mobile_ui_events", handshake=self.ui_handshake,
+        ))
+
+    def _request_allowed(self, request):
+        network = getattr(self.service, "network", None)
+        return local_request_allowed(request) or private_request_allowed(request, getattr(network, "endpoint", None))
+
+    def ui_handshake(self, socket):
+        if not self._request_allowed(socket) or self._protocols(socket) != [EVENT_SUBPROTOCOL]:
+            return None
+        client = self.service.authenticate(socket.cookies.get("harness_mobile"))
+        if client is None or "mobile" not in client.get("scopes", ()):
+            return None
+        return {"client": client, "subprotocol": EVENT_SUBPROTOCOL}
+
+    async def serve_ui_events(self, socket, connection):
+        client_id = connection["client"]["id"]
+        sockets = self.service.event_connections.setdefault(client_id, set())
+        sockets.add(socket)
+        try:
+            await socket.accept(subprotocol=connection["subprotocol"])
+            async def send_events():
+                async for output in self.runtime.stream():
+                    payload = wire_mapping(output)
+                    if payload.get("type") == "command_event" and wire_mapping(payload.get("event")).get("type") == "agent.config.updated":
+                        continue
+                    await socket.send_json(output)
+            await serve_event_stream_until_disconnect(socket, send_events)
+        except WebSocketDisconnect:
+            pass
+        finally:
+            sockets.discard(socket)
+            if not sockets:
+                self.service.event_connections.pop(client_id, None)
 
     @staticmethod
     def _client(call):
@@ -58,7 +94,7 @@ class ClientRemoteApi:
         ]
 
     def _remote_handshake(self, socket, subprotocol):
-        if not local_request_allowed(socket):
+        if not self._request_allowed(socket):
             return None
         protocols = self._protocols(socket)
         if len(protocols) != 2 or protocols[0] != subprotocol:
@@ -119,11 +155,39 @@ class ClientRemoteApi:
         self.service.purge_pairings()
         return {
             "version": PROTOCOL_VERSION,
-            "suggested_endpoint": self.advertised_endpoint,
+            "suggested_endpoint": getattr(getattr(self.service, "network", None), "endpoint", None) or self.advertised_endpoint,
             "clients": self.service.clients.list(),
             "pending_pairings": len(self.service.pairings),
             "latest_event_sequence": self.service.sequence,
         }
+
+    @staticmethod
+    def _local(call):
+        if call.principal.id not in {"local-bearer", "local-browser"}:
+            raise HttpError(403, "local_only", "Remote access is managed on the server only")
+
+    @endpoint("get", "/api/v1/client-remote/network", response={"type": "object"},
+              authorization={"scope": "remote-clients:read"}, context="call")
+    async def network_status(self, call):
+        self._local(call)
+        return await asyncio.to_thread(self.service.network.status)
+
+    @endpoint("put", "/api/v1/client-remote/network", request={
+        "type": "object", "properties": {"enabled": {"type": "boolean"}},
+        "required": ["enabled"], "additionalProperties": False,
+    }, response={"type": "object"}, authorization={"scope": "remote-clients:write"}, context="call")
+    async def configure_network(self, call, enabled):
+        self._local(call)
+        try:
+            result = await asyncio.to_thread(self.service.network.set_enabled, enabled)
+        except RuntimeError as error:
+            raise HttpError(409, "tailscale_unavailable", str(error)) from error
+        if not enabled:
+            self.service.pairings.clear()
+            sockets = [socket for group in self.service.event_connections.values() for socket in tuple(group)]
+            sockets.extend(connection.websocket for connection in self.service.application_connections.values())
+            await asyncio.gather(*(socket.close(code=1008) for socket in sockets), return_exceptions=True)
+        return result
 
     @endpoint(
         "post", "/api/v1/client-remote/pairings",
@@ -138,12 +202,13 @@ class ClientRemoteApi:
     )
     def create_pairing(self, call, endpoint=None):
         """Create one short-lived, single-use private-client pairing."""
+        advertised = getattr(getattr(self.service, "network", None), "endpoint", None) or self.advertised_endpoint
         parsed = urlparse(str(endpoint)) if endpoint else None
-        if self.advertised_endpoint and (
+        if advertised and (
             endpoint is None
             or parsed.hostname in {"localhost", "127.0.0.1", "::1"}
         ):
-            endpoint = self.advertised_endpoint
+            endpoint = advertised
         if endpoint is None:
             endpoint = str(call.request.base_url).rstrip("/")
         return self.service.create_pairing(endpoint)

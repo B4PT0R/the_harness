@@ -26,7 +26,8 @@ BASE_REMOTE_DESKTOP_API = (
 
 BASE_REMOTE_POLICY = RemoteClientPolicy(
     default_scopes=("chat",),
-    platform_scopes={"desktop": ("desktop", "full_ui")},
+    platform_scopes={"desktop": ("desktop", "full_ui"),
+                     "android": ("mobile", "session:read", "agent:read", "plugins:read", "agent:write", "realtime:write")},
     capabilities=frozenset({"conversation", "notifications"}),
 )
 
@@ -97,6 +98,17 @@ class RemoteDesktopAccess:
             and (path.startswith(f"{prefix}/") or (include_base and path == prefix))
             for prefix, methods, include_base in self.subtrees
         )
+
+
+def mobile_api_allowed(method, path):
+    """A companion can chat, not administer the host or read configuration."""
+    if "//" in path or any(part in {".", ".."} for part in path.split("/")):
+        return False
+    if method == "GET":
+        return path in {"/ui", "/ui/", "/api/v1/session", "/api/v1/status", "/api/v1/plugins"} or path.startswith(("/ui/assets/", "/api/v1/bucket/")) or path == "/ui/assistant.svg"
+    if method == "POST":
+        return path in {"/api/v1/agent/prompt", "/api/v1/agent/attachments", "/api/v1/agent/interrupt", "/api/v1/agent/compact", "/api/v1/realtime/calls", "/api/v1/realtime/calls/current/ready", "/api/v1/realtime/calls/current/suspend"}
+    return method == "DELETE" and path == "/api/v1/realtime/calls/current"
 
 
 def _wire_value(value):

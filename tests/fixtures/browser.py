@@ -55,6 +55,12 @@ async function request(path, options = {}) {
   }
   if (path === 'local-files/open' && window.failFileOpen) throw new Error('File no longer exists');
   if (path === 'browser/open-external' && window.failBrowserOpen) throw new Error('Integrated browser unavailable');
+  if (path === 'client-remote/network') {
+    if (options.method === 'PUT') window.remoteEnabled = body.enabled;
+    return { enabled: Boolean(window.remoteEnabled), available: true, endpoint: window.remoteEnabled ? 'https://computer.example.ts.net' : null };
+  }
+  if (path === 'client-remote') return { clients: [] };
+  if (path === 'client-remote/pairings') return { pairing_uri: 'theharness://pair?v=1&endpoint=https%3A%2F%2Fcomputer.example.ts.net&pairing_id=test&secret=test', expires_at: new Date(Date.now() + 300000).toISOString() };
   if (path === 'config') return { config: { model: 'test-model', realtime: { model: 'gpt-live-1-codex', voice: 'maple', delegation_ack_filler: true, max_initial_items: 50 } } };
   if (path === 'plugins') return { plugins: [{ name: 'hosted_ui', running: true },
     { name: 'realtime', running: true, binding_available: true, binding_enabled: Boolean(window.voiceEnabled) }] };

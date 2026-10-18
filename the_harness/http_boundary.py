@@ -11,13 +11,13 @@ from .security import local_request_allowed
 class HarnessAccessMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         security = request.app.state.application.access_policy
-        if not local_request_allowed(request):
+        if not security.request_allowed(request):
             return JSONResponse({"error": "untrusted host or origin"}, status_code=403)
         # Ticket exchange and remote pairing are explicitly public declarations.
         # Other remote endpoints enforce their own credentials/scopes through
         # the Framework registry. Private static mounts need this outer guard.
         previews = preview_access(request)
-        if request.url.path == "/ui/bootstrap" or request.url.path.startswith("/remote/v1/") or (previews is not None and previews.is_exchange(request.url.path)):
+        if (local_request_allowed(request) and (request.url.path == "/ui/bootstrap" or (previews is not None and previews.is_exchange(request.url.path)))) or request.url.path.startswith("/remote/v1/"):
             return await call_next(request)
         principal = await security.authenticate(request)
         if not security.http_access_allowed(principal, request):

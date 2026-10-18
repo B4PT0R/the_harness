@@ -6,17 +6,19 @@ import { AppShell } from "./components/AppShell";
 import { Conversation } from "./components/Conversation";
 import { Composer } from "./components/Composer";
 import { Settings } from "./components/Settings";
+import { MobileSettings } from "./components/DeviceSettings";
 import { ResourceRequest } from "./components/ResourceLink";
 import "./theme.css";
 import "./style.css";
 
+const mobile = location.hostname.endsWith(".ts.net");
 const preview = document.querySelector('meta[name="framework-client-role"]')?.content === 'preview';
 
 function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./assistant.svg", artifactRenderers }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const state = useAssistant({ request, eventsUrl, eventProtocol, refreshKey: settingsOpen });
+  const state = useAssistant({ request, eventsUrl: eventsUrl || (mobile ? `wss://${location.host}/remote/v1/ui-events` : undefined), eventProtocol, refreshKey: settingsOpen });
   return <ResourceRequest.Provider value={request}><AppShell preview={preview} connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
-    settings={settingsOpen && <Settings readOnly={preview} api={request} onClose={() => setSettingsOpen(false)} />}
+    settings={settingsOpen && (mobile ? <MobileSettings onClose={() => setSettingsOpen(false)} /> : <Settings readOnly={preview} api={request} onClose={() => setSettingsOpen(false)} />)}
   >
     <Conversation messages={state.messages} artifacts={state.artifacts} captions={state.captions} subagents={state.subagents} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
       onScroll={state.onScroll} onContentLoad={state.onContentLoad} artifactRenderers={artifactRenderers}

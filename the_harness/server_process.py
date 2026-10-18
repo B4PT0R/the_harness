@@ -36,7 +36,10 @@ def main():
     os.environ["THE_HARNESS_MACHINE_ROOT"] = str(paths.machine_root)
     load_runtime_environment(session_path.parent)
     descriptor = paths.descriptor_path
-    with LocalServer(descriptor, port=args.port) as process:
+    from .plugins.client_remote.network import PrivateNetwork
+    remote = PrivateNetwork.read(paths.machine_root / "remote-access.json")
+    port = args.port or (remote.get("port", 0) if remote.get("enabled") else 0)
+    with LocalServer(descriptor, port=port) as process:
         app = create_app(
             session_path=session_path,
             token=process.token,
