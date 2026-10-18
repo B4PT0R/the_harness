@@ -21,11 +21,11 @@ def test_repeated_backspace_does_not_render_history(page):
     print(f"Backspace: mean {sum(durations) / len(durations):.1f} ms, max {max(durations):.1f} ms, history renders {renders}")
     assert renders == 0
     assert page.evaluate("window.assistantRenders") == parent_before
-    page.evaluate("window.emit({ type: 'command_event', event: { type: 'response.output_text.delta', item_id: 'stream', sequence_number: 1, delta: 'Streaming response' } })")
+    page.evaluate("window.emit({ type: 'command_event', event: { type: 'agent.text.delta', item_id: 'stream', channel: 'output', sequence: 1, delta: 'Streaming response' } })")
     page.wait_for_function("document.querySelectorAll('.message').length === 81")
     assert page.locator(".message").last.inner_text() == "Streaming response"
     assert page.evaluate("window.markdownRenders") == before + 1
-    page.evaluate("window.emit({ type: 'command_event', event: { type: 'response.output_text.delta', item_id: 'stream', sequence_number: 2, delta: ' updated' } })")
+    page.evaluate("window.emit({ type: 'command_event', event: { type: 'agent.text.delta', item_id: 'stream', channel: 'output', sequence: 2, delta: ' updated' } })")
     page.wait_for_function("document.querySelector('.message:last-child').textContent.includes('updated')")
     assert page.evaluate("window.markdownRenders") == before + 2
     assert field.input_value() == "a" * 1960

@@ -3,19 +3,18 @@ import assert from "node:assert/strict";
 import { RemoteRealtimeTranscriptAssembler } from "../../src/realtime-transcript.js";
 
 const caption = (text, role = "user") => ({ type: "realtime_event", event: {
-  type: role === "user" ? "input_transcript.added" : "output_transcript.added", item: { text },
+  type: "voice.transcript.updated", role, text,
 } });
 const done = (role, transcript = "") => ({ type: "realtime_event", event: {
-  type: "turn.done", turn: { role, transcript },
+  type: "voice.turn.completed", role, transcript,
 } });
 
-test("captions assemble incremental and cumulative text without duplicates", () => {
+test("captions consume cumulative Framework text without duplicate rendering", () => {
   const assembler = new RemoteRealtimeTranscriptAssembler();
   assert.deepEqual(assembler.ingest(caption("Hello")), { role: "user", completeText: "Hello", final: false });
   assert.equal(assembler.ingest(caption("Hello")), null);
   assert.equal(assembler.ingest(caption("Hello there")).completeText, "Hello there");
-  assert.equal(assembler.ingest(caption(" there")), null);
-  assert.equal(assembler.ingest(caption("!")).completeText, "Hello there!");
+  assert.equal(assembler.ingest(caption("Hello there!")).completeText, "Hello there!");
   assert.equal(assembler.ingest(caption("Hi", "assistant")).completeText, "Hi");
   assert.deepEqual(assembler.ingest(done("user", "Hello there!")), { role: "user", final: true });
   assert.equal(assembler.ingest(caption("Next")).completeText, "Next");

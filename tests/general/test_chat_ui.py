@@ -57,10 +57,10 @@ def test_attachments_and_draft_survive_updates_and_failed_send(page):
 
 def test_voice_completion_clears_caption_without_replacing_canonical_history(page):
     before = page.locator(".message").count()
-    page.evaluate("window.emit({ type: 'realtime_event', call_id: 'call', event: { type: 'input_transcript.added', item: { text: 'Partial voice' } } })")
+    page.evaluate("window.emit({ type: 'realtime_event', call_id: 'call', event: { type: 'voice.transcript.updated', role: 'user', text: 'Partial voice' } })")
     page.wait_for_function("document.querySelectorAll('.message').length === 81")
     assert "Partial voice" in page.locator(".message").last.inner_text()
-    page.evaluate("window.emit({ type: 'realtime_event', call_id: 'call', event: { type: 'turn.done', turn: { role: 'user', transcript: '' } } })")
+    page.evaluate("window.emit({ type: 'realtime_event', call_id: 'call', event: { type: 'voice.turn.completed', role: 'user', transcript: '' } })")
     page.wait_for_function("document.querySelectorAll('.message').length === 80")
     assert page.locator(".message").count() == before
 
@@ -142,7 +142,7 @@ def test_settings_save_validation_and_visible_errors(page):
 
 def test_chat_paths_open_locally_and_errors_are_visible(page):
     text = "Fichier `/home/baptiste/Documents/a b.md`, dossier /home/baptiste/Documents et [image](file:///tmp/image.png).\n\n```sh\ncat /tmp/a.md\n```\n\n[site](https://example.org)"
-    page.evaluate("text => window.emit({ type: 'command_event', event: { type: 'response.output_text.delta', item_id: 'paths', sequence_number: 1, delta: text } })", text)
+    page.evaluate("text => window.emit({ type: 'command_event', event: { type: 'agent.text.delta', item_id: 'paths', channel: 'output', sequence: 1, delta: text } })", text)
     message = page.locator(".message").last
     message.locator(".resource-link").first.wait_for()
     assert message.locator(".resource-link").count() == 4
@@ -338,3 +338,16 @@ def test_subagent_activity_has_its_own_label_without_changing_history(page):
     page.evaluate("window.emit({type:'subagent_event', session_id:'child', task_id:'review', agent:'reviewer', event:{type:'agent.task.completed'}})")
     activity.wait_for(state='detached')
     assert page.locator('.message').count() == 80
+
+
+def test_framework_text_stream_commits_once_without_showing_reasoning(page):
+    page.evaluate("window.emit({type: 'command_event', event: {type: 'agent.text.delta', channel: 'reasoning', item_id: 'reasoning', sequence: 0, delta: 'Private reasoning'}})")
+    assert page.locator('.message').count() == 80
+    page.evaluate("window.emit({type: 'command_event', event: {type: 'agent.text.delta', channel: 'output', item_id: 'framework-stream', sequence: 1, delta: 'Streaming through Framework events.'}})")
+    page.get_by_text('Streaming through Framework events.', exact=True).wait_for()
+    page.screenshot(path='/tmp/harness-framework-streaming.png')
+    page.evaluate("window.emit({type: 'command_event', event: {type: 'agent.response_item.added', item: {id: 'framework-stream', type: 'message', role: 'assistant', content: [{type: 'output_text', text: 'Streaming through Framework events.'}]}}})")
+    page.wait_for_function("document.querySelectorAll('.message').length === 81")
+    assert page.get_by_text('Streaming through Framework events.', exact=True).count() == 1
+    assert page.get_by_text('Private reasoning', exact=True).count() == 0
+    page.screenshot(path='/tmp/harness-framework-committed.png')

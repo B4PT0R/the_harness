@@ -155,3 +155,9 @@ prose-only instructions update does not require the application test suites.
 The Framework supports independent concurrent sessions; the Harness retains one
 default user conversation. Agent configuration, extension state and bindings live
 in that canonical session, not in parallel application settings stores.
+
+Events belong to the component that owns their behavior. The worker core declares
+only events needed for its generic operation. Events used only within a plugin's
+feature lifecycle must be declared and emitted by that plugin. Public consumers
+receive typed Framework/plugin events; backend wire events remain inside their
+respective adapters and must be explicitly converted or filtered.

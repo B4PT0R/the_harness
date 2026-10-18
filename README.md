@@ -193,3 +193,7 @@ keeps one default user conversation as its product policy. Its canonical session
 owns history, configuration, extension state and plugin bindings; process-local
 resources supply defaults. Sub-agent activity is shown separately in the chat and
 results return to the caller without merging specialist histories.
+
+Chat, sub-agent activity and voice captions consume Framework/plugin events.
+Backend wire signals remain inside their adapters; plugins own events specific
+to their feature lifecycle. Session items remain the canonical replay source.

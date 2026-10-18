@@ -14,10 +14,15 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   Validation : 156 tests Harness, 54 JS, build et contrôle visuel ; Framework
   659 succès, 3 skips. Migration locale ponctuelle exécutée puis supprimée ;
   même session, même historique, mêmes réglages et fenêtre Chromium conservée.
-- [ ] **Prochaine priorité Framework : vocabulaire d'événements propre.** Convertir
+- [x] **Vocabulaire d'événements Framework propre — 18 octobre.** Convertir
   ou filtrer les événements Responses à la frontière backend ; compléter LocalEvent
   pour que les consommateurs ne dépendent plus des signaux OpenAI verbatim.
-  Demande détaillée consignée dans le TODO Framework.
+  Livré : texte/raisonnement/outils, progression et délégations vocales normalisés ;
+  le plugin Realtime déclare ses propres événements de cycle de vie. Interface et
+  clients distants consomment le contrat Framework, sans fallback backend.
+  Tests Framework/Harness, JS et builds réussis ; scénario visuel de streaming
+  puis commit sans doublon. Serveur et UI installés mis à jour, même session,
+  historique/archives JSON inchangés et fenêtre Chromium conservée.
 
 - [x] **Livraison des surfaces et contrôles agentiques — 18 octobre.** Le service
   de surfaces initialise les bundles déclarés ; le Harness retire son chemin
