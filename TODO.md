@@ -434,5 +434,13 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   pour l'environnement, ses politiques distantes et sa santé restent applicatives.
   31 tests de composition/sessions/voix/bootstrap réussis. Détails dans TODO Framework.
   Revue seulement, aucun changement runtime ou redémarrage de l'installation.
-- [ ] **Finitions de la recette nominale.** Implémenter les trois priorités de la
-  revue transversale en adaptant starter et Harness, sans nouvelle classe d'options.
+- [x] **Finitions de la recette nominale.** Les réglages statiques du starter
+  passent dans AgentSpec.configuration. SessionProjections fournit les vues
+  standard full/display/remote, avec display par défaut pour le chat. Suppression
+  du câblage des projections et de reset_handler dans le Harness : l'API appelle
+  directement HarnessSession.reset_session. Sans politique applicative, reset
+  indisponible (501), même avec une transaction bas niveau. Les choix sélectifs,
+  hooks voix et formats de payload restent inchangés. Documentation alignée.
+  Validation : Framework 712 succès / 3 skips avec Chromium, Harness 157 succès ;
+  redémarrage réel sans changement de navigateur/fenêtre ni perte de conversation,
+  chat/voix disponibles et Jiminy conforme au modèle mémoire enregistré.

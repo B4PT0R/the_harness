@@ -62,8 +62,7 @@ def create_app(
         session_factory=lambda worker, context: HarnessSession(
             worker, fleet_factory=fleet_factory, restart=restart,
         ),
-        session_projection="display", health_projection=health_projection,
-        reset_handler=HarnessSession.reset_session,
+        health_projection=health_projection,
         event_handshake=security.socket_handshake(supported=(EVENT_SUBPROTOCOL,)),
         application_handshake=security.socket_handshake(supported=(APPLICATION_SUBPROTOCOL,)),
         session_extensions=lambda runtime: (

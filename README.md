@@ -205,6 +205,11 @@ owns history, configuration, extension state and plugin bindings; process-local
 resources supply defaults. Sub-agent activity is shown separately in the chat and
 results return to the caller without merging specialist histories.
 
+Chat history uses the Framework's standard `display` projection (user/assistant
+messages and artifacts); remote history also includes function calls. These views
+need no application wiring. `HarnessSession.reset_session()` owns the selective
+conversation reset, using the shared reset lifecycle and voice coordination.
+
 Chat, sub-agent activity and voice captions consume Framework/plugin events.
 Backend wire signals remain inside their adapters; plugins own events specific
 to their feature lifecycle. Session items remain the canonical replay source.

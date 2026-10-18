@@ -2,7 +2,7 @@
 
 import asyncio
 
-from the_framework.agent import AgentSpec, Worker
+from the_framework.agent import AgentSpec
 from the_framework.agent.runtime.protocol import PromptRequest
 
 from .prompts import compaction_instructions, install_assistant_instructions
@@ -49,10 +49,6 @@ ASSISTANT_AGENT = AgentSpec(
     configuration={"model": "gpt-5.5", "compaction": {"model": "gpt-5.5"}},
     initializers=(configure_assistant,),
     command_middleware=(measure_turn,),
-    projections={
-        "display": Worker.conversation_projection,
-        "remote": Worker.remote_projection,
-    },
     resources=assistant_resources,
 )
 
