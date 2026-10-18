@@ -130,3 +130,19 @@ def test_private_cookie_routes_and_live_revocation(assembled):
         with pytest.raises(WebSocketDisconnect):
             socket.receive_json()
     assert client.get("/api/v1/plugins", headers=phone).status_code == 401
+
+
+def test_network_preview_can_read_but_not_configure(tmp_path, monkeypatch):
+    from the_framework.server.api.endpoints import HttpError, Principal
+    from the_harness.plugins.client_remote.api import ClientRemoteApi
+
+    configure_tailscale(monkeypatch)
+    network = PrivateNetwork(tmp_path, "http://127.0.0.1:48887")
+    api = ClientRemoteApi(SimpleNamespace(runtime=None, network=network), None)
+    preview = SimpleNamespace(principal=Principal(
+        id="surface-preview", scopes=frozenset({"*:read"}),
+        attributes={"client_role": "preview"}))
+    assert asyncio.run(api.network_status(preview))["enabled"] is False
+    with pytest.raises(HttpError):
+        asyncio.run(api.configure_network(preview, True))
+    assert not network.path.exists()

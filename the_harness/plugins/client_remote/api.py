@@ -14,6 +14,7 @@ from the_framework.server import endpoint
 from the_framework.server.api.endpoints import HttpError
 from the_framework.server.api.websockets import WebSocketEndpoint, serve_event_stream_until_disconnect
 from the_framework.server.clients.remote import PROTOCOL_VERSION
+from the_framework.server.clients.previews import is_preview
 from the_framework.utils.ids import timestamp_id
 
 from ...security import local_request_allowed, private_request_allowed
@@ -169,7 +170,8 @@ class ClientRemoteApi:
     @endpoint("get", "/api/v1/client-remote/network", response={"type": "object"},
               authorization={"scope": "remote-clients:read"}, context="call")
     async def network_status(self, call):
-        self._local(call)
+        if not is_preview(call.principal):
+            self._local(call)
         return await asyncio.to_thread(self.service.network.status)
 
     @endpoint("put", "/api/v1/client-remote/network", request={
