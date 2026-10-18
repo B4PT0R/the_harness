@@ -1,9 +1,13 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { useLocale } from "../i18n";
 
 export function DeviceSettings({ api, readOnly = false }) {
   const { t, locale } = useLocale();
+  const dialog = useRef(null);
+  const [confirmation, setConfirmation] = useState(null);
+  useEffect(() => { if (confirmation) dialog.current.showModal(); }, [confirmation]);
+  function dismiss() { dialog.current.close(); setConfirmation(null); }
   const [network, setNetwork] = useState(null);
   const [clients, setClients] = useState([]);
   const [pairing, setPairing] = useState(null);
@@ -45,7 +49,6 @@ export function DeviceSettings({ api, readOnly = false }) {
   }
   async function toggle() {
     const enabled = !network.enabled;
-    if (enabled && !window.confirm(t("remoteEnableConfirm"))) return;
     await action(async () => {
       setNetwork(await api("client-remote/network", { method: "PUT", body: { enabled } }));
       setPairing(null);
@@ -60,7 +63,7 @@ export function DeviceSettings({ api, readOnly = false }) {
       {!network && !error && <p>{t("loading")}</p>}
     </div>
     <div className="remote-actions">
-      <button type="button" disabled={readOnly || busy || !network || (!network.enabled && !network.available)} onClick={toggle}>
+      <button type="button" disabled={readOnly || busy || !network || (!network.enabled && !network.available)} onClick={() => network.enabled ? toggle() : setConfirmation({ kind: "enable" })}>
         {t(network?.enabled ? "remoteDisable" : "remoteEnable")}
       </button>
       <button type="button" disabled={busy} onClick={() => action(refresh)}>{t("remoteRefresh")}</button>
@@ -88,9 +91,23 @@ export function DeviceSettings({ api, readOnly = false }) {
     <ul className="remote-clients">{clients.map(client => <li key={client.id}>
       <div><strong>{client.device_name || client.name || client.id}</strong><small>{client.platform}</small></div>
       <button type="button" disabled={readOnly || busy} onClick={() => {
-        if (window.confirm(t("remoteRevokeConfirm"))) action(() => api(`client-remote/clients/${encodeURIComponent(client.id)}`, { method: "DELETE" }));
+        setConfirmation({ kind: "revoke", id: client.id });
       }}>{t("remoteRevoke")}</button>
     </li>)}</ul>
+    <dialog ref={dialog} className="reset-dialog" aria-labelledby="remote-confirm-title" aria-describedby="remote-confirm-description"
+      onCancel={event => { event.preventDefault(); dismiss(); }}>
+      <h2 id="remote-confirm-title">{t(confirmation?.kind === "revoke" ? "remoteRevoke" : "remoteEnable")}</h2>
+      <p id="remote-confirm-description">{t(confirmation?.kind === "revoke" ? "remoteRevokeConfirm" : "remoteEnableConfirm")}</p>
+      <div className="reset-dialog-actions">
+        <button type="button" autoFocus onClick={dismiss}>{t("cancel")}</button>
+        <button type="button" onClick={() => {
+          const requested = confirmation;
+          dismiss();
+          if (requested.kind === "enable") toggle();
+          else action(() => api(`client-remote/clients/${encodeURIComponent(requested.id)}`, { method: "DELETE" }));
+        }}>{t(confirmation?.kind === "revoke" ? "remoteRevoke" : "remoteEnable")}</button>
+      </div>
+    </dialog>
     {error && <p className="error" role="alert">{error}</p>}
   </div>;
 }
