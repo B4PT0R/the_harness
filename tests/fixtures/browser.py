@@ -55,7 +55,7 @@ async function request(path, options = {}) {
   }
   if (path === 'local-files/open' && window.failFileOpen) throw new Error('File no longer exists');
   if (path === 'browser/open-external' && window.failBrowserOpen) throw new Error('Integrated browser unavailable');
-  if (path === 'config') return { config: { model: 'test-model' } };
+  if (path === 'config') return { config: { model: 'test-model', realtime: { model: 'gpt-live-1-codex', voice: 'maple', delegation_ack_filler: true, max_initial_items: 50 } } };
   if (path === 'plugins') return { plugins: [{ name: 'hosted_ui', running: true },
     { name: 'realtime', running: true, binding_available: true, binding_enabled: Boolean(window.voiceEnabled) }] };
   if (path === 'status') return { foreground_active: false, foreground_pending: 0 };

@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 
@@ -164,6 +166,52 @@ def test_fullscreen_settings_preserve_drafts_and_keyboard_navigation(page, width
     assert settings.count() == 0
     assert draft.input_value() == "Un brouillon à conserver"
     assert trigger.evaluate("el => el === document.activeElement")
+
+
+@pytest.mark.parametrize("width", [1280, 390])
+def test_voice_settings_save_only_on_request_and_preserve_advanced_fields(page, width):
+    page.set_viewport_size({"width": width, "height": 800})
+    page.get_by_role("button", name="Réglages", exact=True).click()
+    page.get_by_role("button", name="Voix", exact=True).click()
+    section = page.locator("#settings-voice")
+    voice = section.get_by_role("combobox", name="Voix utilisée")
+    assert voice.input_value() == "maple"
+    voice.select_option("breeze")
+    section.get_by_role("textbox", name="Modèle vocal", exact=True).fill("custom-realtime-model")
+    section.get_by_role("checkbox").uncheck()
+    assert "prochain appel" in section.inner_text()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    assert not page.evaluate("window.requests.some(r => r.path === 'config' && r.body)")
+    page.get_by_role("button", name="Avancé", exact=True).click()
+    config = json.loads(page.locator("#config").input_value())
+    assert config["model"] == "test-model"
+    assert config["realtime"] == {
+        "model": "custom-realtime-model", "voice": "breeze",
+        "delegation_ack_filler": False, "max_initial_items": 50,
+    }
+    # Custom configured voices are retained rather than silently replaced.
+    config["realtime"]["voice"] = "account-specific-voice"
+    page.locator("#config").fill(json.dumps(config))
+    page.get_by_role("button", name="Voix", exact=True).click()
+    assert voice.input_value() == "account-specific-voice"
+    save = page.get_by_role("button", name="Enregistrer", exact=True)
+    save.click()
+    page.get_by_text("Réglages enregistrés.", exact=True).wait_for()
+    assert save.is_disabled()
+    assert page.evaluate("window.requests.filter(r => r.path === 'config' && r.body).map(r => r.body)") == [config]
+    assert not page.evaluate("window.requests.some(r => r.path.startsWith('realtime/'))")
+
+
+def test_voice_settings_disable_fields_when_configuration_is_missing(page):
+    page.get_by_role("button", name="Réglages", exact=True).click()
+    page.get_by_role("button", name="Avancé", exact=True).click()
+    page.locator("#config").fill('{"model":"test-model"}')
+    page.get_by_role("button", name="Voix", exact=True).click()
+    section = page.locator("#settings-voice")
+    assert "indisponible" in section.inner_text()
+    assert section.get_by_role("combobox").is_disabled()
+    assert section.get_by_role("textbox").is_disabled()
+    assert section.get_by_role("checkbox").is_disabled()
 
 
 def test_settings_save_validation_and_visible_errors(page):
