@@ -117,6 +117,12 @@ The remote plugin's `server.py` directly assembles its service and API; `policy.
 owns product permissions and wire projections. The Framework transport owns
 credentials, leases, event delivery and persistent command receipts. The product
 API chooses the routes and command semantics, reusing the host's text/voice ingress.
+Plugins represent application features. Changing an agent binding during voice
+recreates the call from the current canonical conversation, while installed
+services and data remain available. The owning client reconnects automatically;
+a manual stop wins, and disabling voice never reopens it. Installing or removing
+an entire plugin remains a separate change to startup composition.
+
 This checkout requires the sibling Framework's unreleased conversation assembly,
 not just the published 0.2.1 package.
 

@@ -41,7 +41,9 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   Framework/starter/Harness, scénarios Chromium réels et essai sur l'installation :
   même conversation et même onglet principal pendant l'aperçu. Validation :
   640 tests Framework, 151 Harness, suites JS et builds des deux interfaces.
-- [ ] **Suivi d’image : intermittence à isoler.** Le test durable
+- [ ] **Priorité après la tranche voix : corriger le suivi d’image intermittent.**
+  Baptiste demande explicitement de résoudre ce défaut ensuite pour ne plus
+  conserver ce bruit dans la suite. Le test durable
   `test_artifact_rendering_replay_and_widget_fallback[0]` a de nouveau échoué sur
   le suivi du bas dans une exécution complète, puis passé à la suivante. Conserver
   la garantie ; distinguer une course de rendu du scénario de test avant correction.
@@ -160,11 +162,19 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   `the_harness/server_process.py` imprime le descripteur contenant le token local.
   Le descripteur reste privé sur disque ; la sortie de démarrage se limite à
   host/port/pid. Absence du token vérifiée dans les logs isolés et le journal systemd.
-- [ ] **Exposition à l'agent versus runtime installé — à examiner.**
-  `application.py`, `agent_definition.py`, réglages de plugins.
-  Vérifier les outils réellement activés au premier démarrage, leurs prérequis,
-  la désactivation pendant une voix et l'isolation des mémoires. Un plugin chargé
-  n'est pas une capacité prête ni une autorisation générale d'agir.
+- [x] **Bindings et voix — cohérence validée le 18 octobre.** Runtime installé,
+  exposition à l'agent et contexte vocal restent distincts. Les changements rares
+  de binding ferment/recréent l'appel avec la projection actuelle, sans retrait
+  fictif d'un contexte déjà transmis au modèle. Providers mémoire/registre filtrés,
+  producteurs nettoyés, tours vocaux réconciliés et relance corrélée au client.
+  Arrêt manuel prioritaire ; voix désactivée sans relance ; appels périmés ignorés.
+  Les dernières transcriptions acceptées restent enregistrables par le worker
+  canonique après désactivation de la voix.
+  Worker réel pour le changement depuis un outil suspendu, transport audio simulé
+  pour la relance navigateur avec brouillon/historique conservés. Validation :
+  654 tests Framework, 153 Harness réussis et un échec intermittent de suivi
+  d’image à corriger ensuite ; 25/53 tests JS et builds réussis. Les services chargés
+  ne garantissent toujours pas la disponibilité des fournisseurs externes.
 
 ## Priorité : simplifier l'application canonique
 

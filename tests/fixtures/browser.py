@@ -56,7 +56,8 @@ async function request(path, options = {}) {
   if (path === 'local-files/open' && window.failFileOpen) throw new Error('File no longer exists');
   if (path === 'browser/open-external' && window.failBrowserOpen) throw new Error('Integrated browser unavailable');
   if (path === 'config') return { config: { model: 'test-model' } };
-  if (path === 'plugins') return { plugins: [{ name: 'hosted_ui', running: true }] };
+  if (path === 'plugins') return { plugins: [{ name: 'hosted_ui', running: true },
+    { name: 'realtime', running: true, binding_available: true, binding_enabled: Boolean(window.voiceEnabled) }] };
   if (path === 'status') return { foreground_active: false, foreground_pending: 0 };
   if (path.startsWith('session')) return { turns: [{ items: [...items, ...JSON.parse(localStorage.getItem('test-artifacts') || '[]')] }], has_more: true, next_before: 'older' };
   if (path.startsWith('agent/') && window.failSend) throw new Error('Send failed');
@@ -73,6 +74,14 @@ await build({
   stdin: { contents: ENTRY, resolveDir: process.cwd(), loader: 'jsx' },
   bundle: true, outfile: OUTPUT, loader: { '.woff': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl' },
   plugins: [{ name: 'count-markdown', setup(build) {
+    build.onLoad({ filter: /realtime-audio\\.js$/ }, () => ({
+      contents: `export async function connectRealtimeAudio(transport, audio, disconnected) {
+        await transport.startRealtime('test-offer');
+        await transport.readyRealtime();
+        window.disconnectVoice = disconnected;
+        return { close() { window.closedVoicePeers = (window.closedVoicePeers || 0) + 1; } };
+      }`,
+    }));
     build.onLoad({ filter: /(Markdown|AssistantApp)\\.jsx$/ }, async ({ path }) => ({
       contents: (await readFile(path, 'utf8'))
         .replace('export function Markdown({ children }) {',

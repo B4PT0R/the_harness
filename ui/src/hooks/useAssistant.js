@@ -4,7 +4,7 @@ import { RemoteRealtimeTranscriptAssembler } from "../realtime-transcript";
 import { voiceSession } from "../voice";
 import { translate } from "../locales.js";
 import { contextState, initialContext } from "../context.js";
-import { pluginRunning } from "../plugins";
+import { pluginBindingEnabled } from "../plugins";
 import { conversationBusy, conversationCommand, eventMessages, providerArtifacts, snapshot, voiceCaptions } from "../session";
 
 // Browser client state only. Conversation history remains owned by the server.
@@ -33,7 +33,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     const controller = new AbortController();
     api("plugins", { signal: controller.signal })
       .then((result) => {
-        setVoiceAvailable(pluginRunning(result.plugins, "realtime"));
+        setVoiceAvailable(pluginBindingEnabled(result.plugins, "realtime"));
       })
       .catch((cause) => {
         if (cause.name !== "AbortError") setError(cause.message);
@@ -148,6 +148,12 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       active.onmessage = ({ data }) => {
         if (!current()) return;
         const output = JSON.parse(data);
+        if (output.type === "realtime_reconnect_requested") {
+          void voice.current?.reconnect(output);
+        }
+        if (output.type === "command_event" && output.event?.type === "agent.plugin.binding.updated" && output.event.plugin === "realtime") {
+          setVoiceAvailable(Boolean(output.event.enabled));
+        }
         if (["worker_status", "command_accepted", "command_completed", "command_failed", "worker_exited", "worker_transport_error"].includes(output.type) ||
             (output.type === "command_event" && ["agent.compaction.start", "agent.compaction.end", "agent.generation.start", "agent.turn.start"].includes(output.event?.type)))
           updateContext(output);

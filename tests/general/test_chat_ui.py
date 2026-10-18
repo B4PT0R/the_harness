@@ -272,3 +272,36 @@ def test_preview_drafts_and_settings_do_not_write_to_the_principal(page, width, 
     page.get_by_role('textbox', name='Modèle', exact=True).fill('Edited locally')
     assert page.get_by_role('button', name='Enregistrer', exact=True).is_disabled() == preview_client
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+
+
+def test_voice_reconnect_keeps_the_chat_and_respects_binding_disable(page):
+    page.evaluate("""() => {
+      window.voiceEnabled = true;
+      window.emit({type: 'command_event', event: {
+        type: 'agent.plugin.binding.updated', plugin: 'realtime', enabled: true,
+      }});
+    }""")
+    page.get_by_role('button', name='Démarrer la voix', exact=True).click()
+    page.wait_for_function("window.requests.filter(r => r.path === 'realtime/calls/current/ready').length === 1")
+    field = page.get_by_role('textbox', name='Message', exact=True)
+    field.fill('Brouillon conservé pendant la relance')
+    previous = page.evaluate("window.requests.find(r => r.path === 'realtime/calls').body.call_id")
+    page.evaluate("id => window.emit({type: 'realtime_reconnect_requested', call_id: id})", previous)
+    page.wait_for_function("window.requests.filter(r => r.path === 'realtime/calls/current/ready').length === 2")
+    assert field.input_value() == 'Brouillon conservé pendant la relance'
+    assert page.locator('.message').count() == 80
+    assert page.evaluate('window.closedVoicePeers') == 1
+    page.screenshot(path='/tmp/harness-voice-binding-reconnected.png')
+    current = page.evaluate("window.requests.filter(r => r.path === 'realtime/calls').at(-1).body.call_id")
+    assert current != previous
+    page.evaluate("""() => {
+      window.voiceEnabled = false;
+      window.emit({type: 'command_event', event: {
+        type: 'agent.plugin.binding.updated', plugin: 'realtime', enabled: false,
+      }});
+    }""")
+    page.wait_for_function('window.closedVoicePeers === 2')
+    page.evaluate("id => window.emit({type: 'realtime_reconnect_requested', call_id: id})", current)
+    assert page.evaluate("window.requests.filter(r => r.path === 'realtime/calls').length") == 2
+    assert field.input_value() == 'Brouillon conservé pendant la relance'
+    assert page.get_by_role('button', name='Démarrer la voix', exact=True).count() == 0
