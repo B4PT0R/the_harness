@@ -460,3 +460,16 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   Bootstrap neuf puis préparation sans réinstallation/rebuild, démarrage UI et arrêt
   réel vérifiés. Installation Harness relancée avec même navigateur et conversation,
   contrôles chat/voix disponibles, Jiminy conforme à la configuration mémoire.
+
+
+- [x] **UI desktop conventionnelle — 18 octobre.** Le starter ne déclare plus de
+  surface : ui/ voisin du module application suffit, avec main/npm build/dist et
+  /ui. surfaces=() désactive explicitement l'UI. ClientSurface fournit les valeurs
+  desktop usuelles ; le Harness conserve seulement ses paramètres spécifiques de
+  build, artefact, route serveur et délai, sans répéter nom/routes/shell/rétention.
+  Les surfaces mobiles/Quest explicites et les aperçus authentifiés sont conservés.
+
+  Validation : Framework 722 succès / 3 skips et Harness 157 succès ; starter neuf
+  sans déclaration de surface démarré jusqu'au navigateur connecté. Installation
+  Harness relancée sans perte de navigateur ni conversation ; contrôles chat/voix
+  disponibles et configuration canonique de Jiminy préservée.
