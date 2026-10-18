@@ -1,11 +1,7 @@
 import asyncio
 import base64
-from hashlib import sha256
-from io import BytesIO
 from pathlib import Path
-from tempfile import NamedTemporaryFile, TemporaryDirectory
-
-from PIL import Image as Raster
+from tempfile import TemporaryDirectory
 
 from the_framework.agent import (
     AgentExtension, AgentResponseItemAdded, Artifact, Image, ImageGenerationTool,
@@ -16,7 +12,7 @@ from the_framework.agent.models.responses import ImageGenerationCall
 
 class ImagesExtension(AgentExtension):
     name = "images"
-    description = "Backend image creation/editing and local image inspection."
+    description = "Backend image creation/editing and local or remote image inspection."
     instructions_file = "instructions.md"
 
     def load(self):
@@ -39,36 +35,18 @@ class ImagesExtension(AgentExtension):
         if self._temporary is not None:
             self._temporary.cleanup()
 
-    def _store(self, data):
-        """Validate raster bytes and freeze them under a content-addressed name."""
-        with Raster.open(BytesIO(data)) as image:
-            suffix = {"PNG": ".png", "JPEG": ".jpg", "WEBP": ".webp", "GIF": ".gif"}.get(image.format)
-            if suffix is None:
-                raise ValueError("Images support PNG, JPEG, WebP and GIF files.")
-            image.verify()
-        self.root.mkdir(parents=True, exist_ok=True)
-        path = self.root / (sha256(data).hexdigest() + suffix)
-        if not path.exists():
-            with NamedTemporaryFile(dir=self.root, delete=False) as stream:
-                temporary = Path(stream.name)
-                try:
-                    stream.write(data)
-                    stream.close()
-                    temporary.replace(path)
-                finally:
-                    temporary.unlink(missing_ok=True)
-        return path
-
     @tool
-    async def inspect_image(self, path: str, description: str):
-        """Load a local image for vision or as a reference for image_generation editing.
+    async def inspect_image(self, source: str, description: str):
+        """Load a local path or HTTP(S) image URL for vision or image_generation editing.
 
-        This adds a stable vision input, not a chat presentation. Describe why
-        the image is being inspected or how it should guide the requested edit.
+        URLs are downloaded and validated locally before context injection; the
+        API receives base64, never the remote URL. This freezes a vision input,
+        not a chat presentation. Describe why the image is being inspected.
         """
-        source = Path(path).expanduser().resolve(strict=True)
-        stored = await asyncio.to_thread(lambda: self._store(source.read_bytes()))
-        return Image(path=str(stored), description=description, context_tag="local_image")
+        return await asyncio.to_thread(
+            Image.from_source, source, directory=self.root,
+            description=description, context_tag="inspected_image",
+        )
 
     @hook
     def on_event(self, event):
@@ -77,9 +55,9 @@ class ImagesExtension(AgentExtension):
         item = event.item
         if item.get("status") != "completed" or not item.get("result"):
             return event
-        path = self._store(base64.b64decode(item["result"], validate=True))
-        event.item = Image(
-            id=item["id"], generation_id=item["id"], path=str(path),
+        event.item = Image.from_source(
+            base64.b64decode(item["result"], validate=True), directory=self.root,
+            id=item["id"], generation_id=item["id"],
             description=item.get("revised_prompt") or "Backend-generated image",
             parameters={key: value for key, value in item.items()
                         if key not in {"result", "type", "id", "revised_prompt"}},

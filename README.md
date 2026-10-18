@@ -38,11 +38,14 @@ this same tree and authenticated `/api/v1/bucket/...` URLs, including for author
 remote desktop clients. The session stores references and metadata only.
 
 The optional `images` plugin exposes the backend-hosted `image_generation` tool
-for creation and editing, plus `images.inspect_image` for local vision/reference
-inputs. Completed results are validated and frozen under the session's `images/`
-directory, then published once as durable image artifacts. Loading a local image
-alone does not display it. Binary decoding, storage and presentation belong to
-this application plugin; the Framework supplies only generic lifecycle hooks.
+for creation and editing, plus `images.inspect_image` for local-file or HTTP(S)
+vision/reference inputs. Remote images are downloaded and validated before context
+injection; the backend receives base64 from a frozen local file, never the remote
+URL. Completed results are validated and frozen under the session's `images/`
+directory, then published once as durable image artifacts. Inspection alone does
+not display an image. Generation-output handling and presentation belong to this
+application plugin; the Framework supplies generic lifecycle hooks and reusable
+image preparation.
 
 ## A private cloud for your clients
 

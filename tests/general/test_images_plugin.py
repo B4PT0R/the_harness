@@ -1,8 +1,9 @@
 import asyncio
 import base64
-from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 import json
+
+import httpx
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -98,7 +99,7 @@ def test_inspection_freezes_source_without_presenting_it(tmp_path):
     result = asyncio.run(plugin.inspect_image(str(source), "Reference for an edit"))
     source.write_bytes(b"overwritten")
     assert isinstance(result, Image)
-    assert result.context_tag == "local_image" and result.generation_id is None
+    assert result.context_tag == "inspected_image" and result.generation_id is None
     assert Path(result.path).read_bytes() == png()
     assert not agent.session.history
     # Inspection is a vision input only; unrelated generated images are not published.
@@ -128,10 +129,42 @@ def test_invalid_results_are_rejected_without_persisting_binary(tmp_path, encode
     assert not plugin.root.exists()
 
 
-def test_identical_concurrent_inspections_are_safe(tmp_path):
+def test_remote_inspection_uses_framework_preparation_and_local_base64(tmp_path, monkeypatch):
+    from the_framework.utils import images
+
     agent, plugin = setup(tmp_path)
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        results = list(pool.map(plugin._store, [png()] * 12))
-    assert len(set(results)) == 1
-    assert results[0].read_bytes() == png()
-    assert list(plugin.root.iterdir()) == [results[0]]
+    requests = []
+
+    def respond(request):
+        requests.append(str(request.url))
+        return httpx.Response(200, content=png())
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        monkeypatch.setattr(images.httpx, "stream", client.stream)
+        image = asyncio.run(plugin.inspect_image("https://example.test/image", "Remote reference"))
+    assert requests == ["https://example.test/image"]
+    assert image.context_tag == "inspected_image"
+    assert Path(image.path).read_bytes() == png()
+    assert not agent.session.history  # Returning a tool result alone does not present it.
+    agent.add_response_item(image)
+    asyncio.run(plugin.after_generation(None))
+    assert len(agent.session.history) == 1
+    payload = agent.context.input()[0]["content"][0]
+    assert payload["image_url"] == "data:image/png;base64," + base64.b64encode(png()).decode()
+    assert "https://example.test/image" not in json.dumps(agent.context.input())
+
+
+@pytest.mark.parametrize("status, body, error", [
+    (404, b"missing", httpx.HTTPStatusError),
+    (200, b"<html>Not an image</html>", UnidentifiedImageError),
+])
+def test_remote_inspection_failure_does_not_inject_an_image(tmp_path, monkeypatch, status, body, error):
+    from the_framework.utils import images
+
+    agent, plugin = setup(tmp_path)
+    with httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(status, content=body))) as client:
+        monkeypatch.setattr(images.httpx, "stream", client.stream)
+        with pytest.raises(error):
+            asyncio.run(plugin.inspect_image("https://example.test/image", "Remote reference"))
+    assert not agent.session.history
+    assert not plugin.root.exists()
