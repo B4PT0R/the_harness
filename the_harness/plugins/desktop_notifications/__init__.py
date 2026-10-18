@@ -5,7 +5,7 @@ from the_framework import CapabilityRequirement, Plugin, ServerExtension
 PLUGIN = Plugin(
     name="desktop_notifications",
     server_extensions=ServerExtension(
-        name="desktop_notifications",
+        name="desktop_notifications", scope="session",
         service_factory="the_harness.plugins.desktop_notifications.server:build_notifications",
     ),
     configure="the_harness.plugins.desktop_notifications.server:configure",

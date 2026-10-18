@@ -5,7 +5,6 @@ from the_framework import BuildContext, ServerExtension
 from the_framework.server.clients.browser_rpc import BrowserRPCClient
 
 from .application import application
-from .http_boundary import access_boundary
 from .security import HarnessSecurityPolicy
 from .reset_api import MemoryResetApi
 from .runtime_composition import (
@@ -53,7 +52,8 @@ def create_app(
     )
     security = HarnessSecurityPolicy(
         token=token, browser_token=browser_token,
-        remote_clients=lambda: context.services.get("client_remote"),
+        remote_clients=lambda: (application.default_session.services.get("client_remote")
+                                if application.default_session is not None else None),
         allowed_origins=allowed_origins,
     )
     return application.build(
@@ -70,6 +70,5 @@ def create_app(
                 name="memory_reset", scope="session", endpoints=(MemoryResetApi(runtime),),
                 requires_services=("runtime",),
             ),
-            access_boundary(security=security),
         ),
     )

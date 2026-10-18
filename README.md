@@ -11,7 +11,7 @@ application defaults that you can adapt in Settings.
 
 ## A conversation that continues
 
-The Harness keeps one persistent primary conversation. Text and voice participate
+The Harness keeps one persistent default conversation. Text and voice participate
 in that same conversation; closing the interface or restarting a worker does not
 start a new one. Compaction keeps the active context manageable while retaining
 an archive of the conversation. Durable memory is a separate store for information
@@ -144,7 +144,7 @@ the agent definition and the server assembly. The main entry points are:
 
 | Where | What you will find |
 | --- | --- |
-| [Application declaration](the_harness/application.py) | The primary agent, installed plugins and client surface |
+| [Application declaration](the_harness/application.py) | The agent catalogue, installed plugins and client surface |
 | [Agent definition](the_harness/agent_definition.py) and [prompts](the_harness/prompts/) | Pandora's defaults, instructions and session policy |
 | [Server assembly](the_harness/app.py) and [runtime composition](the_harness/runtime_composition.py) | How framework services, transport security and application controls fit together |
 | [Application plugins](the_harness/plugins/) | Application-specific integrations and policies alongside bundled framework capabilities |
@@ -217,3 +217,9 @@ to their feature lifecycle. Session items remain the canonical replay source.
 Plugins declare their server components in `server_extensions`; `configure(context)`
 collects advanced build-time contributions before any service is constructed.
 The service factories receive fixed build inputs and named dependencies separately.
+
+The application declares its agent recipes through `agents`. Its default session
+owns the active conversation worker and session services; the application owns
+only shared services and client surfaces. Session-bound remote transports and
+notification delivery close with that session. The HTTP access boundary remains
+application-owned, including while a conversation is closed.

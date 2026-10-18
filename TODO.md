@@ -473,3 +473,18 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   sans déclaration de surface démarré jusqu'au navigateur connecté. Installation
   Harness relancée sans perte de navigateur ni conversation ; contrôles chat/voix
   disponibles et configuration canonique de Jiminy préservée.
+
+
+- [x] **Catalogue d'agents et session par défaut — 18 octobre.** Application.agents
+  remplace primary_agent ; le statut par défaut appartient à une session identifiée.
+  Le worker reprend sa recette canonique et plusieurs sessions peuvent partager
+  une même spec. Services et routes de conversation sont isolés pour toutes les
+  sessions, y compris celle par défaut ; fermeture/reprise sans arrêter les
+  services partagés ni les autres workers. La frontière HTTP reste globale.
+  Starter et Harness adaptés ensemble, sans alias ni migration des payloads.
+
+  Vérifications : Framework 724 succès / 3 skips et Harness 157 succès ;
+  starter neuf préparé et lancé jusqu'au
+  rendu Chromium connecté, puis arrêté proprement. Installation Harness relancée
+  avec même navigateur/fenêtre, conversation conservée, chat/voix disponibles,
+  13 plugins et configuration mémoire canonique vérifiés.

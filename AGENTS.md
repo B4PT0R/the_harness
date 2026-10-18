@@ -11,7 +11,7 @@ and voice and can be adapted through explicit user preferences.
 
 Use the reusable `the_framework` package for agent and server primitives.
 Application identity, prompts, plugins and UI remain owned by this repository.
-Preserve one durable primary conversation, explicit plugin composition, process
+Preserve one durable default conversation, explicit plugin composition, process
 supervision, authentication and atomic persistence. Keep tools cancellable and
 long-running work outside the server event loop.
 

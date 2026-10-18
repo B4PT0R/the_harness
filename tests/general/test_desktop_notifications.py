@@ -93,7 +93,7 @@ def test_real_event_sockets_suppress_only_local_host_notifications(tmp_path):
     app = create_app(WorkerSupervisor(tmp_path / "session.json"), token="local",
                      browser_token="browser", browser_runtime_root=tmp_path,
                      client_remote_root=tmp_path)
-    extensions = app.state.application.extensions
+    extensions = app.state.application.default_session.extensions
     transport = extensions["canonical_transport"].service
     notifications = extensions["desktop_notifications"].service
     remote = extensions["client_remote"].service

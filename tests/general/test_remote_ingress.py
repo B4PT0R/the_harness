@@ -35,7 +35,7 @@ def test_application_injects_the_installed_chat_ingress(tmp_path, monkeypatch, w
         browser_runtime_root=tmp_path, client_remote_root=tmp_path,
     )
     assert "chat" not in app.state.application.plugins
-    services = app.state.application.extensions
+    services = app.state.application.default_session.extensions
     chat = services["chat"].service
     remote = services["client_remote_api"].service
     assert remote.ingress is chat.ingress
@@ -175,7 +175,7 @@ def test_remote_policy_collects_all_features_before_accepting_clients(tmp_path, 
         advertised_remote_endpoint='https://harness.example/',
     )
     with TestClient(app, base_url="http://127.0.0.1:48887") as client:
-        service = app.state.application.services['client_remote']
+        service = app.state.application.default_session.services['client_remote']
         assert service.policy.capabilities == {'conversation', 'notifications', 'weather'}
         assert service.policy.scopes_for('quest') == ('chat', 'weather')
         assert service.desktop_api_allowed('GET', '/api/v1/weather')

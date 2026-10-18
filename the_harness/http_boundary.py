@@ -9,11 +9,8 @@ from .security import local_request_allowed
 
 
 class HarnessAccessMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, *, security):
-        super().__init__(app)
-        self.security = security
-
     async def dispatch(self, request, call_next):
+        security = request.app.state.application.access_policy
         if not local_request_allowed(request):
             return JSONResponse({"error": "untrusted host or origin"}, status_code=403)
         # Ticket exchange and remote pairing are explicitly public declarations.
@@ -22,14 +19,14 @@ class HarnessAccessMiddleware(BaseHTTPMiddleware):
         previews = preview_access(request)
         if request.url.path == "/ui/bootstrap" or request.url.path.startswith("/remote/v1/") or (previews is not None and previews.is_exchange(request.url.path)):
             return await call_next(request)
-        principal = await self.security.authenticate(request)
-        if not self.security.http_access_allowed(principal, request):
+        principal = await security.authenticate(request)
+        if not security.http_access_allowed(principal, request):
             return JSONResponse({"error": "unauthorized"}, status_code=401)
         return await call_next(request)
 
 
-def access_boundary(*, security):
+def access_boundary():
     return ServerExtension(
         name="http_boundary",
-        middleware=((HarnessAccessMiddleware, {"security": security}),),
+        middleware=((HarnessAccessMiddleware, {}),),
     )

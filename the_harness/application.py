@@ -13,6 +13,7 @@ from the_framework.plugins.registry import REGISTRY
 from the_framework.plugins.web_search import WEB_SEARCH
 
 from .agent_definition import ASSISTANT_AGENT
+from .http_boundary import access_boundary
 from .plugins.browser import PLUGIN as CHROMIUM
 from the_framework.plugins.artifacts import ARTIFACTS
 from .plugins.client_remote import PLUGIN as CLIENT_REMOTE
@@ -31,7 +32,8 @@ PROJECT_ROOT = Path(__file__).parents[1]
 application = Application(
     name="The Harness",
     version=package_version("the-harness"),
-    primary_agent=ASSISTANT_AGENT,
+    agents=(ASSISTANT_AGENT,),
+    server_extensions=(access_boundary(),),
     plugins=(
         MEMORY,
         Plugin({**GENERIC_REALTIME, "agent_extension": RealtimeExtension}),

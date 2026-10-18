@@ -16,7 +16,7 @@ from .service import ClientRemoteService
 
 def build_service(context, runtime):
     options = context.plugin("client_remote")
-    path = Path(options.get("storage_root") or context.require("machine_root")) / "remote-clients.json"
+    path = Path(options.get("storage_root") or Path(context.require("session_path")).parent) / "remote-clients.json"
 
     policy = RemoteClientPolicy.compose(BASE_REMOTE_POLICY, *context.contributions(POLICY))
     desktop_access = RemoteDesktopAccess()
