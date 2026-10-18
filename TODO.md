@@ -358,3 +358,11 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   dans ce sens : sessions et clients multiples conservés, construction/reprise
   fiables, aucun vocabulaire ou couche dédié aux copies concurrentes de l'app.
   Définition importable par les workers sans démarrage serveur toujours nécessaire.
+
+- [ ] **Décision cible : singleton Application global.** Baptiste choisit finalement
+  un singleton au niveau du processus serveur, portant configuration et ressources
+  de l'app. Cela remplace l'avis précédent contre le singleton. Réexaminer la fusion
+  Application/ApplicationHost avec l'allègement de BuildContext et des plugins.
+  Import worker inerte, démarrage/arrêt explicite, reprise et isolation des sessions
+  restent requis. Aucun current_session global ; décision consignée, pas encore
+  implémentée dans le runtime.

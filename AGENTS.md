@@ -168,8 +168,10 @@ owns the product behavior of one conversation. Its factory/extra declarations us
 `session_factory`/`session_extensions`, once per session. `agent.bridge` and
 `runtime.bridge` are capability channels, not application definitions or hosts.
 
-Target one active application server, potentially with multiple sessions and clients.
-Concurrent instances of the same application are not a product/framework goal.
-Keep startup, supervised reconstruction and process-neutral worker imports; avoid
-API layers justified only by multi-instance deployment. This does not remove
-session isolation or require a new global singleton mechanism.
+Target a process-local global Application singleton for the unique server,
+as explicitly chosen by Baptiste. This supersedes the earlier advice against
+adding a singleton and the reusable-definition/multiple-host design goal.
+The current Application/ApplicationHost split is still implemented; merging their
+application-level ownership is part of the next refactor. Keep startup/shutdown
+explicit and worker imports inert. Sessions/workers remain isolated and their
+context explicit; do not add a global mutable current-session pointer.
