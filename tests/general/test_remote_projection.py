@@ -22,8 +22,7 @@ def test_remote_history_withholds_local_media_and_projects_tool_feedback():
     items = [
         {"type": "message", "content": "Hello"},
         {"type": "image", "path": "/private/image.png"},
-        {"type": "portrait", "path": "/private/portrait.png"},
-        {"type": "media_reference", "path": "/private/video.mp4"},
+        {"type": "custom_file", "path": "/private/file.dat"},
         {"type": "function_call", "call_id": "tool", "name": "bash.command",
          "arguments": '{"user_feedback":" Reading files ","command":"private"}'},
     ]

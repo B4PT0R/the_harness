@@ -149,7 +149,7 @@ class RemoteProjection:
             for item in turn_payload.get("items", []):
                 item_payload = wire_mapping(item)
                 if (
-                    item_payload.get("type") in {"image", "portrait"}
+                    item_payload.get("type") == "image"
                     or isinstance(item_payload.get("path"), str)
                 ):
                     continue  # Never expose host-local files to a remote client.
@@ -194,7 +194,7 @@ class RemoteProjection:
             return event
         item = wire_mapping(inner.get("item"))
         if (
-            item.get("type") not in {"image", "portrait"}
+            item.get("type") != "image"
             and not isinstance(item.get("path"), str)
         ):
             return event
