@@ -403,3 +403,16 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   51 tests ciblés finaux. Installation relancée : navigateur et conversation conservés,
   chat reconnecté, contrôles de voix disponibles, santé et 13 plugins vérifiés.
   Aucun appel payant au backend pour compacter la conversation réelle ni publication UI.
+
+- [x] **Revue AgentSpec / AgentTrigger / WorkerProfile — 18 octobre.** Conserver
+  déclaration, trigger et payload wire distincts. Priorité : corriger et centraliser
+  la résolution du lancement ; un profil résolu peut actuellement être écrasé par
+  les défauts AgentResources (reproduction isolée sans backend). Ensuite retirer
+  les profils wire de la déclaration simple et constituer un catalogue final après
+  chargement des extensions, en préservant la configuration dynamique de Jiminy.
+  Simplifier les alias call/submit et publish/dispatch du registre sans prétendre
+  que call attend un résultat. 89 tests ciblés réussis ; détail dans le TODO
+  Framework. Revue seulement, aucun changement de runtime ou installation.
+- [ ] **Prochaine implémentation API.** Priorités de configuration et catalogue
+  final des spécialistes ; garder session persistée canonique, imports inertes,
+  factories applicatives, files/résultats durables et schémas de payloads inchangés.
