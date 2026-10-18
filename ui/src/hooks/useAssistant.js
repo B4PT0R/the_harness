@@ -72,12 +72,21 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   }, [context.phase]);
   const scroll = useRef(null);
   const follow = useRef(true);
+  const lastScrollTop = useRef(0);
   const followLatest = useCallback(() => {
-    if (follow.current) scroll.current?.scrollTo({ top: scroll.current.scrollHeight });
+    const element = scroll.current;
+    if (follow.current && element) {
+      element.scrollTop = element.scrollHeight;
+      lastScrollTop.current = element.scrollTop;
+    }
   }, []);
   const onScroll = useCallback(() => {
     const element = scroll.current;
-    follow.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+    // Content growth can deliver a scroll before the image load handler.
+    // Leave follow mode only when the reader actually moves upward.
+    if (element.scrollHeight - element.scrollTop - element.clientHeight < 80) follow.current = true;
+    else if (element.scrollTop < lastScrollTop.current) follow.current = false;
+    lastScrollTop.current = element.scrollTop;
   }, []);
   useEffect(() => {
     let disposed = false,

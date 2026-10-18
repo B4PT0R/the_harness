@@ -305,3 +305,21 @@ def test_voice_reconnect_keeps_the_chat_and_respects_binding_disable(page):
     assert page.evaluate("window.requests.filter(r => r.path === 'realtime/calls').length") == 2
     assert field.input_value() == 'Brouillon conservé pendant la relance'
     assert page.get_by_role('button', name='Démarrer la voix', exact=True).count() == 0
+
+
+def test_image_layout_scroll_before_load_keeps_following_latest(page):
+    # A queued scroll may run after image layout but before its load handler.
+    page.evaluate("""() => {
+      const el = document.querySelector('.conversation');
+      el.scrollTop = el.scrollHeight;
+      document.addEventListener('load', event => {
+        if (event.target.matches('.artifact img')) {
+          window.imageGapBeforeLoad = el.scrollHeight - el.scrollTop - el.clientHeight;
+          el.dispatchEvent(new Event('scroll'));
+        }
+      }, true);
+    }""")
+    page.evaluate("window.publishArtifact({type:'artifact',id:'layout-image',kind:'image',payload:{src:'/artifact-fixture.png'}})")
+    page.wait_for_function("document.querySelector('.artifact img')?.naturalWidth === 640")
+    assert page.evaluate('window.imageGapBeforeLoad') > 80
+    page.wait_for_function("(() => {const el=document.querySelector('.conversation'); return el.scrollHeight-el.scrollTop-el.clientHeight<5;})()", timeout=2000)

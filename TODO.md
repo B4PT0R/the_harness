@@ -41,12 +41,17 @@ Privilégier les propriétaires clairs et la suppression de code à des adaptate
   Framework/starter/Harness, scénarios Chromium réels et essai sur l'installation :
   même conversation et même onglet principal pendant l'aperçu. Validation :
   640 tests Framework, 151 Harness, suites JS et builds des deux interfaces.
-- [ ] **Priorité après la tranche voix : corriger le suivi d’image intermittent.**
-  Baptiste demande explicitement de résoudre ce défaut ensuite pour ne plus
-  conserver ce bruit dans la suite. Le test durable
-  `test_artifact_rendering_replay_and_widget_fallback[0]` a de nouveau échoué sur
-  le suivi du bas dans une exécution complète, puis passé à la suivante. Conserver
-  la garantie ; distinguer une course de rendu du scénario de test avant correction.
+- [x] **Suivi d’image intermittent corrigé — 18 octobre.** Un scroll peut être
+  livré après l’agrandissement du contenu par l’image, avant son événement load.
+  La distance au bas ne suffit donc pas à déduire un départ dans l’historique :
+  le suivi se désactive sur un déplacement vers le haut et se réactive près du bas.
+  Correction commune Harness/starter, sans affaiblir les garanties existantes.
+  Test durable reproduisant cet ordre d’événements : rouge avant, vert après.
+  Chargement immédiat/retardé et lecture de l’historique couverts ; suite Harness
+  complète : 155 succès, puis 20 répétitions ciblées réussies (essai temporaire
+  supprimé). Suites JS 53/25 et builds réussis, récupération navigateur
+  du starter vérifiée. Interface publiée après aperçu ; historique, navigateur
+  principal et brouillon conservés.
 - [ ] **Identifiants DOM du navigateur agentique.** Une nouvelle capture attribue
   des identifiants réutilisés sans retirer ceux des éléments devenus cachés :
   après ouverture des réglages, clic sur Retour refusé car un élément de chat
@@ -117,7 +122,7 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   Validation : 616 tests Framework et scénario réel starter ; 132 tests backend
   Harness et test d'accès distant. Installation redémarrée ; lecture HTTP locale
   authentifiée avec Range validée sur un fichier temporaire du bucket nettoyé ensuite.
-  La suite complète Harness conserve un échec UI de défilement, consigné ci-dessous.
+  Le défaut de défilement observé alors est corrigé dans la tranche dédiée ci-dessus.
 
 - [x] **Suivi du bas lors du chargement d'une image — 18 octobre.** L'ajustement
   est maintenant un effet de layout, exécuté avant l'affichage et les événements
@@ -126,7 +131,8 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   retardé, conservation de la position pendant la lecture de l'historique et
   reprise du suivi au retour en bas. Suite Harness : 150 succès avec la matrice
   chargement immédiat/retardé ; tests/builds JS et rendu vérifiés. Correction
-  activée localement après aperçu, avec version précédente disponible.
+  activée localement après aperçu, avec version précédente disponible. La course
+  résiduelle scroll/load est corrigée dans la tranche dédiée ci-dessus.
 
 ## Livré dans cette passe
 
