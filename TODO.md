@@ -413,6 +413,13 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   Simplifier les alias call/submit et publish/dispatch du registre sans prétendre
   que call attend un résultat. 89 tests ciblés réussis ; détail dans le TODO
   Framework. Revue seulement, aucun changement de runtime ou installation.
-- [ ] **Prochaine implémentation API.** Priorités de configuration et catalogue
-  final des spécialistes ; garder session persistée canonique, imports inertes,
-  factories applicatives, files/résultats durables et schémas de payloads inchangés.
+- [x] **Déclarations et lancement des spécialistes — 18 octobre.** Priorité de
+  configuration corrigée : déclaration < ressources < profil résolu < session
+  sauvegardée. Recette Python et payload wire distincts, factories et initializers
+  préservés. Profils compilés sortis d'AgentSpec ; un catalogue final produit après
+  chargement/configuration des extensions, y compris bindings désactivés et spécialistes
+  explicites sans trigger. Alias call/publish retirés, submit/dispatch conservés.
+  Documentation starter/Framework/Harness alignée. Payloads et protocoles inchangés.
+  Validation : Framework 711 succès / 3 skips avec Chromium, Harness 157 succès,
+  117 tests ciblés ; installation relancée, navigateur et conversation conservés,
+  contrôles chat/voix disponibles et Jiminy conforme à la configuration mémoire.

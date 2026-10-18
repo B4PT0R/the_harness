@@ -123,6 +123,11 @@ The worker's `Context` prepares model input and performs compaction through
 updates; UI and voice keep their own projections. Ephemeral providers are added to
 generation only and are never compacted into the canonical history.
 
+Private specialists, including Jiminy, are resolved after plugin loading from their
+current declarations. The worker emits one catalogue for its fleet, including
+inactive bindings; AgentSpec does not carry compiled profiles. Launch settings
+override initial resource defaults, while saved Session settings remain authoritative.
+
 Plugins represent application features. Changing an agent binding during voice
 recreates the call from the current canonical conversation, while installed
 services and data remain available. The owning client reconnects automatically;
