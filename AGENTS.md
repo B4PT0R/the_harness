@@ -167,3 +167,9 @@ The ASGI host owns shared services and sessions; `HarnessSession(SessionRuntime)
 owns the product behavior of one conversation. Its factory/extra declarations use
 `session_factory`/`session_extensions`, once per session. `agent.bridge` and
 `runtime.bridge` are capability channels, not application definitions or hosts.
+
+Target one active application server, potentially with multiple sessions and clients.
+Concurrent instances of the same application are not a product/framework goal.
+Keep startup, supervised reconstruction and process-neutral worker imports; avoid
+API layers justified only by multi-instance deployment. This does not remove
+session isolation or require a new global singleton mechanism.

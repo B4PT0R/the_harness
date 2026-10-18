@@ -352,3 +352,9 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   Starter/Harness/docs adaptés sans alias ou migration. 694 tests Framework réussis
   (3 skips), 157 Harness. Serveur installé actualisé, JSON de session strictement
   identique, même processus navigateur ; catalogue et aperçu authentifié vérifiés.
+
+- [ ] **Périmètre API précisé : une application active.** Baptiste ne demande pas
+  plusieurs instances simultanées de la même app. Simplifier la prochaine tranche
+  dans ce sens : sessions et clients multiples conservés, construction/reprise
+  fiables, aucun vocabulaire ou couche dédié aux copies concurrentes de l'app.
+  Définition importable par les workers sans démarrage serveur toujours nécessaire.
