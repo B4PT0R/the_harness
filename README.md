@@ -112,7 +112,7 @@ choices belong here. The [framework composition guide](../the_framework/docs/fra
 explains its contracts and APIs.
 
 Local and paired-client prompts share the host-owned chat service and its
-text/voice barrier, assembled by `build_conversation()` rather than a plugin.
+text/voice barrier, assembled by `build()` rather than a plugin.
 The remote plugin's `server.py` directly assembles its service and API; `policy.py`
 owns product permissions and wire projections. The Framework transport owns
 credentials, leases, event delivery and persistent command receipts. The product

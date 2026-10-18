@@ -113,7 +113,7 @@ def test_real_event_sockets_suppress_only_local_host_notifications(tmp_path):
         with client.websocket_connect("/api/v1/events", headers=dict(headers),
                                       subprotocols=[EVENT_SUBPROTOCOL, "local"]) as local:
             assert transport.primary_event_connection_count == 1
-            assert not extensions["runtime"].service.application.connected
+            assert not extensions["runtime"].service.bridge.connected
             local.portal.call(notifications.notify, "local-open")
             assert len(sender.messages) == 1
         assert transport.primary_event_connection_count == 0

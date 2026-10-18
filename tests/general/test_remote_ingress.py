@@ -4,7 +4,7 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
-from the_framework import ApplicationSpec
+from the_framework import Application
 from the_framework.agent.runtime.protocol import SessionPageRequest, StatusRequest
 from the_framework.plugins.realtime.api import RealtimeApi
 from the_framework.server.api.chat import ChatApi
@@ -26,7 +26,7 @@ def test_application_injects_the_installed_chat_ingress(tmp_path, monkeypatch, w
     from the_harness import app as server
 
     if not with_voice:
-        monkeypatch.setattr(server, "application", ApplicationSpec({
+        monkeypatch.setattr(server, "application", Application({
             **server.application,
             "plugins": tuple(plugin for plugin in server.application.plugins if plugin.name != "realtime"),
         }))
@@ -133,7 +133,7 @@ def test_empty_assistant_projection_needs_no_worker_snapshots(tmp_path):
             assert command.projection == "remote" and command.limit == 12
             return {"turns": [], "before": "cursor"}
 
-        runtime = SimpleNamespace(request=request, application=SimpleNamespace(connected=False))
+        runtime = SimpleNamespace(request=request, bridge=SimpleNamespace(connected=False))
         service = ClientRemoteService(runtime, tmp_path / "clients.json")
         api = ClientRemoteApi(service, None)
         assert await api.state(client_call()) == {} and requested == []
@@ -165,7 +165,7 @@ def test_remote_policy_collects_all_features_before_accepting_clients(tmp_path, 
 
     feature = Plugin(name="weather", server_extension=declare)
     plugins = server.application.plugins
-    monkeypatch.setattr(server, "application", ApplicationSpec({
+    monkeypatch.setattr(server, "application", Application({
         **server.application,
         "plugins": (feature, *plugins) if contribution_first else (*plugins, feature),
     }))

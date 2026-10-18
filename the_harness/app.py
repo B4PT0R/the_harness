@@ -9,7 +9,7 @@ from .http_boundary import access_boundary
 from .security import HarnessSecurityPolicy
 from .reset_api import MemoryResetApi
 from .runtime_composition import (
-    Harness,
+    HarnessSession,
     health_projection,
     APPLICATION_SUBPROTOCOL, EVENT_SUBPROTOCOL,
 )
@@ -56,17 +56,17 @@ def create_app(
         remote_clients=lambda: context.services.get("client_remote"),
         allowed_origins=allowed_origins,
     )
-    return application.build_conversation(
+    return application.build(
         "the_harness.application:application", context,
         supervisor=supervisor, security=security,
-        runtime_factory=lambda worker, context: Harness(
+        session_factory=lambda worker, context: HarnessSession(
             worker, fleet_factory=fleet_factory, restart=restart, services=context.services,
         ),
         session_projection="display", health_projection=health_projection,
-        reset_handler=Harness.reset_session,
+        reset_handler=HarnessSession.reset_session,
         event_handshake=security.socket_handshake(supported=(EVENT_SUBPROTOCOL,)),
         application_handshake=security.socket_handshake(supported=(APPLICATION_SUBPROTOCOL,)),
-        extensions=lambda runtime: (
+        session_extensions=lambda runtime: (
             ServerExtension(
                 name="memory_reset", scope="session", endpoints=(MemoryResetApi(runtime),),
                 requires_services=("runtime",),

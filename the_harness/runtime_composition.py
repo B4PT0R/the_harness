@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from the_framework.server.runtime.application import ApplicationRuntime
+from the_framework.server.runtime.session import SessionRuntime
 
 from the_framework.server import FileResetTransaction
 
@@ -18,7 +18,7 @@ REMOTE_APPLICATION_SUBPROTOCOL = "the-harness-application-v1"
 
 
 
-class Harness(ApplicationRuntime):
+class HarnessSession(SessionRuntime):
     """The Harness service composition atop the generic application runtime."""
 
     def __init__(self, supervisor, *, fleet_factory=None, restart=None, services=None):
@@ -105,7 +105,7 @@ def health_projection(base):
 __all__ = [
     "APPLICATION_SUBPROTOCOL",
     "EVENT_SUBPROTOCOL",
-    "Harness",
+    "HarnessSession",
     "REMOTE_APPLICATION_SUBPROTOCOL",
     "REMOTE_EVENT_SUBPROTOCOL",
     "health_projection",

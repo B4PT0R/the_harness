@@ -161,3 +161,9 @@ only events needed for its generic operation. Events used only within a plugin's
 feature lifecycle must be declared and emitted by that plugin. Public consumers
 receive typed Framework/plugin events; backend wire events remain inside their
 respective adapters and must be explicitly converted or filtered.
+
+The reusable `Application` definition is built through `application.build(...)`.
+The ASGI host owns shared services and sessions; `HarnessSession(SessionRuntime)`
+owns the product behavior of one conversation. Its factory/extra declarations use
+`session_factory`/`session_extensions`, once per session. `agent.bridge` and
+`runtime.bridge` are capability channels, not application definitions or hosts.

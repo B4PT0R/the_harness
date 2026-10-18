@@ -5,11 +5,11 @@ from types import SimpleNamespace
 import pytest
 
 from the_framework.agent import Session, Message
-from the_harness.runtime_composition import Harness
+from the_harness.runtime_composition import HarnessSession
 from the_harness.runtime_reset import SESSION_RESET_ENTRIES, MEMORY_RESET_ENTRIES
 
 
-class FixtureHarness(Harness):
+class FixtureHarness(HarnessSession):
     def __init__(self, root):
         self.supervisor = SimpleNamespace(session_path=root / "session.json")
         self.reset_transaction_factory = None

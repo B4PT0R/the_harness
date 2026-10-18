@@ -343,3 +343,12 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   sessions supplémentaires). Framework : 687 succès, 3 skips ; Harness : 157.
   Serveur et navigateur installés actualisés. Conversation, archive, configuration
   et bindings conservés ; aucun changement des payloads ni du code UI.
+
+- [x] **Première tranche API Application — 18 octobre.** Définition réutilisable
+  Application et unique build public, hôte ApplicationHost distinct du pilote
+  SessionRuntime. HarnessSession personnalise ce dernier ; session_factory et
+  session_extensions explicitent la construction par session. Le canal de capacités
+  est bridge des deux côtés ; schémas de session, événements et protocoles inchangés.
+  Starter/Harness/docs adaptés sans alias ou migration. 694 tests Framework réussis
+  (3 skips), 157 Harness. Serveur installé actualisé, JSON de session strictement
+  identique, même processus navigateur ; catalogue et aperçu authentifié vérifiés.

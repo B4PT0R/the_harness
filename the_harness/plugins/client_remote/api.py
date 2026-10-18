@@ -224,7 +224,7 @@ class ClientRemoteApi:
             "server_instance_id": self.service.instance_id,
             "session": RemoteProjection().session_page(client["id"], session_page),
             "agent_status": agent_status,
-            "application": {"connected": self.runtime.application.connected},
+            "application": {"connected": self.runtime.bridge.connected},
             "capabilities": self.service.lease_status(),
             "assistant": {},
         }

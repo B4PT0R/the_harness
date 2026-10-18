@@ -34,7 +34,7 @@ def build_server_extensions(context):
             policy=policy, desktop_access=desktop_access,
         )
         service.event_payload_adapter = RemoteProjection().event
-        runtime.application.register_router(service)
+        runtime.bridge.register_router(service)
         return service
 
     def build_api(client_remote, chat):
