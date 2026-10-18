@@ -10,10 +10,14 @@
   rechargement UI et remplacement serveur. Installation actualisée, conversation,
   réglages et fenêtre Chromium conservés lors du redémarrage contrôlé.
 
-- [ ] **Fermeture du navigateur interactif.** Après fermeture de sa fenêtre par
-  l'utilisateur, Chromium affiche parfois à la prochaine ouverture l'avertissement
-  de fermeture incorrecte. Examiner la fermeture du contexte/profil et la sortie
-  du processus ; traiter après la continuité vocale serveur/UI en cours.
+- [x] **Fermeture du navigateur interactif — 18 octobre.** La déconnexion native
+  du contexte précède la sortie réelle de Chromium : arrêter Playwright à cet
+  instant pouvait provoquer un SIGKILL avant l'écriture du profil. Le Framework
+  attend désormais le processus via psutil, puis libère le pilote ; réouverture
+  et annulation RPC respectent ce nettoyage. Tests : 760 Framework / 167 Harness,
+  cycles natifs réels avec les deux versions Chromium installées, cookies et chat
+  indépendant conservés. Propriétaire navigateur installé relancé, ancien crash
+  acquitté par Chromium, profil vérifié Normal et conversation conservée.
 
 Relevé du 10 octobre 2026. Le but est une application canonique de The Framework,
 avec une identité configurable, des outils utiles et une composition lisible.
