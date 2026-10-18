@@ -8,6 +8,7 @@ import {
   providerArtifacts,
   snapshot,
   voiceCaptions,
+  voiceMessages,
   subagentActivities,
 } from "../../src/session.js";
 
@@ -185,4 +186,26 @@ test("subagent activity is isolated by task and never becomes primary history", 
   assert.deepEqual(Object.keys(state), ["b"]);
   state = subagentActivities(state, activity("b", {type: "agent.task.failed"}));
   assert.deepEqual(state, {});
+});
+
+
+test("completed voice turns stay visible through delayed commits without duplicates", () => {
+  const completed = (id) => ({ final: true, message: {
+    id, role: "assistant", kind: "realtime", text: "Same spoken phrase", final: true, pending: true,
+  } });
+  let current = voiceMessages([], completed("spoken-1"));
+  current = voiceMessages(current, completed("spoken-2"));
+  assert.equal(current.length, 2);
+  current = snapshot(current, page(item("backend", "Working")));
+  assert.deepEqual(current.map((value) => value.id), ["backend", "spoken-1", "spoken-2"]);
+  const canonical = { ...item("spoken-1", "Canonical phrase"), kind: "realtime" };
+  current = eventMessages(current, { type: "agent.response_item.added", item: canonical });
+  assert.equal(current.filter((value) => value.id === "spoken-1").length, 1);
+  assert.equal(current.find((value) => value.id === "spoken-1").pending, undefined);
+  assert.equal(current.find((value) => value.id === "spoken-2").pending, true);
+  assert.equal(voiceMessages(current, completed("spoken-1")), current);
+  current = snapshot(current, page(canonical, { ...item("spoken-2", "Final phrase"), kind: "realtime" }));
+  assert.equal(current.filter((value) => value.pending).length, 0);
+  assert.equal(current.find((value) => value.id === "spoken-2").text, "Final phrase");
+  assert.equal(conversationBlocks(current).some((value) => value.type === "delegation"), false);
 });

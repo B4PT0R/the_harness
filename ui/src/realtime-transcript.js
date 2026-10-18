@@ -1,6 +1,6 @@
 const record = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
 
-// Transient captions only. Completed turns come from the canonical session.
+// Completed captions stay visible until their canonical message arrives.
 export class RemoteRealtimeTranscriptAssembler {
   active = {};
   ingest(value) {
@@ -13,7 +13,10 @@ export class RemoteRealtimeTranscriptAssembler {
     if (!["user", "assistant"].includes(role)) return null;
     if (event.type === "voice.turn.completed") {
       delete this.active[role];
-      return { role, final: true };
+      return { role, final: true, ...(event.message_id && event.transcript ? {
+        message: { id: event.message_id, role, kind: "realtime",
+          text: event.transcript, final: true, pending: true },
+      } : {}) };
     }
     if (event.type !== "voice.transcript.updated" || typeof event.text !== "string" || !event.text || this.active[role] === event.text) return null;
     this.active[role] = event.text;

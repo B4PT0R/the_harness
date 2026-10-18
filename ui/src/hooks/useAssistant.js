@@ -5,7 +5,7 @@ import { voiceSession } from "../voice";
 import { translate } from "../locales.js";
 import { contextState, initialContext } from "../context.js";
 import { pluginBindingEnabled } from "../plugins";
-import { conversationBusy, conversationCommand, eventMessages, providerArtifacts, snapshot, voiceCaptions, subagentActivities } from "../session";
+import { conversationBusy, conversationCommand, eventMessages, providerArtifacts, snapshot, voiceCaptions, voiceMessages, subagentActivities } from "../session";
 
 // Browser client state only. Conversation history remains owned by the server.
 // Hosts can supply their request function and event endpoint without changing UI.
@@ -184,7 +184,10 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           setCaptions({});
         }
         const transcript = transcripts.ingest(output);
-        if (transcript) setCaptions((current) => voiceCaptions(current, transcript));
+        if (transcript) {
+          setMessages((current) => voiceMessages(current, transcript));
+          setCaptions((current) => voiceCaptions(current, transcript));
+        }
         if (output.type === "interface_refresh_requested") {
           location.reload();
           return;

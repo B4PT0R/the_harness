@@ -398,3 +398,37 @@ def test_framework_text_stream_commits_once_without_showing_reasoning(page):
     assert page.get_by_text('Streaming through Framework events.', exact=True).count() == 1
     assert page.get_by_text('Private reasoning', exact=True).count() == 0
     page.screenshot(path='/tmp/harness-framework-committed.png')
+
+
+@pytest.mark.parametrize("width", [1280, 390])
+def test_voice_phrases_remain_visible_while_delegation_delays_canonical_commits(page, width):
+    page.set_viewport_size({"width": width, "height": 800})
+    page.evaluate("""window.emit({type:'command_event',event:{
+      type:'agent.text.delta',channel:'output',kind:'realtime_delegation',
+      item_id:'backend-pending',sequence:1,delta:'Backend work in progress'
+    }})""")
+    spoken = []
+    for index in range(2):
+        message_id = f"realtime:call:spoken-{index}:assistant"
+        text = f"Phrase prononcée pendant l’attente numéro {index + 1}."
+        for event in (
+            {"type": "voice.transcript.updated", "role": "assistant", "text": text},
+            {"type": "voice.turn.completed", "role": "assistant", "turn_id": f"spoken-{index}",
+             "message_id": message_id, "transcript": text},
+        ):
+            page.evaluate("event => window.emit({type:'realtime_event',call_id:'call',event})", event)
+        spoken.append({"id": message_id, "type": "message", "role": "assistant",
+                       "kind": "realtime", "content": [{"text": text}]})
+        for item in spoken:
+            assert page.get_by_text(item["content"][0]["text"], exact=True).is_visible()
+    # Neither a status update nor an unrelated history reconciliation may erase them.
+    page.evaluate("window.emit({type:'worker_status',foreground_active:true,foreground_pending:0})")
+    page.evaluate("window.emit({type:'command_completed',command:{type:'compact_request'}})")
+    page.wait_for_function("window.requests.filter(r => r.path === 'session').length >= 2")
+    for item in spoken:
+        assert page.get_by_text(item["content"][0]["text"], exact=True).is_visible()
+        page.evaluate("item => window.emit({type:'command_event',event:{type:'agent.response_item.added',item}})", item)
+        assert page.get_by_text(item["content"][0]["text"], exact=True).count() == 1
+    assert page.locator(".text-agent-output .message-source").count() == 0
+    assert page.locator(".message-source").get_by_text("Voice agent", exact=True).count() == 2
+    page.screenshot(path=f"/tmp/harness-voice-pending-{width}.png")

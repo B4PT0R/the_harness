@@ -7,6 +7,13 @@ export function voiceCaptions(current, transcript) {
   return next;
 }
 
+// A completed voice turn is a local projection until the canonical writer catches up.
+export function voiceMessages(current, transcript) {
+  const item = transcript?.message;
+  return item && !current.some((value) => value.id === item.id)
+    ? [...current, item] : current;
+}
+
 export function conversationBusy(status) {
   return Boolean(status.foreground_active || status.foreground_pending > 0);
 }
@@ -51,7 +58,7 @@ export function snapshot(current, page) {
     ...prefix,
     ...committed.map((item) => {
       const pending = live.get(item.id);
-      return pending &&
+      return pending && !pending.pending &&
         (pending.final || (pending.text?.length || 0) > (item.text?.length || 0))
         ? { ...pending, ...(item.kind ? { kind: item.kind } : {}) }
         : item;

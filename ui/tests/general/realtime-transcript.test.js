@@ -37,3 +37,18 @@ test("only valid realtime transcript events affect captions, including wrapped e
     assert.equal(assembler.ingest(value), null);
   assert.equal(assembler.ingest({ payload: caption("Wrapped") }).completeText, "Wrapped");
 });
+
+
+test("accepted completion links its visible projection to the canonical message ID", () => {
+  const assembler = new RemoteRealtimeTranscriptAssembler();
+  assembler.ingest(caption("Draft", "assistant"));
+  const event = done("assistant", "Final spoken phrase");
+  event.event.message_id = "realtime:call:turn:assistant";
+  const result = assembler.ingest(event);
+  assert.equal(result.final, true);
+  assert.deepEqual(result.message, {
+    id: "realtime:call:turn:assistant", role: "assistant", kind: "realtime",
+    text: "Final spoken phrase", final: true, pending: true,
+  });
+  assert.equal(assembler.ingest(caption("Next phrase", "assistant")).completeText, "Next phrase");
+});
