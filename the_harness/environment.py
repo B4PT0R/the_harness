@@ -29,7 +29,9 @@ def load_dotenv(path):
     return loaded
 
 
-def load_runtime_environment(session_path):
+def load_runtime_environment(data_root):
     machine_root = os.environ.get("THE_HARNESS_MACHINE_ROOT")
-    root = bootstrap_root(machine_root) if machine_root else Path(session_path).parent
+    if not machine_root and data_root is None:
+        return {}
+    root = bootstrap_root(machine_root) if machine_root else Path(data_root)
     return load_dotenv(root / ".env")

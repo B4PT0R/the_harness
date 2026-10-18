@@ -25,7 +25,7 @@ async def measure_turn(agent, command, call_next):
 
 
 def configure_assistant(agent):
-    agent.turn_timing = TurnTiming(agent.session_root / "session.json" if agent.session_root else None)
+    agent.turn_timing = TurnTiming(agent.session_root / "session.turn-timing.json" if agent.session_root else None)
     agent.configs.compaction.instructions = compaction_instructions(
         agent.configs.compaction.instructions
     )
@@ -33,10 +33,10 @@ def configure_assistant(agent):
     return agent
 
 
-def assistant_resources(session_path):
+def assistant_resources(session_root):
     from .assistant_runtime import runtime_resources
 
-    return runtime_resources(session_path)
+    return runtime_resources(session_root)
 
 
 ASSISTANT_AGENT = AgentSpec(

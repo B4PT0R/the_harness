@@ -9,9 +9,8 @@ from threading import RLock
 class TurnTiming:
     """Persist completed turn boundaries without adding them to conversation history."""
 
-    def __init__(self, session_path, *, now=None):
-        session_path = Path(session_path)
-        self.path = session_path.with_name(f"{session_path.stem}.turn-timing.json")
+    def __init__(self, path=None, *, now=None):
+        self.path = Path(path) if path is not None else None
         self._now = now or (lambda: datetime.now(timezone.utc).astimezone())
         self._lock = RLock()
         self._active_started_at = None
@@ -30,6 +29,8 @@ class TurnTiming:
         return parsed
 
     def _load(self):
+        if self.path is None:
+            return None
         try:
             payload = json.loads(self.path.read_text())
         except (FileNotFoundError, OSError, json.JSONDecodeError):
@@ -43,6 +44,8 @@ class TurnTiming:
         return {"started_at": started_at, "ended_at": ended_at}
 
     def _save(self, payload):
+        if self.path is None:
+            return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         descriptor, temporary = tempfile.mkstemp(
             dir=self.path.parent,

@@ -34,7 +34,7 @@ def main():
     session_path = paths.session_path
     # Workers inherit the same browser/pairing root, even with an explicit session.
     os.environ["THE_HARNESS_MACHINE_ROOT"] = str(paths.machine_root)
-    load_runtime_environment(session_path)
+    load_runtime_environment(session_path.parent)
     descriptor = paths.descriptor_path
     with LocalServer(descriptor, port=args.port) as process:
         app = create_app(

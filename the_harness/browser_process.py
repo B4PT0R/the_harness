@@ -56,7 +56,7 @@ async def run(machine_root=None):
     client = ClientModeStore(machine_root / "client.json").load()
     if client["mode"] == "local":
         data_root = ensure_data_root_config(bootstrap=machine_root)
-        load_runtime_environment(data_root / "session.json")
+        load_runtime_environment(data_root)
         config = browser_config(data_root)
     else:
         config = {}

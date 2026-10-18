@@ -231,3 +231,7 @@ The same recipe may therefore serve persistent conversations or temporary tasks.
 History retention is saved in the canonical session. Reopening it restores that
 behavior; changing a worker or specialist's defaults does not silently change an
 existing conversation. The server's storage path stays outside session JSON.
+
+Agent recipes describe construction only. Specialist queue, idle shutdown and
+completion/retry requirements belong to their AgentTrigger. Resource factories
+receive the session workspace directory, independently of history persistence.

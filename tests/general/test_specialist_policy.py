@@ -20,5 +20,5 @@ def test_memory_declaration_installs_full_curator_policy(tmp_path):
     declaration = next(value for kind, value in extension._contributions if kind == "agents")
     assert declaration.name == "memory.jiminy"
     assert declaration.spec.instructions[0].content == MemoryExtension.curator_instructions
-    assert declaration.spec.completion_tool == "complete_curation"
+    assert declaration.completion_tool == "complete_curation"
     assert Path(declaration.spec.configuration["memory_curator"]["store_path"]).parent == tmp_path

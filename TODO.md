@@ -516,3 +516,21 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   arrêt propre vérifiés. Installation relancée avec même navigateur/fenêtre,
   conversation conservée et champ retain_history=True sauvegardé ; contrôles
   texte/voix, 13 plugins et configuration mémoire de Jiminy vérifiés.
+
+
+- [x] **Mise au propre pour publication expérimentale — 18 octobre.** Recettes
+  d'agent séparées de l'orchestration ; politiques de Jiminy portées par son trigger.
+  Factories de ressources avec répertoire explicite, chargement d'environnement
+  et timing adaptés sans faux chemins de session. Frontière publique mémoire
+  réduite aux primitives utiles. Assemblage/routes du Framework simplifiés sans
+  nouvelle couche de managers ; intégration texte/voix via le build standard.
+  Invocations privées explicites et triggers découverts partagent un catalogue ;
+  requêtes nominatives indépendantes des abonnements aux événements ambiants.
+
+  Validation finale : Framework 733 succès / 3 tests live optionnels ignorés ;
+  Harness 157 succès. JS : 28 tests starter et 54 Harness, deux builds réussis.
+  Sdist/wheel construits et installés hors checkout avec dépendances publiques ;
+  starter préparé deux fois et lancé jusqu'à Chromium connecté, arrêt propre.
+  Installation relancée avec même navigateur/fenêtre et conversation conservée ;
+  contrôles texte/voix, 13 plugins et configuration mémoire Jiminy vérifiés.
+  Aucun push ni publication.
