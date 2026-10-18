@@ -378,9 +378,9 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   un seul serveur/boucle pour ses deux sockets. Installation relancée : même
   navigateur et conversation, contrôles chat/voix, settings fichiers, catalogue
   et aperçu authentifié vérifiés.
-- [ ] **Suite de la revue API.** Examiner Session / Context / Compaction et
-  AgentSpec / AgentTrigger / WorkerProfile, en distinguant runtime et payloads.
-  Les modèles de payloads restent hors refonte.
+- [ ] **Suite de la revue API.** Examiner AgentSpec / AgentTrigger / WorkerProfile,
+  en distinguant déclaration, runtime et payloads. Les modèles de payloads restent
+  hors refonte. La frontière Session / Context / Compaction est désormais livrée.
 
 - [x] **Revue Session / Context / Compaction — 18 octobre.** Contrats et usages
   Framework/starter/Harness examinés ; détail dans le TODO Framework. Conserver
@@ -392,3 +392,14 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   projections et commandes worker restent les points de vérification. Aucun nouveau
   manager, ni refonte de payload ou schéma proposée. 44 tests ciblés réussis ;
   revue seulement, aucun changement runtime ni redémarrage installé.
+
+- [x] **Contexte et compaction unifiés — 18 octobre.** Context prépare l'entrée
+  canonique et orchestre la compaction via agent.compact(), sans contrôleur distinct.
+  Projection pure dans Context ; Session garde données et mutations atomiques.
+  Schémas, événements, archive UI et projection voix inchangés. Providers réservés
+  à la génération, jamais évalués pour la compaction. Recettes starter/Harness
+  conservées sans ajout de câblage ; documentation alignée.
+  Validation : Framework 708 succès / 3 skips avec Chromium, Harness 157 succès,
+  51 tests ciblés finaux. Installation relancée : navigateur et conversation conservés,
+  chat reconnecté, contrôles de voix disponibles, santé et 13 plugins vérifiés.
+  Aucun appel payant au backend pour compacter la conversation réelle ni publication UI.

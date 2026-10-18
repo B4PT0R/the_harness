@@ -118,6 +118,11 @@ constructs each component from its injected services and BuildContext. `policy.p
 owns product permissions and wire projections. The Framework transport owns
 credentials, leases, event delivery and persistent command receipts. The product
 API chooses the routes and command semantics, reusing the host's text/voice ingress.
+The worker's `Context` prepares model input and performs compaction through
+`agent.compact()`. The Session retains canonical data and its atomic history/archive
+updates; UI and voice keep their own projections. Ephemeral providers are added to
+generation only and are never compacted into the canonical history.
+
 Plugins represent application features. Changing an agent binding during voice
 recreates the call from the current canonical conversation, while installed
 services and data remain available. The owning client reconnects automatically;
