@@ -102,7 +102,7 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .message img { max-width: 100%; }
 .artifact { border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--radius-lg); padding: var(--space-5); background: var(--color-surface-raised); }
 .artifact h3 { margin: 0 0 var(--space-3); }
-.artifact img { display: block; width: auto; max-height: 32rem; object-fit: contain; border-radius: var(--radius-md); }
+.artifact img { display: block; width: 80%; height: auto; margin-inline: auto; border-radius: var(--radius-md); }
 .artifact-description { margin-top: var(--space-3) !important; color: var(--color-muted); }
 .artifact-download { display: inline-block; font-weight: var(--font-weight-strong); }
 .artifact-fallback summary { cursor: pointer; color: var(--color-muted); }

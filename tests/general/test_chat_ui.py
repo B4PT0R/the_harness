@@ -357,6 +357,37 @@ def test_artifact_rendering_replay_and_widget_fallback(page, image_delay):
     page.get_by_role("textbox", name="Message", exact=True).fill("Le chat fonctionne toujours")
 
 
+@pytest.mark.parametrize("width", [1280, 390])
+@pytest.mark.parametrize("dimensions", [(1024, 1536), (1536, 1024), (32, 32)])
+def test_image_artifact_hides_prompt_and_uses_four_fifths_width(page, width, dimensions):
+    from io import BytesIO
+    from PIL import Image
+
+    page.set_viewport_size({"width": width, "height": 900})
+    data = BytesIO()
+    Image.new("RGB", dimensions, "ivory").save(data, format="PNG")
+    page.route("**/sized-image.png", lambda route: route.fulfill(body=data.getvalue(), content_type="image/png"))
+    page.evaluate("item => window.publishArtifact(item)", {
+        "type": "artifact", "id": "sized-image", "kind": "image",
+        "payload": {"src": "/sized-image.png", "title": "Encre de Chine", "description": "Long generation prompt"},
+    })
+    image = page.locator(".artifact-image img")
+    image.scroll_into_view_if_needed()
+    page.wait_for_function("document.querySelector('.artifact-image img')?.naturalWidth > 0")
+    assert page.get_by_text("Long generation prompt", exact=True).count() == 0
+    metrics = image.evaluate("""el => {
+        const image = el.getBoundingClientRect(), parent = el.parentElement;
+        const style = getComputedStyle(parent), frame = parent.getBoundingClientRect();
+        return {width: image.width, height: image.height,
+            available: parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+            offset: image.left + image.width / 2 - frame.left - frame.width / 2};
+    }""")
+    assert metrics["width"] == pytest.approx(metrics["available"] * .8, abs=1)
+    assert metrics["height"] == pytest.approx(metrics["width"] * dimensions[1] / dimensions[0], abs=1)
+    assert abs(metrics["offset"]) < 1
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
 def test_provider_artifacts_replace_then_disappear_without_replay(page):
     for index in [1, 2]:
         page.evaluate("index => window.emit({type: 'command_event', event: {type: 'agent.provider_artifacts.updated', items: ["

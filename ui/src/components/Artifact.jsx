@@ -24,7 +24,6 @@ function ImageArtifact({ payload }) {
       ? <img src={src} alt={String(payload.alt || payload.title || payload.name || t("artifactImage"))}
           loading="lazy" onError={() => setFailedSource(src)} />
       : <p role="status">{t("artifactUnavailable")}</p>}
-    <Description payload={payload} />
   </>;
 }
 
