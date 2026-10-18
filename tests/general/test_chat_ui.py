@@ -1,4 +1,7 @@
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
+from threading import Thread
 
 import pytest
 
@@ -376,7 +379,7 @@ def test_image_artifact_hides_prompt_and_uses_four_fifths_width(page, width, dim
     page.wait_for_function("document.querySelector('.artifact-image img')?.naturalWidth > 0")
     assert page.get_by_text("Long generation prompt", exact=True).count() == 0
     metrics = image.evaluate("""el => {
-        const image = el.getBoundingClientRect(), parent = el.parentElement;
+        const image = el.getBoundingClientRect(), parent = el.closest('.artifact');
         const style = getComputedStyle(parent), frame = parent.getBoundingClientRect();
         return {width: image.width, height: image.height,
             available: parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
@@ -386,6 +389,78 @@ def test_image_artifact_hides_prompt_and_uses_four_fifths_width(page, width, dim
     assert metrics["height"] == pytest.approx(metrics["width"] * dimensions[1] / dimensions[0], abs=1)
     assert abs(metrics["offset"]) < 1
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+@pytest.fixture
+def download_page(page, bundle):
+    # Chromium downloads bypass route.fulfill: give them a real local endpoint.
+    handler = partial(SimpleHTTPRequestHandler, directory=str(bundle))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        page.goto(f"http://127.0.0.1:{server.server_port}/")
+        page.wait_for_function("document.querySelectorAll('.message').length === 80")
+        yield page
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+
+@pytest.mark.parametrize("width", [1280, 390])
+def test_image_artifact_fullscreen_keyboard_and_download(download_page, tmp_path, width):
+    page = download_page
+    page.set_viewport_size({"width": width, "height": 900})
+    page.evaluate("window.publishArtifact({type:'artifact', id:'viewer', kind:'image', payload:"
+                  "{src:'/artifact-fixture.png', name:'graphique.png', title:'Mon graphique'}})")
+    preview = page.locator(".artifact-image-preview")
+    preview.scroll_into_view_if_needed()
+    preview.focus()
+    page.keyboard.press("Enter")
+    viewer = page.get_by_role("dialog", name="Mon graphique")
+    viewer.wait_for()
+    page.wait_for_function("document.querySelector('dialog img')?.naturalWidth === 640")
+    assert viewer.bounding_box() == {"x": 0, "y": 0, "width": width, "height": 900}
+    image = viewer.locator("img").bounding_box()
+    assert image["x"] >= 0 and image["y"] >= 0
+    assert image["x"] + image["width"] <= width
+    assert image["y"] + image["height"] <= 900
+    assert viewer.locator("img").evaluate("el => getComputedStyle(el).objectFit") == "contain"
+    assert viewer.get_by_role("button", name="Fermer").evaluate("el => el === document.activeElement")
+    page.keyboard.press("Shift+Tab")
+    assert viewer.get_by_role("link", name="Télécharger l’image").evaluate("el => el === document.activeElement")
+    with page.expect_download() as event:
+        viewer.get_by_role("link", name="Télécharger l’image").click()
+    download = event.value
+    assert download.suggested_filename == "graphique.png"
+    download.save_as(tmp_path / "graphique.png")
+    assert (tmp_path / "graphique.png").read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    page.screenshot(path=f"/tmp/harness-image-fullscreen-{width}.png")
+    page.keyboard.press("Escape")
+    assert page.get_by_role("dialog").count() == 0
+    assert preview.evaluate("el => el === document.activeElement")
+    page.get_by_role("button", name="Afficher en plein écran", exact=True).last.click()
+    page.get_by_role("dialog").get_by_role("button", name="Fermer").click()
+    assert page.get_by_role("dialog").count() == 0
+    preview.click()
+    page.locator(".artifact-image-stage").click(position={"x": 1, "y": 1})
+    assert page.get_by_role("dialog").count() == 0
+    with page.expect_download() as event:
+        page.get_by_role("link", name="Télécharger l’image").click()
+    assert event.value.suggested_filename == "graphique.png"
+    page.reload()
+    page.locator(".artifact-image-preview").wait_for()
+    assert page.get_by_role("dialog").count() == 0
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+@pytest.mark.parametrize("source", ["javascript:alert(1)", "/missing-image.png"])
+def test_unavailable_image_has_no_viewer_or_download(page, source):
+    page.route("**/missing-image.png", lambda route: route.fulfill(status=404))
+    page.evaluate("src => window.publishArtifact({type:'artifact',id:'missing',kind:'image',payload:{src}})", source)
+    page.get_by_role("status").filter(has_text="Ce contenu est indisponible.").wait_for()
+    assert page.locator(".artifact-image button, .artifact-image a, .artifact-image dialog").count() == 0
 
 
 def test_provider_artifacts_replace_then_disappear_without_replay(page):
