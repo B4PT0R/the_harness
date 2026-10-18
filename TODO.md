@@ -423,3 +423,16 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   Validation : Framework 711 succès / 3 skips avec Chromium, Harness 157 succès,
   117 tests ciblés ; installation relancée, navigateur et conversation conservés,
   contrôles chat/voix disponibles et Jiminy conforme à la configuration mémoire.
+
+- [x] **Revue transversale de l'API — 18 octobre.** Architecture et vocabulaire
+  central désormais cohérents ; garder les frontières et propriétaires actuels.
+  Priorités recommandées : défauts statiques du starter dans AgentSpec.configuration,
+  projection chat standard portée par l'hôte (sans import Worker dans la recette),
+  reset résolu sur HarnessSession sans répéter reset_handler à l'assemblage.
+  Garder indisponible un reset sans politique explicite ; préserver transactions,
+  voix, pagination et artefacts. La factory de ressources du Harness reste utile
+  pour l'environnement, ses politiques distantes et sa santé restent applicatives.
+  31 tests de composition/sessions/voix/bootstrap réussis. Détails dans TODO Framework.
+  Revue seulement, aucun changement runtime ou redémarrage de l'installation.
+- [ ] **Finitions de la recette nominale.** Implémenter les trois priorités de la
+  revue transversale en adaptant starter et Harness, sans nouvelle classe d'options.
