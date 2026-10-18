@@ -45,7 +45,6 @@ ASSISTANT_AGENT = AgentSpec(
         "Pandora, general-purpose local agent and sole owner of canonical conversation "
         "history."
     ),
-    session_mode='durable',
     configuration={"model": "gpt-5.5", "compaction": {"model": "gpt-5.5"}},
     initializers=(configure_assistant,),
     command_middleware=(measure_turn,),

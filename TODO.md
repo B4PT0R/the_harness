@@ -488,3 +488,16 @@ compatibilité sans consommateur réel ; préserver la conversation et les donn�
   rendu Chromium connecté, puis arrêté proprement. Installation Harness relancée
   avec même navigateur/fenêtre, conversation conservée, chat/voix disponibles,
   13 plugins et configuration mémoire canonique vérifiés.
+
+
+- [x] **Durée de vie portée par la session — 18 octobre.** La recette Pandora ne
+  déclare plus session_mode. Le Framework construit une Session explicite avant
+  d'appliquer AgentSpec ; stockage et conservation du contexte sont indépendants.
+  Les triggers décident du mode de leur session spécialiste, avec le même format
+  WorkerProfile à la frontière des processus. La conversation Harness reste
+  durable par défaut ; aucun changement du JSON canonique ni migration.
+
+  Validation : Harness 157 succès ; starter neuf préparé, navigateur connecté puis
+  arrêté proprement. Framework 725 succès / 3 skips. Installation Harness relancée avec
+  même navigateur/fenêtre, conversation canonique inchangée, contrôles chat/voix,
+  13 plugins et configuration mémoire de Jiminy vérifiés.

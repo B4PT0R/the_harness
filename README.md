@@ -223,3 +223,7 @@ owns the active conversation worker and session services; the application owns
 only shared services and client surfaces. Session-bound remote transports and
 notification delivery close with that session. The HTTP access boundary remains
 application-owned, including while a conversation is closed.
+
+Agent recipes do not choose session lifetime. The host creates the durable default
+conversation; framework sessions own their storage path and history retention.
+The same recipe may therefore serve persistent conversations or temporary tasks.
