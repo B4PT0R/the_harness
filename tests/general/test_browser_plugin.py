@@ -318,7 +318,7 @@ def test_browser_plugin_observation_is_fresh_ephemeral_provider_context(tmp_path
     )
 
     result = plugin.open_web("https://example.com")
-    outputs = agent.registry("providers").outputs(channel="text")
+    outputs = asyncio.run(agent.registry("providers").aoutputs(channel="text"))
 
     assert result["action"] == "open_web"
     assert result["target"] == "web"
@@ -336,7 +336,7 @@ def test_browser_plugin_observation_is_fresh_ephemeral_provider_context(tmp_path
     assert "chromium" in agent.registry("tools")
 
     factory.managers[0].playwright.chromium.context.pages[0].url = "https://example.com/changed"
-    repeated = agent.registry("providers").outputs(channel="text")
+    repeated = asyncio.run(agent.registry("providers").aoutputs(channel="text"))
     assert repeated[1].path == outputs[1].path
     assert "URL: https://example.com/changed" in repeated[0].content[0].text
     assert list((tmp_path / "browser" / "screenshots" / "web").glob("*.png")) == [

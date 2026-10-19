@@ -701,3 +701,27 @@ def test_private_access_settings_require_opt_in_then_show_local_qr(page, width):
     assert page.get_by_role("textbox", name="Lien d’association").input_value().startswith("theharness://pair?")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     page.screenshot(path=f"/tmp/harness-device-settings-{width}.png", full_page=True)
+
+
+@pytest.mark.parametrize("width", [1280, 390])
+def test_status_failure_does_not_discard_history_and_recovers(page, width):
+    page.set_viewport_size({"width": width, "height": 800})
+    item = {"id": "status-outage-answer", "type": "message", "role": "assistant",
+            "content": [{"text": "History available despite status outage"}]}
+    page.evaluate("""item => {
+      localStorage.setItem('test-artifacts', JSON.stringify([item]));
+      window.failStatus = true;
+      window.holdStatus = true;
+      window.emit({type: 'command_completed', command: {type: 'prompt_request', id: 'test'}});
+    }""", item)
+    page.wait_for_function("typeof window.releaseStatus === 'function'")
+    page.get_by_text("History available despite status outage", exact=True).wait_for()
+    page.evaluate("window.holdStatus = false; window.releaseStatus()")
+    page.get_by_role("alert").filter(has_text="agent status temporarily unavailable").wait_for()
+    # Recovery clears this transient error, not unrelated send failures.
+    page.evaluate("""() => {
+      window.failStatus = false;
+      window.emit({type: 'command_completed', command: {type: 'prompt_request', id: 'test'}});
+    }""")
+    page.get_by_role("alert").wait_for(state="detached")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")

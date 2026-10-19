@@ -105,26 +105,37 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       attempts = 0,
       revision = 0,
       statusLoading = false,
-      workerError = null;
+      workerError = null,
+      statusError = null;
     const controller = new AbortController();
     const transcripts = new RemoteRealtimeTranscriptAssembler();
     function workerRecovered() {
-      if (workerError === null) return;
-      const recovered = workerError;
-      workerError = null;
-      setError((current) => current === recovered ? "" : current);
+      const recovered = [workerError, statusError];
+      workerError = statusError = null;
+      setError((current) => recovered.includes(current) ? "" : current);
     }
     function updateContext(output) {
       contextRevision.current++;
       setContext((current) => contextState(current, output));
+    }
+    async function readStatus() {
+      try {
+        return await api("status", { signal: controller.signal });
+      } catch (cause) {
+        if (!disposed && cause.name !== "AbortError") {
+          statusError = cause.message;
+          setError(statusError);
+        }
+        return null;
+      }
     }
     async function refreshStatus() {
       if (disposed || statusLoading) return;
       statusLoading = true;
       const requested = contextRevision.current;
       try {
-        const status = await api("status", { signal: controller.signal });
-        if (!disposed && requested === contextRevision.current) {
+        const status = await readStatus();
+        if (status && !disposed && requested === contextRevision.current) {
           workerRecovered();
           setContext((current) => contextState(current, status));
           setBusy(conversationBusy(status));
@@ -135,24 +146,24 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     async function reconcile() {
       const requested = ++revision;
       const requestedContext = contextRevision.current;
-      const [page, status] = await Promise.all([
-        api("session", { signal: controller.signal }),
-        api("status", { signal: controller.signal }),
-      ]);
-      if (!disposed && requested === revision) {
+      const pageRequest = api("session", { signal: controller.signal }).then((page) => {
+        if (disposed || requested !== revision) return;
         setMessages((items) => snapshot(items, page));
         if (!historyInitialized.current) {
           setBefore(page.has_more ? page.next_before : null);
           historyInitialized.current = true;
         }
-        if (requestedContext === contextRevision.current) {
-          workerRecovered();
-          setBusy(conversationBusy(status));
-          if (transportReady && !conversationBusy(status)) void voice.current?.resume();
-          setContext((current) => contextState(current, status));
-        }
-      }
+      });
+      const statusRequest = readStatus().then((status) => {
+        if (!status || disposed || requested !== revision || requestedContext !== contextRevision.current) return;
+        workerRecovered();
+        setBusy(conversationBusy(status));
+        if (transportReady && !conversationBusy(status)) void voice.current?.resume();
+        setContext((current) => contextState(current, status));
+      });
+      await Promise.all([pageRequest, statusRequest]);
     }
+
     function connect() {
       const active = new WebSocket(
         eventsUrl, eventProtocol,
