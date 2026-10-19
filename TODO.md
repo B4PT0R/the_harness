@@ -1,5 +1,15 @@
 # The Harness — backlog de la base neutre
 
+- [ ] **Résilience de la compaction distante — 19 octobre.** Le tour scheduler
+  `bac175f9-53d0-450f-9b59-fa118f403443` a échoué sur `Response ended prematurely`
+  à environ 192k tokens : interruption HTTP chunked pendant la lecture du flux.
+  Le worker reste vivant et la session canonique est conservée, mais la compaction
+  ne retente pas ces erreurs de transport après réception des en-têtes. Prévoir
+  des tentatives bornées pour les erreurs transitoires, sans dupliquer les commits
+  de session ni rejouer les outils ; conserver les erreurs définitives explicites.
+  Récupération manuelle réussie par la route de compaction (192k vers 42k tokens),
+  sans redémarrage du serveur ; reprise du scheduler transmise avec accord de Baptiste.
+
 - [x] **Redémarrage de secours indépendant du worker — 18 octobre.** L'API HTTP
   répondait mais les requêtes d'état/historique du worker expiraient ; le contrôle
   attendait alors la préparation gracieuse sans limite. Ajouter une sonde worker
