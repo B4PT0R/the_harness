@@ -3,6 +3,10 @@
 Thin Android host for the server's shared React UI. The server owns the conversation;
 Tailscale is a separate app, not an embedded VPN. Android 8.0+ (API 26).
 
+Background notifications and alarm-clock delivery are not implemented yet. See
+[the feasibility study and integration plan](../docs/mobile-alerts.md), including
+silent API 35 Doze experiments and the distinction between local alarms and push.
+
 ## Build
 
 Install Java 17 or 21 and Android SDK 34, then:
