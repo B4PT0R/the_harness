@@ -86,11 +86,20 @@ privée ci-dessus ; leurs recommandations de fournisseur ne sont plus le plan ac
 - Android : activation volontaire via le menu **Alertes locales et alarmes**,
   autorisation notifications et accès spécial aux alarmes exactes. Cache local,
   AlarmManager, receiver de redémarrage/changement d’heure, notifications natives
-  silencieuses pour les rappels ; canal sonore uniquement pour les alarmes
+  silencieuses pour les rappels ; lecture sonore uniquement pour les alarmes
   explicitement demandées. Pas de plein écran, ni d’ouverture du microphone.
-- Une alarme est présentée par une notification répétée et arrêtable, bornée à
-  60 secondes, pas par un service audio permanent. Le réglage du canal appartient
-  à Android/utilisateur. Le banc silencieux ne valide pas l’audio réel.
+- Le premier lot utilisait `FLAG_INSISTENT` et une notification bornée à 60 s.
+  Les essais réels du 20 octobre 2026 ont confirmé la sonnerie et la remontée d’ACK,
+  mais le son ne jouait qu’une fois et s’arrêtait avant l’appui. Android 0.1.5 remplace
+  cette dépendance par `AlarmPlayback`, service foreground `mediaPlayback`
+  éphémère : `MediaPlayer.setLooping(true)`, flux alarme, focus audio et maintien
+  CPU pendant lecture uniquement. Arrêt à l’acquittement/annulation/désactivation,
+  plafond de 3 min par occurrence mesuré en temps écoulé, libération audio au terme
+  ou à la destruction, sans redémarrage automatique. Notification d’alarme sur
+  nouveau canal silencieux (pas de double son), action dans le volet développé,
+  pas de plein écran ni changement de volume. Le plafond émet `auto_stopped`,
+  jamais un ACK ; une notification silencieuse reste acquittable jusqu’à l’échéance.
+  Le banc muet vérifie le lecteur, pas le son perçu sur le téléphone réel.
 - Acquittement hors ligne mis en file ; heure de réception serveur conservée,
   sans prétendre prouver une lecture ou une réception à l’heure initiale.
 - Chargement sur sept jours, prochaine occurrence seulement pour les séries.

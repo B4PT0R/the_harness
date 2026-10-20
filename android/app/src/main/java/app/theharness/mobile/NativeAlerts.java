@@ -11,8 +11,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.media.AudioAttributes;
-import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import org.json.JSONArray;
@@ -26,7 +24,7 @@ import java.time.Instant;
 final class NativeAlerts {
     static final String FIRE = "app.theharness.mobile.ALERT", ACK = "app.theharness.mobile.ACK";
     private static final int JOB = 3101, URGENT_JOB = 3102;
-    private static final String MESSAGES = "reminders-silent-v1", ALARMS = "alarms-v1";
+    private static final String MESSAGES = "reminders-silent-v1", ALARMS = "alarms-playback-v2";
     private final Context context;
     private final SharedPreferences prefs;
     private static NativeAlerts instance;
@@ -64,8 +62,8 @@ final class NativeAlerts {
         NotificationChannel messages = new NotificationChannel(MESSAGES, "Rappels silencieux", NotificationManager.IMPORTANCE_DEFAULT);
         messages.setSound(null, null); messages.enableVibration(false);
         NotificationChannel alarm = new NotificationChannel(ALARMS, "Alarmes demandées", NotificationManager.IMPORTANCE_HIGH);
-        alarm.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
-            new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build());
+        // Audio belongs to AlarmPlayback, never to notification-channel repetition.
+        alarm.setSound(null, null); alarm.enableVibration(false);
         notifications().createNotificationChannel(messages); notifications().createNotificationChannel(alarm);
         if (paired()) context.getSystemService(JobScheduler.class).schedule(new JobInfo.Builder(JOB,
             new ComponentName(context, AlertSyncJob.class)).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
@@ -88,6 +86,7 @@ final class NativeAlerts {
             .setMinimumLatency(0).build());
     }
     private void cancel(String id) {
+        AlarmPlayback.stop(id);
         alarms().cancel(action(id, FIRE)); notifications().cancel(id, 0);
     }
     synchronized void receipt(JSONObject item, String event) {
@@ -130,11 +129,49 @@ final class NativeAlerts {
         for (var ids = cached.keys(); ids.hasNext();) arm(cached.optJSONObject(ids.next()));
         requestSync();
     }
+    Notification notification(JSONObject item, boolean ringing) {
+        boolean alarm = "alarm".equals(item.optString("kind"));
+        String id = item.optString("id");
+        Notification.Builder builder = new Notification.Builder(context, alarm ? ALARMS : MESSAGES)
+            .setSmallIcon(R.drawable.ic_harness).setContentTitle(item.optString("title"))
+            .setContentText(item.optString("body")).setStyle(new Notification.BigTextStyle().bigText(item.optString("body")))
+            .setVisibility(Notification.VISIBILITY_PRIVATE).setContentIntent(open(id)).setAutoCancel(!alarm)
+            .setOnlyAlertOnce(true).setOngoing(ringing)
+            .setCategory(alarm ? Notification.CATEGORY_ALARM : Notification.CATEGORY_REMINDER);
+        if (!ringing) builder.setTimeoutAfter(Math.max(1, Math.min(3_600_000,
+            time(item, "deadline_at") - System.currentTimeMillis())));
+        if (item.optBoolean("ack_required")) builder.addAction(new Notification.Action.Builder(null,
+            alarm ? "Arrêter et acquitter" : "Acquitter", action(id, ACK)).build());
+        else if (alarm) builder.addAction(new Notification.Action.Builder(null, "Arrêter", action(id, ACK)).build());
+        return builder.build();
+    }
+    private void markFired(String id) throws Exception {
+        JSONObject fired = read("fired");
+        if (!fired.has(id)) { fired.put(id, System.currentTimeMillis()); write("fired", fired); }
+    }
+    // Service starts asynchronously: recheck cancellation, ACK and deduplication before audio.
+    synchronized JSONObject beginAlarm(String id) {
+        JSONObject item = id == null ? null : read("alerts").optJSONObject(id);
+        if (!enabled() || item == null || !"alarm".equals(item.optString("kind"))
+            || item.optBoolean("cancelled") || read("fired").has(id)
+            || !notifications().areNotificationsEnabled()) return null;
+        try {
+            NotificationChannel channel = notifications().getNotificationChannel(ALARMS);
+            if (channel == null || channel.getImportance() == NotificationManager.IMPORTANCE_NONE) {
+                receipt(item, "permission_denied"); requestSync(); return null;
+            }
+            long now = System.currentTimeMillis();
+            if (time(item, "at") > now + 1000 || time(item, "deadline_at") <= now) return null;
+            markFired(id);
+            return item;
+        } catch (Exception failure) { receipt(item, "error"); return null; }
+    }
     synchronized void receive(String id, String event) {
         if (!enabled() || id == null) return;
         JSONObject item = read("alerts").optJSONObject(id);
         if (item == null) return;
         if (ACK.equals(event)) {
+            try { markFired(id); } catch (Exception failure) { error("Impossible de conserver l’arrêt local."); }
             cancel(id); receipt(item, "acknowledged"); requestSync(); return;
         }
         try {
@@ -144,19 +181,9 @@ final class NativeAlerts {
             if (fired.has(id)) return;
             if (!notifications().areNotificationsEnabled()) { receipt(item, "permission_denied"); requestSync(); return; }
             boolean alarm = "alarm".equals(item.getString("kind"));
-            Notification.Builder builder = new Notification.Builder(context, alarm ? ALARMS : MESSAGES)
-                .setSmallIcon(R.drawable.ic_harness).setContentTitle(item.getString("title"))
-                .setContentText(item.optString("body")).setStyle(new Notification.BigTextStyle().bigText(item.optString("body")))
-                .setVisibility(Notification.VISIBILITY_PRIVATE).setContentIntent(open(id)).setAutoCancel(!alarm)
-                .setCategory(alarm ? Notification.CATEGORY_ALARM : Notification.CATEGORY_REMINDER)
-                .setTimeoutAfter(alarm ? 60_000 : Math.min(3_600_000, time(item, "deadline_at") - System.currentTimeMillis()));
-            if (item.optBoolean("ack_required")) builder.addAction(new Notification.Action.Builder(null,
-                alarm ? "Arrêter et acquitter" : "Acquitter", action(id, ACK)).build());
-            else if (alarm) builder.addAction(new Notification.Action.Builder(null, "Arrêter", action(id, ACK)).build());
-            Notification notification = builder.build();
-            if (alarm) notification.flags |= Notification.FLAG_INSISTENT;
-            notifications().notify(id, 0, notification);
-            fired.put(id, System.currentTimeMillis()); write("fired", fired);
+            if (alarm) { AlarmPlayback.start(context, id); return; }
+            notifications().notify(id, 0, notification(item, false));
+            markFired(id);
             receipt(item, "fired"); requestSync();
         } catch (Exception failure) { error("Échec d’affichage d’une alerte."); receipt(item, "error"); requestSync(); }
     }

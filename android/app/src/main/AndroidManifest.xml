@@ -2,6 +2,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Special app access granted by the user (not USE_EXACT_ALARM); guarded at runtime.
          Android SDK 34 lint misclassifies its appop protection flag as system-only. -->
@@ -19,6 +21,7 @@
         android:icon="@drawable/ic_harness" android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false">
+        <service android:name=".AlarmPlayback" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <service android:name=".PrivateReceiver" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-enabled persistent authenticated connection to the user's private Harness server for timely notifications without a public push provider." />

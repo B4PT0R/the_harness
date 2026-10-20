@@ -3,7 +3,8 @@
 Thin Android host for the server's shared React UI. The server owns the conversation;
 Tailscale is a separate app, not an embedded VPN. Android 8.0+ (API 26).
 
-Version 0.1.4 adds an **opt-in private notification receiver**, alongside the
+Version 0.1.5 fixes audible alarms with an explicit, bounded audio loop.
+Version 0.1.4 added an **opt-in private notification receiver**, alongside the
 native local alerts introduced in 0.1.3. Local alerts are configured in the menu:
 **Alertes locales et alarmes**. Allow notifications, then grant Android's special
 exact-alarm access for explicitly requested audible alarms. Ordinary reminders
@@ -12,10 +13,22 @@ and new-message notifications remain silent; no full-screen takeover or micropho
 Known occurrences are downloaded from the paired server (seven-day horizon, next
 occurrence of recurring events), persisted, and scheduled with AlarmManager.
 They can fire offline after loading, including after process closure/reboot.
-An alarm notification repeats for at most 60 seconds and has a stop action;
-ACK alerts have **Arrêter et acquitter** / **Acquitter** actions. An ACK is not task
-completion. Offline receipts are queued and their server arrival time is recorded.
-Disabling local alerts or disconnecting cancels the local schedule and notifications.
+Audible alarms use a short-lived `mediaPlayback` foreground service and loop the
+system alarm ringtone until stopped/acknowledged, with a **three-minute maximum per
+occurrence**, measured against elapsed time. Audio is independent of notification
+sound repetition: the new alarm notification channel is silent, while playback uses
+the alarm audio stream and audio focus. No volume override or full-screen activity.
+The CPU is kept awake only during playback; audio/focus/resources are released on
+stop, cancellation, disable, playback error or service destruction. The service does
+not restart an interrupted alarm. Overlapping alarms share one audio player, retain
+separate deadlines and expose the most recent ringing occurrence's stop action.
+ACK alerts have **Arrêter et acquitter** / **Acquitter** actions in the notification
+(expand it if needed); there is no separate alarm screen. An ACK is not task completion.
+At the audio cap, `auto_stopped` is queued, not an ACK; a silent actionable notification
+remains until the occurrence deadline. Offline receipts are queued and their server
+arrival time is recorded. Disabling local alerts or disconnecting cancels local
+schedules, notifications and playback. Blocking notifications/the alarm channel
+prevents starting playback; device alarm-volume and audio policies still apply.
 
 Synchronization occurs on opening/resuming the app and through best-effort Android
 jobs (nominally 15 minutes; Android may defer them). Without the private receiver,
@@ -60,6 +73,15 @@ The new server route requires activation of the updated backend separately.
 
 See [the implementation and original silent lab study](../docs/mobile-alerts.md).
 
+## Alarm-loop validation (0.1.5)
+
+Debug build, unit tests and lint pass. Fourteen API-35 alert instrumentation tests
+pass on a `-no-audio` emulator, including five playback tests and a real elapsed
+three-minute cutoff. The expanded notification action was visually inspected.
+The APK signer matches 0.1.4, so an in-place update can retain pairing.
+**Looping and sound stopping after ACK have not yet been tested on the real phone.**
+No backend restart or pairing change is needed for this Android-only update.
+
 ## Build
 
 Install Java 17 or 21 and Android SDK 34, then:
@@ -75,13 +97,15 @@ not a Play Store release. Install it manually or with `adb install -r ...`.
 Install updates over the existing app (same signing key); do not uninstall if you
 want to retain its pairing.
 
-For silent native tests, use **only an emulator started with `-no-audio`**, never
-a physical handset. Select `app.theharness.mobile.NativeAlertsTest` using
-`-Pandroid.testInstrumentationRunnerArguments.class=app.theharness.mobile.NativeAlertsTest`
-with `:app:connectedDebugAndroidTest`. These tests post silent notifications, exercise the receiver offline,
-queue an offline ACK, and arm/cancel a next-day alarm without firing it. The receiver
-fixture temporarily disables emulator Wi-Fi/data and restores them afterward. Grant
-exact-alarm access on the disposable emulator to include that scheduling test.
+For native alert tests, use **only an emulator started with `-no-audio`**, never
+a physical handset. Select both alert classes using
+`-Pandroid.testInstrumentationRunnerArguments.class=app.theharness.mobile.NativeAlertsTest,app.theharness.mobile.AlarmPlaybackTest`
+with `:app:connectedDebugAndroidTest`. These tests post notifications, exercise the
+receiver offline, queue an offline ACK, and fire real local alarms on the muted
+emulator. Playback checks cover end-of-track looping, stop/ACK, disable, overlapping
+occurrences, cancellation and the full three-minute cap (allow about four minutes).
+The receiver fixture temporarily disables emulator Wi-Fi/data and restores them
+afterward. Grant exact-alarm access on the disposable emulator to include scheduling.
 
 The separate `WebViewAudioTest` **uses the microphone**; do not run it as part of a
 silent alert validation. With a consented emulator/device, the full instrumentation suite
