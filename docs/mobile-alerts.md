@@ -1,10 +1,69 @@
 # Notifications et alarmes Android, téléphone en veille
 
 Étude et preuve technique du 20 octobre 2026, pour The Harness.
-**Statut : premier lot implémenté dans les sources et l’APK 0.1.3 ; validation
-Samsung en attente. Aucun transport push externe configuré.**
+**Statut actuel : réception privée directe implémentée dans les sources et l’APK
+0.1.4, en complément du lot local 0.1.3. Backend de ce nouveau lot non rechargé ;
+validation réelle Samsung/Tailscale en attente. Aucun fournisseur push externe.**
 Aucun téléphone réel sollicité, aucune sonnerie, aucun compte externe créé,
-aucune exposition réseau ni modification du serveur en service.
+aucune exposition réseau ni modification du serveur en service pour ce nouveau lot.
+
+## Deuxième lot — réception privée par instance, 20 octobre 2026
+
+Décision de Baptiste : chaque Harness reste autonome et privé, modulo Tailscale.
+**Aucun relais commun, Firebase ou compte/service supplémentaire imposé.** Cette
+décision remplace la préférence FCM formulée dans l’étude initiale conservée ci-dessous.
+
+- Réutilisation de l’association et du bearer natif chiffré ; WebSocket
+  `GET /remote/v1/notifications`, sous-protocole `harness-notifications-v1`,
+  authentification dans le second sous-protocole (jamais dans l’URL ni le JS).
+  Route limitée à l’accès privé et aux clients mobiles associés ; révocation
+  et désactivation utilisent le registre de connexions existant.
+- Framework : journal atomique privé `remote-notifications.json`, 256 signaux
+  `message`/`alarm` sans texte de conversation, identité et curseur persistés.
+  Reprise après redémarrage, déduplication et reset explicite hors fenêtre.
+  Échec d’écriture : pas d’avancement du curseur visible. Le journal n’est pas
+  une preuve d’affichage ni un acquittement humain.
+- Android : service `specialUse` activé volontairement via **Réception privée**,
+  notification permanente silencieuse avec état et bouton **Arrêter** ; maintien
+  hors ligne, reconnexion avec recul exponentiel borné et retour réseau.
+  Aucun VPN embarqué, aucun wake lock permanent, aucune permission batterie
+  accordée automatiquement. Un refus d’accès arrête le récepteur.
+- Curseur partagé entre réception et synchronisation HTTP ; rejeu silencieux sans
+  doublon, indication générique si le journal est dépassé. Les signaux d’alarme
+  ne font pas sonner un ancien événement reconnecté : le moteur local reste
+  responsable des échéances connues. Les alertes locales existantes sont conservées.
+- Arrêter la réception laisse les alertes locales actives. Désactiver les alertes
+  ou déconnecter le téléphone arrête aussi la réception. Relance au démarrage/mise
+  à jour tentée seulement si activée, sous réserve des restrictions Android.
+
+### Validation de ce lot
+
+- Harness : **246 tests réussis** sur l’état final (suite complète) ;
+  58 tests ciblés d’accès distant, notifications et sécurité réussis également.
+- Android : compilation debug/instrumentation, tests unitaires et lint réussis ;
+  **neuf tests instrumentés réussis, zéro ignoré**, API 35, émulateur `-no-audio`.
+  Activation, absence d’association, statut permanent, maintien hors réseau,
+  arrêt par notification et reprise/déduplication du curseur sont couverts.
+  Le test hors ligne coupe puis restaure Wi-Fi/data uniquement dans l’émulateur.
+- Framework : **869 tests réussis, 4 ignorés** (suite general + agentic), dont
+  persistance/reprise, permissions privées et échec disque. Le premier essai avait
+  six échecs de navigateur dus au chemin Playwright du laboratoire ; relance
+  complète réussie avec le cache Chromium installé, sans changement applicatif.
+- **Non validé : chaîne complète via Tailscale réel, Samsung en veille, autonomie,
+  reprise réelle après redémarrage, sonnerie.** Aucun téléphone installé, aucun
+  backend redémarré, aucune configuration Tailscale modifiée pour ce lot.
+- Signature APK 0.1.4 vérifiée identique à celle de 0.1.3 ; pas besoin de
+  désinstaller pour mettre à jour. Panneau natif inspecté visuellement et émulateur
+  fermé après les essais. Commits locaux seulement, aucun push.
+
+Une connexion native persistante reste du meilleur effort : aucune promesse de
+réception instantanée pendant Doze ou après arrêt forcé. Les essais historiques
+ci-dessous ne prouvent pas la fiabilité du nouveau récepteur intégré.
+
+## Historique : premier lot et étude initiale
+
+Les sections suivantes décrivent les étapes et options étudiées avant la décision
+privée ci-dessus ; leurs recommandations de fournisseur ne sont plus le plan actuel.
 
 ## Premier lot intégré — 20 octobre 2026
 

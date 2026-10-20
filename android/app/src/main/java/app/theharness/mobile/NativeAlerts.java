@@ -22,7 +22,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
-/** Preloaded occurrences only. No push, task completion or recurrence inference. */
+/** Local schedule, receipts and shared notification cursor; never infer task completion. */
 final class NativeAlerts {
     static final String FIRE = "app.theharness.mobile.ALERT", ACK = "app.theharness.mobile.ACK";
     private static final int JOB = 3101, URGENT_JOB = 3102;
@@ -73,6 +73,7 @@ final class NativeAlerts {
         requestSync();
     }
     synchronized void disable() {
+        PrivateReceiver.disable(context);
         JSONObject cached = read("alerts");
         for (var ids = cached.keys(); ids.hasNext();) cancel(ids.next());
         notifications().cancel("conversation", 0);
@@ -186,26 +187,41 @@ final class NativeAlerts {
             }
         } finally { connection.disconnect(); }
     }
-    private void syncMessages(JSONObject credential) throws Exception {
-        String path = "/remote/v1/notifications/wait?timeout=1";
-        if (prefs.contains("message_cursor")) path += "&after=" + prefs.getLong("message_cursor", 0)
+    synchronized String messageQuery() {
+        if (!prefs.contains("message_cursor")) return "";
+        return "?after=" + prefs.getLong("message_cursor", 0)
             + "&server_instance_id=" + Uri.encode(prefs.getString("message_instance", ""));
-        JSONObject result = request(credential, path, null);
-        synchronized (this) {
-            if (!enabled()) return;
-            boolean hasMessage = false;
-            JSONArray events = result.getJSONArray("events");
-            for (int i = 0; i < events.length(); i++)
-                if ("message".equals(events.getJSONObject(i).optString("kind"))) hasMessage = true;
-            if (hasMessage && !foreground && notifications().areNotificationsEnabled()) {
-                notifications().notify("conversation", 0, new Notification.Builder(context, MESSAGES)
-                    .setSmallIcon(R.drawable.ic_harness).setContentTitle("The Harness")
-                    .setContentText("De nouveaux messages sont disponibles.").setContentIntent(open("conversation"))
-                    .setVisibility(Notification.VISIBILITY_PRIVATE).setAutoCancel(true).build());
-            }
-            prefs.edit().putLong("message_cursor", result.getLong("cursor"))
-                .putString("message_instance", result.getString("server_instance_id")).commit();
+    }
+    synchronized void consumeMessages(JSONObject result) throws Exception {
+        if (!enabled()) return;
+        String instance = result.getString("server_instance_id"), status = result.getString("status");
+        long cursor = result.getLong("cursor");
+        if (cursor < 0 || !("events".equals(status) || "reset".equals(status) || "idle".equals(status)))
+            throw new IllegalArgumentException("Invalid notification cursor");
+        boolean same = instance.equals(prefs.getString("message_instance", ""));
+        long previous = same ? prefs.getLong("message_cursor", -1) : -1;
+        if (same && cursor <= previous) return;
+        boolean hasMessage = "reset".equals(status) && prefs.contains("message_cursor");
+        JSONArray events = result.getJSONArray("events");
+        for (int i = 0; i < events.length(); i++) {
+            JSONObject event = events.getJSONObject(i);
+            if (event.getLong("sequence") > previous && "message".equals(event.optString("kind"))) hasMessage = true;
         }
+        if (hasMessage && !foreground && notifications().areNotificationsEnabled()) {
+            notifications().notify("conversation", 0, new Notification.Builder(context, MESSAGES)
+                .setSmallIcon(R.drawable.ic_harness).setContentTitle("The Harness")
+                .setContentText("reset".equals(status) ? "Connexion reprise ; vérifier les messages récents." : "De nouveaux messages sont disponibles.")
+                .setOnlyAlertOnce(true).setContentIntent(open("conversation")).setVisibility(Notification.VISIBILITY_PRIVATE).setAutoCancel(true).build());
+        }
+        // Commit only after notification posting. A crash may replay; the stable tag replaces it silently.
+        if (!prefs.edit().putLong("message_cursor", cursor).putString("message_instance", instance).commit())
+            throw new IllegalStateException("Notification cursor not saved");
+        if (events.length() > 0 || "reset".equals(status)) requestSync();
+    }
+    private void syncMessages(JSONObject credential) throws Exception {
+        if (PrivateReceiver.enabled(context)) return;
+        String query = messageQuery();
+        consumeMessages(request(credential, "/remote/v1/notifications/wait" + (query.isEmpty() ? "?" : query + "&") + "timeout=1", null));
     }
     void sync() {
         if (!enabled()) return;

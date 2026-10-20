@@ -10,6 +10,10 @@ public final class AlertReceiver extends BroadcastReceiver {
         NativeAlerts alerts = NativeAlerts.get(context);
         String action = intent.getAction();
         if (NativeAlerts.FIRE.equals(action) || NativeAlerts.ACK.equals(action)) alerts.receive(intent.getStringExtra("id"), action);
-        else alerts.rearm();
+        else {
+            alerts.rearm();
+            if (Intent.ACTION_BOOT_COMPLETED.equals(action) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(action))
+                PrivateReceiver.resume(context);
+        }
     }
 }

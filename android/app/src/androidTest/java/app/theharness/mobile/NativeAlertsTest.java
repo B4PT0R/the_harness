@@ -103,7 +103,7 @@ public class NativeAlertsTest {
         alerts.receipt(item, "acknowledged");
         assertTrue(new JSONObject(prefs.getString("receipts", "{}")).has("silent-lab:acknowledged"));
     }
-    @Test public void settingsDialogShowsPermissionsAndNoPushLimitation() throws Exception {
+    @Test public void settingsDialogShowsPermissionsAndSyncLimitation() throws Exception {
         var instrumentation = InstrumentationRegistry.getInstrumentation();
         try (var scenario = androidx.test.core.app.ActivityScenario.launch(MainActivity.class)) {
             instrumentation.waitForIdleSync();
@@ -118,10 +118,91 @@ public class NativeAlertsTest {
             var root = instrumentation.getUiAutomation().getRootInActiveWindow();
             assertNotNull(root);
             assertFalse(root.findAccessibilityNodeInfosByText("Alertes locales et alarmes").isEmpty());
-            assertFalse(root.findAccessibilityNodeInfosByText("pas de push instantané").isEmpty());
+            assertFalse(root.findAccessibilityNodeInfosByText("Sans réception privée activée").isEmpty());
             try (var descriptor = instrumentation.getUiAutomation()
                 .executeShellCommand("screencap -p /data/local/tmp/harness-alerts-lab.png");
                  var input = new java.io.FileInputStream(descriptor.getFileDescriptor())) { input.readAllBytes(); }
+        }
+    }
+    @Test public void privateBatchesPersistCursorAndIgnoreDuplicates() throws Exception {
+        alerts.foreground = false;
+        JSONObject initial = new JSONObject("{\"status\":\"reset\",\"cursor\":0,\"server_instance_id\":\"lab\",\"events\":[]}");
+        alerts.consumeMessages(initial);
+        assertTrue(alerts.messageQuery().contains("after=0"));
+        JSONObject batch = new JSONObject("{\"status\":\"events\",\"cursor\":1,\"server_instance_id\":\"lab\",\"events\":[{\"sequence\":1,\"kind\":\"message\"}]}");
+        alerts.consumeMessages(batch);
+        awaitNotification(true);
+        assertEquals(1, prefs.getLong("message_cursor", -1));
+        notifications.cancel("conversation", 0);
+        awaitNotification(false);
+        alerts.consumeMessages(batch);
+        alerts.consumeMessages(initial); // A stale sync cannot move the cursor backwards.
+        assertEquals(1, prefs.getLong("message_cursor", -1));
+        assertEquals(0, notifications.getActiveNotifications().length);
+        alerts.consumeMessages(new JSONObject("{\"status\":\"reset\",\"cursor\":0,\"server_instance_id\":\"replacement\",\"events\":[]}"));
+        awaitNotification(true);
+        assertEquals("replacement", prefs.getString("message_instance", ""));
+    }
+    @Test public void privateReceiverDialogExplainsForegroundAndBatteryLimits() throws Exception {
+        var instrumentation = InstrumentationRegistry.getInstrumentation();
+        try (var scenario = androidx.test.core.app.ActivityScenario.launch(MainActivity.class)) {
+            scenario.onActivity(activity -> {
+                try {
+                    var method = MainActivity.class.getDeclaredMethod("receiverSettings");
+                    method.setAccessible(true); method.invoke(activity);
+                } catch (Exception failure) { throw new AssertionError(failure); }
+            });
+            instrumentation.waitForIdleSync();
+            Thread.sleep(300);
+            var root = instrumentation.getUiAutomation().getRootInActiveWindow();
+            assertNotNull(root);
+            assertFalse(root.findAccessibilityNodeInfosByText("Réception privée via Tailscale").isEmpty());
+            assertFalse(root.findAccessibilityNodeInfosByText("notification permanente").isEmpty());
+            assertFalse(root.findAccessibilityNodeInfosByText("Réglages batterie").isEmpty());
+            try (var descriptor = instrumentation.getUiAutomation().executeShellCommand("screencap -p /data/local/tmp/harness-receiver-lab.png");
+                 var input = new java.io.FileInputStream(descriptor.getFileDescriptor())) { input.readAllBytes(); }
+        }
+    }
+    @Test public void privateServiceIsOptInAndStopsWithoutPairing() throws Exception {
+        assertFalse(PrivateReceiver.enabled(context));
+        PrivateReceiver.resume(context);
+        assertEquals(0, notifications.getActiveNotifications().length);
+        var instrumentation = InstrumentationRegistry.getInstrumentation();
+        try (var scenario = androidx.test.core.app.ActivityScenario.launch(MainActivity.class)) {
+            scenario.onActivity(activity -> PrivateReceiver.enable(activity));
+            for (int i = 0; i < 100 && PrivateReceiver.enabled(context); i++) Thread.sleep(100);
+            assertFalse("No credential: stop without making a network request", PrivateReceiver.enabled(context));
+            assertTrue(PrivateReceiver.status(context).contains("Association absente"));
+            awaitNotification(false);
+            assertNull(notifications.getNotificationChannel("private-receiver-v1").getSound());
+        }
+    }
+    private void shell(String command) throws Exception {
+        try (var descriptor = InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
+             var input = new java.io.FileInputStream(descriptor.getFileDescriptor())) { input.readAllBytes(); }
+    }
+    @Test public void privateServiceRemainsVisibleOfflineAndStopActionWorks() throws Exception {
+        // All networking is disabled BEFORE storing a fake lab pairing; no Tailscale or DNS traffic.
+        shell("svc wifi disable"); shell("svc data disable");
+        var instrumentation = InstrumentationRegistry.getInstrumentation();
+        try (var scenario = androidx.test.core.app.ActivityScenario.launch(MainActivity.class)) {
+            instrumentation.waitForIdleSync(); Thread.sleep(500);
+            new CredentialStore(context).save(new JSONObject().put("endpoint", "https://receiver.lab.ts.net").put("access_token", "lab-only"));
+            scenario.onActivity(activity -> PrivateReceiver.enable(activity));
+            awaitNotification(true);
+            Thread.sleep(12000);
+            assertTrue("Foreground receiver stays alive without a network", PrivateReceiver.enabled(context));
+            assertTrue(PrivateReceiver.status(context), PrivateReceiver.status(context).contains("Hors connexion"));
+            var notification = notifications.getActiveNotifications()[0].getNotification();
+            assertEquals("private-receiver-v1", notification.getChannelId());
+            assertTrue((notification.flags & android.app.Notification.FLAG_FOREGROUND_SERVICE) != 0);
+            notification.actions[0].actionIntent.send();
+            for (int i = 0; i < 50 && PrivateReceiver.enabled(context); i++) Thread.sleep(100);
+            assertFalse(PrivateReceiver.enabled(context));
+            awaitNotification(false);
+        } finally {
+            PrivateReceiver.disable(context); new CredentialStore(context).clear();
+            shell("svc wifi enable"); shell("svc data enable");
         }
     }
     @Test public void disabledCacheCannotDisplayOrAcknowledge() throws Exception {

@@ -167,9 +167,9 @@ public final class MainActivity extends Activity {
         destroyWeb();
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         Button menu = new Button(this); menu.setText("The Harness  ·  Connexion privée  ·  ⋮");
-        menu.setOnClickListener(view -> new AlertDialog.Builder(this).setItems(new String[]{"Actualiser", "Alertes locales et alarmes", "Se déconnecter de ce téléphone"}, (dialog, item) -> {
+        menu.setOnClickListener(view -> new AlertDialog.Builder(this).setItems(new String[]{"Actualiser", "Alertes locales et alarmes", "Réception privée", "Se déconnecter de ce téléphone"}, (dialog, item) -> {
             if (item == 0) { web.reload(); NativeAlerts.get(this).requestSync(); }
-            else if (item == 1) alertSettings(); else confirmDisconnect();
+            else if (item == 1) alertSettings(); else if (item == 2) receiverSettings(); else confirmDisconnect();
         }).show()); root.addView(menu);
         web = new WebView(this); root.addView(web, new LinearLayout.LayoutParams(-1, 0, 1)); setContentView(root);
         WebSettings settings = web.getSettings(); settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
@@ -245,7 +245,7 @@ public final class MainActivity extends Activity {
     private void alertSettings() {
         NativeAlerts alerts = NativeAlerts.get(this);
         new AlertDialog.Builder(this).setTitle("Alertes locales et alarmes")
-            .setMessage(alerts.status() + "\n\nLes rappels restent silencieux. Seules les alarmes explicitement demandées peuvent sonner (60 s maximum). Les événements chargés fonctionnent hors connexion.\n\nSynchronisation à l’ouverture et périodiquement au mieux : pas de push instantané. Une modification hors ligne ne peut pas annuler une alarme déjà chargée.")
+            .setMessage(alerts.status() + "\n\nLes rappels restent silencieux. Seules les alarmes explicitement demandées peuvent sonner (60 s maximum). Les événements chargés fonctionnent hors connexion.\n\nSans réception privée activée, synchronisation à l’ouverture et périodiquement au mieux. Une modification hors ligne ne peut pas annuler une alarme déjà chargée.")
             .setPositiveButton(alerts.enabled() ? "Désactiver" : "Activer", (dialog, which) -> {
                 if (alerts.enabled()) alerts.disable();
                 else {
@@ -260,8 +260,24 @@ public final class MainActivity extends Activity {
                 else startActivity(new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName()));
             }).setNegativeButton("Fermer", null).show();
     }
+    private void receiverSettings() {
+        new AlertDialog.Builder(this).setTitle("Réception privée via Tailscale")
+            .setMessage(PrivateReceiver.status(this) + "\n\nConnexion directe au serveur associé, sans relais ni compte supplémentaire. Une notification permanente indique son état et permet de l’arrêter. Les messages restent silencieux.\n\nTailscale et le serveur doivent rester joignables. Android peut retarder ou interrompre la connexion en veille ; autoriser l’activité en arrière-plan et examiner les restrictions batterie de Harness et Tailscale. Aucune garantie d’alarme critique.")
+            .setPositiveButton(PrivateReceiver.enabled(this) ? "Arrêter" : "Activer", (dialog, which) -> {
+                if (PrivateReceiver.enabled(this)) PrivateReceiver.disable(this);
+                else if (!getSystemService(android.app.NotificationManager.class).areNotificationsEnabled()) {
+                    if (android.os.Build.VERSION.SDK_INT >= 33)
+                        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 12);
+                    Toast.makeText(this, "Autoriser les notifications puis réactiver la réception privée.", Toast.LENGTH_LONG).show();
+                } else PrivateReceiver.enable(this);
+            })
+            .setNeutralButton("Réglages batterie", (dialog, which) -> {
+                try { startActivity(new Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)); }
+                catch (RuntimeException unavailable) { Toast.makeText(this, "Réglages batterie indisponibles.", Toast.LENGTH_LONG).show(); }
+            }).setNegativeButton("Fermer", null).show();
+    }
     @Override protected void onResume() {
-        super.onResume(); NativeAlerts.get(this).foreground = true; NativeAlerts.get(this).rearm();
+        super.onResume(); PrivateReceiver.resume(this); NativeAlerts.get(this).foreground = true; NativeAlerts.get(this).rearm();
     }
     @Override protected void onPause() {
         NativeAlerts.get(this).foreground = false; super.onPause();

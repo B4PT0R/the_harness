@@ -21,6 +21,8 @@ from ...security import local_request_allowed, private_request_allowed
 from ...runtime_composition import EVENT_SUBPROTOCOL
 from .policy import RemoteProjection, wire_mapping
 
+NOTIFICATION_SUBPROTOCOL = "harness-notifications-v1"
+
 
 class ClientRemoteApi:
     def __init__(self, service, ingress, *, scheduler=None, advertised_endpoint=None):
@@ -46,7 +48,45 @@ class ClientRemoteApi:
         return (self.events_socket, self.application_socket, WebSocketEndpoint(
             path="/remote/v1/ui-events", handler=self.serve_ui_events,
             name="mobile_ui_events", handshake=self.ui_handshake,
+        ), WebSocketEndpoint(
+            path="/remote/v1/notifications", handler=self.serve_notifications,
+            name="mobile_notifications", handshake=self.notification_handshake,
         ))
+
+    def notification_handshake(self, socket):
+        connection = self._remote_handshake(socket, NOTIFICATION_SUBPROTOCOL)
+        if connection is None or "mobile" not in connection["client"].get("scopes", ()):
+            return None
+        try:
+            raw = socket.query_params.get("after")
+            after = int(raw) if raw is not None else None
+            if after is not None and after < 0:
+                return None
+        except (TypeError, ValueError):
+            return None
+        return {**connection, "after": after,
+                "server_instance_id": socket.query_params.get("server_instance_id")}
+
+    async def serve_notifications(self, socket, connection):
+        client_id = connection["client"]["id"]
+        sockets = self.service.event_connections.setdefault(client_id, set())
+        sockets.add(socket)
+        try:
+            await socket.accept(subprotocol=connection["subprotocol"])
+            async def send_events():
+                after, instance = connection["after"], connection["server_instance_id"]
+                while True:
+                    batch = await self.service.wait_for_notification(
+                        after=after, server_instance_id=instance, timeout=55)
+                    await socket.send_json(batch)
+                    after, instance = batch["cursor"], batch["server_instance_id"]
+            await serve_event_stream_until_disconnect(socket, send_events)
+        except WebSocketDisconnect:
+            pass
+        finally:
+            sockets.discard(socket)
+            if not sockets:
+                self.service.event_connections.pop(client_id, None)
 
     def _request_allowed(self, request):
         network = getattr(self.service, "network", None)
