@@ -167,8 +167,9 @@ public final class MainActivity extends Activity {
         destroyWeb();
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         Button menu = new Button(this); menu.setText("The Harness  ·  Connexion privée  ·  ⋮");
-        menu.setOnClickListener(view -> new AlertDialog.Builder(this).setItems(new String[]{"Actualiser", "Se déconnecter de ce téléphone"}, (dialog, item) -> {
-            if (item == 0) web.reload(); else confirmDisconnect();
+        menu.setOnClickListener(view -> new AlertDialog.Builder(this).setItems(new String[]{"Actualiser", "Alertes locales et alarmes", "Se déconnecter de ce téléphone"}, (dialog, item) -> {
+            if (item == 0) { web.reload(); NativeAlerts.get(this).requestSync(); }
+            else if (item == 1) alertSettings(); else confirmDisconnect();
         }).show()); root.addView(menu);
         web = new WebView(this); root.addView(web, new LinearLayout.LayoutParams(-1, 0, 1)); setContentView(root);
         WebSettings settings = web.getSettings(); settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
@@ -234,23 +235,48 @@ public final class MainActivity extends Activity {
                     catch (RuntimeException error) { Toast.makeText(MainActivity.this, "Téléchargement indisponible : " + error.getMessage(), Toast.LENGTH_LONG).show(); }
                 }).show();
         });
-        web.loadUrl(endpoint + "/ui/"); invalidateOptionsMenu();
+        web.loadUrl(endpoint + "/ui/"); invalidateOptionsMenu(); NativeAlerts.get(this).requestSync();
     }
     private void connectionError(String message) {
         if (isFinishing() || isDestroyed()) return;
         destroyWeb(); LinearLayout box = layout(); text(box, "Connexion interrompue", 24); text(box, message, 16);
         button(box, "Réessayer", view -> restore()); button(box, "Associer à nouveau", view -> onboarding(""));
     }
+    private void alertSettings() {
+        NativeAlerts alerts = NativeAlerts.get(this);
+        new AlertDialog.Builder(this).setTitle("Alertes locales et alarmes")
+            .setMessage(alerts.status() + "\n\nLes rappels restent silencieux. Seules les alarmes explicitement demandées peuvent sonner (60 s maximum). Les événements chargés fonctionnent hors connexion.\n\nSynchronisation à l’ouverture et périodiquement au mieux : pas de push instantané. Une modification hors ligne ne peut pas annuler une alarme déjà chargée.")
+            .setPositiveButton(alerts.enabled() ? "Désactiver" : "Activer", (dialog, which) -> {
+                if (alerts.enabled()) alerts.disable();
+                else {
+                    alerts.enable();
+                    if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+                        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 12);
+                }
+            })
+            .setNeutralButton("Permissions Android", (dialog, which) -> {
+                if (android.os.Build.VERSION.SDK_INT >= 31 && !alerts.exactAllowed())
+                    startActivity(new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + getPackageName())));
+                else startActivity(new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName()));
+            }).setNegativeButton("Fermer", null).show();
+    }
+    @Override protected void onResume() {
+        super.onResume(); NativeAlerts.get(this).foreground = true; NativeAlerts.get(this).rearm();
+    }
+    @Override protected void onPause() {
+        NativeAlerts.get(this).foreground = false; super.onPause();
+    }
     private void confirmDisconnect() {
         new AlertDialog.Builder(this).setTitle("Déconnecter ce téléphone ?")
             .setMessage("L’identifiant enregistré sera effacé. Révoquez aussi cet appareil dans les réglages de l’ordinateur.")
             .setNegativeButton("Annuler", null).setPositiveButton("Déconnecter", (dialog, which) -> {
-                credentials.clear(); CookieManager.getInstance().removeAllCookies(removed -> onboarding(""));
+                NativeAlerts.get(this).disable(); credentials.clear(); CookieManager.getInstance().removeAllCookies(removed -> onboarding(""));
                 CookieManager.getInstance().flush();
             }).show();
     }
     @Override public void onRequestPermissionsResult(int code, String[] permissions, int[] grants) {
         super.onRequestPermissionsResult(code, permissions, grants);
+        if (code == 12) NativeAlerts.get(this).rearm();
         if (code == AUDIO_PERMISSION && audioRequest != null) {
             if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED && sameOrigin(audioRequest.getOrigin())) audioRequest.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
             else audioRequest.deny(); audioRequest = null;

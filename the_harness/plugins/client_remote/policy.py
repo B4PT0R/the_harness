@@ -105,9 +105,9 @@ def mobile_api_allowed(method, path):
     if "//" in path or any(part in {".", ".."} for part in path.split("/")):
         return False
     if method == "GET":
-        return path in {"/ui", "/ui/", "/api/v1/session", "/api/v1/status", "/api/v1/plugins"} or path.startswith(("/ui/assets/", "/api/v1/bucket/")) or path == "/ui/assistant.svg"
+        return path in {"/remote/v1/alerts", "/remote/v1/notifications/wait", "/ui", "/ui/", "/api/v1/session", "/api/v1/status", "/api/v1/plugins"} or path.startswith(("/ui/assets/", "/api/v1/bucket/")) or path == "/ui/assistant.svg"
     if method == "POST":
-        return path in {"/api/v1/agent/prompt", "/api/v1/agent/attachments", "/api/v1/agent/interrupt", "/api/v1/agent/compact", "/api/v1/realtime/calls", "/api/v1/realtime/calls/current/ready", "/api/v1/realtime/calls/current/suspend"}
+        return path in {"/remote/v1/alerts/receipt", "/api/v1/agent/prompt", "/api/v1/agent/attachments", "/api/v1/agent/interrupt", "/api/v1/agent/compact", "/api/v1/realtime/calls", "/api/v1/realtime/calls/current/ready", "/api/v1/realtime/calls/current/suspend"}
     return method == "DELETE" and path == "/api/v1/realtime/calls/current"
 
 

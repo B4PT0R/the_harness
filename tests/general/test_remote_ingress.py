@@ -43,6 +43,7 @@ def test_application_injects_the_installed_chat_ingress(tmp_path, monkeypatch, w
     assert remote.ingress.lock is (services["realtime"].service.lock if with_voice else chat.ingress.lock)
     assert (remote.ingress.voice is not None) == with_voice
     assert services["client_remote_api"].requires_services == ("client_remote", "chat")
+    assert services["client_remote_api"].optional_services == ("scheduler",)
 
 
 @pytest.mark.parametrize("active_voice", [False, True])

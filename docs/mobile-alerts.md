@@ -1,11 +1,63 @@
 # Notifications et alarmes Android, téléphone en veille
 
 Étude et preuve technique du 20 octobre 2026, pour The Harness.
-**Statut : recommandation vérifiée sur un laboratoire isolé ; fonctionnalité non intégrée à l’APK.**
+**Statut : premier lot implémenté dans les sources et l’APK 0.1.3 ; validation
+Samsung en attente. Aucun transport push externe configuré.**
 Aucun téléphone réel sollicité, aucune sonnerie, aucun compte externe créé,
 aucune exposition réseau ni modification du serveur en service.
 
-## Conclusion
+## Premier lot intégré — 20 octobre 2026
+
+- Le plugin scheduler du Framework persiste les attentes de réponse ou
+  d’acquittement, leurs échéances et reçus. Une expiration ou un ACK reprend la
+  conversation canonique avec le contexte et la criticité ; aucune escalade
+  automatique, aucun acquittement assimilé à une tâche terminée.
+- Les routes natives authentifiées `GET /remote/v1/alerts` et
+  `POST /remote/v1/alerts/receipt` projettent les prochaines occurrences et
+  enregistrent les reçus sous l’identité de l’appareil associé, jamais celle du
+  corps de la requête. Le contexte privé de décision n’est pas envoyé au mobile.
+- Android : activation volontaire via le menu **Alertes locales et alarmes**,
+  autorisation notifications et accès spécial aux alarmes exactes. Cache local,
+  AlarmManager, receiver de redémarrage/changement d’heure, notifications natives
+  silencieuses pour les rappels ; canal sonore uniquement pour les alarmes
+  explicitement demandées. Pas de plein écran, ni d’ouverture du microphone.
+- Une alarme est présentée par une notification répétée et arrêtable, bornée à
+  60 secondes, pas par un service audio permanent. Le réglage du canal appartient
+  à Android/utilisateur. Le banc silencieux ne valide pas l’audio réel.
+- Acquittement hors ligne mis en file ; heure de réception serveur conservée,
+  sans prétendre prouver une lecture ou une réception à l’heure initiale.
+- Chargement sur sept jours, prochaine occurrence seulement pour les séries.
+  Une projection tronquée conserve l’ancien cache plutôt que d’annuler à tort.
+  Les récurrences restent gérées par le serveur, pas recalculées sur le mobile.
+- Synchronisation au premier plan et par JobScheduler (15 minutes au mieux,
+  différable par Android). Les messages imprévus restent donc **sans garantie
+  d’arrivée immédiate**. Hors ligne, les alarmes déjà chargées fonctionnent,
+  mais une modification/annulation serveur ne peut pas encore les retirer.
+- Le menu affiche autorisations, dernière synchronisation et reçus en attente.
+  Déconnexion/désactivation annule le cache local. La révocation distante ne
+  peut être constatée par un téléphone hors ligne qu’au prochain accès serveur.
+
+Les tests et la compilation sont séparés de l’activation du serveur et de
+l’installation volontaire de l’APK. Aucune sonnerie ni manipulation du téléphone
+physique n’a été utilisée pour ce lot. Ne pas traiter ce prototype comme l’unique
+réveil d’une situation critique.
+
+## Validation du lot intégré
+
+- Framework : 866 tests réussis, 4 ignorés (suite general + agentic).
+- Harness : 244 tests réussis (suite complète).
+- Android : compilation, tests unitaires et lint réussis ; cinq tests
+  instrumentés API 35 réussis, zéro ignoré, avec émulateur `-no-audio`.
+  Affichage silencieux/déduplication, ACK hors ligne, absence de remise en file
+  des reçus déjà transmis, désactivation et écran de diagnostic sont couverts.
+  L’accès exact est accordé uniquement dans le laboratoire jetable ; une alarme
+  du lendemain est armée puis annulée, jamais déclenchée. Aucun test audio/WebView
+  microphone exécuté dans ce lot. Capture du panneau natif inspectée.
+- APK 0.1.3 : même certificat SHA-256 que l’APK 0.1.2 précédemment livré ; la mise
+  à jour ne demande pas de désinstallation. L’installation sur Samsung et le
+  déclenchement sonore restent à valider avec accord explicite.
+
+## Conclusion de l’étude initiale
 
 Deux besoins demandent deux chemins complémentaires :
 
@@ -21,13 +73,13 @@ L’application reste un hôte léger de notre interface partagée : ajouter une
 couche Android pour la réception, les notifications et les alarmes ; ne pas réécrire
 le chat et ne pas lancer un deuxième assistant sur le téléphone.
 
-Le premier lot recommandé est **local, sans Google ni nouveau service** : armer,
+Le premier lot recommandé, désormais implémenté, est **local, sans Google ni nouveau service** : armer,
 afficher, arrêter et annuler une alarme native, avec statut explicite du téléphone.
 Le transport push vient ensuite, après décision sur sa confidentialité et son coût
 opérationnel. Les rappels existants restent des messages : cette étude n’autorise
 pas leur transformation en alarmes sonores.
 
-## Ce que fait actuellement le code
+## État initial étudié (avant l’implémentation, APK 0.1.2)
 
 - Android : API minimale 26, compilation/cible 34, Java 17, APK 0.1.2.
 - `android/app/src/main/java/app/theharness/mobile/MainActivity.java` : WebView,

@@ -3,9 +3,28 @@
 Thin Android host for the server's shared React UI. The server owns the conversation;
 Tailscale is a separate app, not an embedded VPN. Android 8.0+ (API 26).
 
-Background notifications and alarm-clock delivery are not implemented yet. See
-[the feasibility study and integration plan](../docs/mobile-alerts.md), including
-silent API 35 Doze experiments and the distinction between local alarms and push.
+Version 0.1.3 adds **opt-in native local alerts** in the conversation menu:
+**Alertes locales et alarmes**. Allow notifications, then grant Android's special
+exact-alarm access for explicitly requested audible alarms. Ordinary reminders
+and new-message notifications remain silent; no full-screen takeover or microphone.
+
+Known occurrences are downloaded from the paired server (seven-day horizon, next
+occurrence of recurring events), persisted, and scheduled with AlarmManager.
+They can fire offline after loading, including after process closure/reboot.
+An alarm notification repeats for at most 60 seconds and has a stop action;
+ACK alerts have **Arrêter et acquitter** / **Acquitter** actions. An ACK is not task
+completion. Offline receipts are queued and their server arrival time is recorded.
+Disabling local alerts or disconnecting cancels the local schedule and notifications.
+
+Synchronization occurs on opening/resuming the app and through best-effort Android
+jobs (nominally 15 minutes; Android may defer them). **There is no push transport**:
+unexpected messages are not guaranteed to arrive promptly, and offline edits or
+cancellations cannot alter an already loaded alarm until synchronization. Do not
+rely on this development build as a sole critical alarm. Android notification/channel,
+exact-alarm and device power settings still apply. The menu shows permissions,
+last synchronization, cached occurrences and pending receipts.
+
+See [the implementation and original silent lab study](../docs/mobile-alerts.md).
 
 ## Build
 
@@ -22,7 +41,15 @@ not a Play Store release. Install it manually or with `adb install -r ...`.
 Install updates over the existing app (same signing key); do not uninstall if you
 want to retain its pairing.
 
-With an emulator/device connected, `./gradlew :app:connectedDebugAndroidTest`
+For silent native tests, use **only an emulator started with `-no-audio`**, never
+a physical handset. Select `app.theharness.mobile.NativeAlertsTest` using
+`-Pandroid.testInstrumentationRunnerArguments.class=app.theharness.mobile.NativeAlertsTest`
+with `:app:connectedDebugAndroidTest`. These tests post only a silent notification,
+queue an offline ACK, and arm/cancel a next-day alarm without firing it. Grant
+exact-alarm access on the disposable emulator to include that scheduling test.
+
+The separate `WebViewAudioTest` **uses the microphone**; do not run it as part of a
+silent alert validation. With a consented emulator/device, the full instrumentation suite
 checks actual WebView microphone capture and track release using the production
 permission handler and an isolated test page, without a server or Tailscale.
 Both `RECORD_AUDIO` (runtime permission) and `MODIFY_AUDIO_SETTINGS` (install-time

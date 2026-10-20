@@ -23,11 +23,12 @@ from .policy import RemoteProjection, wire_mapping
 
 
 class ClientRemoteApi:
-    def __init__(self, service, ingress, *, advertised_endpoint=None):
+    def __init__(self, service, ingress, *, scheduler=None, advertised_endpoint=None):
         self.service = service
         self.runtime = service.runtime
         self.advertised_endpoint = advertised_endpoint
         self.ingress = ingress
+        self.scheduler = scheduler
         self.events_socket = WebSocketEndpoint(
             path="/remote/v1/events",
             handler=self.serve_events,
@@ -305,6 +306,35 @@ class ClientRemoteApi:
         """Return the current server-owned assistant state projection."""
         self._client(call)
         return {}
+
+    def _mobile(self, call):
+        client = self._client(call)
+        if "mobile" not in client.get("scopes", ()):
+            raise HttpError(403, "mobile_only", "A paired mobile client is required")
+        if self.scheduler is None:
+            raise HttpError(503, "scheduler_unavailable", "Scheduler is unavailable")
+        return client
+
+    @endpoint("get", "/remote/v1/alerts", response={"type": "object"}, context="call")
+    async def alerts(self, call):
+        """Read a bounded native schedule; no task context or credentials are exposed."""
+        self._mobile(call)
+        return await self.scheduler.native_alerts()
+
+    @endpoint("post", "/remote/v1/alerts/receipt", context="call",
+              request={"type": "object", "properties": {
+                  "wait_id": {"type": "string", "minLength": 1, "maxLength": 200},
+                  "event": {"enum": ["armed", "fired", "acknowledged", "permission_denied", "error", "auto_stopped"]}},
+                  "required": ["wait_id", "event"], "additionalProperties": False},
+              response={"type": "object"})
+    async def alert_receipt(self, call, wait_id, event):
+        """Device identity is authentication-derived; ACK never completes a task."""
+        client = self._mobile(call)
+        try:
+            result = await self.scheduler.wait_call("receipt", {"wait_id": wait_id, "client_id": client["id"], "event": event})
+        except ValueError as error:
+            raise HttpError(422, "invalid_receipt", str(error)) from error
+        return {"id": result["id"], "status": result["status"], "received": event}
 
     @endpoint(
         "get", "/remote/v1/notifications/wait",
