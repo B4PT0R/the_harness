@@ -2,10 +2,12 @@
 
 Étude et preuve technique du 20 octobre 2026, pour The Harness.
 **Statut actuel : réception privée directe implémentée dans les sources et l’APK
-0.1.4, en complément du lot local 0.1.3. Backend de ce nouveau lot non rechargé ;
-validation réelle Samsung/Tailscale en attente. Aucun fournisseur push externe.**
+0.1.4, en complément du lot local 0.1.3. Backend activé après redémarrage supervisé
+autorisé le 20 octobre à 12:36 (Europe/Paris) ; validation de réception réelle
+Samsung/Tailscale en attente. Aucun fournisseur push externe.**
 Aucun téléphone réel sollicité, aucune sonnerie, aucun compte externe créé,
-aucune exposition réseau ni modification du serveur en service pour ce nouveau lot.
+aucune nouvelle exposition réseau pour ce nouveau lot. Baptiste a ensuite confirmé
+l’installation de l’APK et autorisé le redémarrage du backend.
 
 ## Deuxième lot — réception privée par instance, 20 octobre 2026
 
@@ -55,6 +57,12 @@ décision remplace la préférence FCM formulée dans l’étude initiale conser
 - Signature APK 0.1.4 vérifiée identique à celle de 0.1.3 ; pas besoin de
   désinstaller pour mettre à jour. Panneau natif inspecté visuellement et émulateur
   fermé après les essais. Commits locaux seulement, aucun push.
+
+Activation après livraison : nouveau processus serveur vérifié, santé `ok`, accès
+privé et Tailscale Serve prêts sur le port conservé, un client mobile associé.
+Sonde WebSocket sans identifiant refusée (`403`). Cela ne valide pas encore une
+connexion authentifiée du récepteur Android ni la livraison en veille ; aucun
+changement Tailscale ou réassociation effectué.
 
 Une connexion native persistante reste du meilleur effort : aucune promesse de
 réception instantanée pendant Doze ou après arrêt forcé. Les essais historiques
