@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="diagnostic" android:enabled="true"
+        android:icon="@drawable/ic_harness" android:shortcutShortLabel="@string/diagnostic_shortcut">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="app.theharness.mobile"
+            android:targetClass="app.theharness.mobile.DiagnosticsActivity" />
+    </shortcut>
+</shortcuts>

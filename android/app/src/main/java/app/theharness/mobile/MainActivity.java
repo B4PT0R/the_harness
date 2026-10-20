@@ -89,6 +89,7 @@ public final class MainActivity extends Activity {
         destroyWeb(); endpoint = null;
         LinearLayout box = layout();
         text(box, "The Harness", 28);
+        button(box, "Diagnostic local", view -> diagnostics());
         text(box, "Votre conversation, sur votre serveur privé.", 18);
         text(box, "1. Installez Tailscale sur ce téléphone et connectez-le au même réseau que l’ordinateur.\n\n2. Sur l’ordinateur : Réglages → Appareils et accès distant → Activer → Créer un code d’association.", 16);
         if (!error.isEmpty()) text(box, error, 16);
@@ -167,9 +168,10 @@ public final class MainActivity extends Activity {
         destroyWeb();
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         Button menu = new Button(this); menu.setText("The Harness  ·  Connexion privée  ·  ⋮");
-        menu.setOnClickListener(view -> new AlertDialog.Builder(this).setItems(new String[]{"Actualiser", "Alertes locales et alarmes", "Réception privée", "Se déconnecter de ce téléphone"}, (dialog, item) -> {
+        menu.setOnClickListener(view -> new AlertDialog.Builder(this).setItems(new String[]{"Actualiser", "Alertes locales et alarmes", "Réception privée", "Diagnostic local", "Se déconnecter de ce téléphone"}, (dialog, item) -> {
             if (item == 0) { web.reload(); NativeAlerts.get(this).requestSync(); }
-            else if (item == 1) alertSettings(); else if (item == 2) receiverSettings(); else confirmDisconnect();
+            else if (item == 1) alertSettings(); else if (item == 2) receiverSettings();
+            else if (item == 3) diagnostics(); else confirmDisconnect();
         }).show()); root.addView(menu);
         web = new WebView(this); root.addView(web, new LinearLayout.LayoutParams(-1, 0, 1)); setContentView(root);
         WebSettings settings = web.getSettings(); settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
@@ -240,12 +242,14 @@ public final class MainActivity extends Activity {
     private void connectionError(String message) {
         if (isFinishing() || isDestroyed()) return;
         destroyWeb(); LinearLayout box = layout(); text(box, "Connexion interrompue", 24); text(box, message, 16);
-        button(box, "Réessayer", view -> restore()); button(box, "Associer à nouveau", view -> onboarding(""));
+        button(box, "Réessayer", view -> restore()); button(box, "Diagnostic local", view -> diagnostics());
+        button(box, "Associer à nouveau", view -> onboarding(""));
     }
+    private void diagnostics() { startActivity(new Intent(this, DiagnosticsActivity.class)); }
     private void alertSettings() {
         NativeAlerts alerts = NativeAlerts.get(this);
         new AlertDialog.Builder(this).setTitle("Alertes locales et alarmes")
-            .setMessage(alerts.status() + "\n\nLes rappels restent silencieux. Seules les alarmes explicitement demandées peuvent sonner (60 s maximum). Les événements chargés fonctionnent hors connexion.\n\nSans réception privée activée, synchronisation à l’ouverture et périodiquement au mieux. Une modification hors ligne ne peut pas annuler une alarme déjà chargée.")
+            .setMessage(alerts.status() + "\n\nLes rappels restent silencieux. Seules les alarmes explicitement demandées peuvent sonner (3 min maximum). Les événements chargés fonctionnent hors connexion.\n\nSans réception privée activée, synchronisation à l’ouverture et périodiquement au mieux. Une modification hors ligne ne peut pas annuler une alarme déjà chargée.")
             .setPositiveButton(alerts.enabled() ? "Désactiver" : "Activer", (dialog, which) -> {
                 if (alerts.enabled()) alerts.disable();
                 else {

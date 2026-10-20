@@ -24,7 +24,8 @@ import java.time.Instant;
 final class NativeAlerts {
     static final String FIRE = "app.theharness.mobile.ALERT", ACK = "app.theharness.mobile.ACK";
     private static final int JOB = 3101, URGENT_JOB = 3102;
-    private static final String MESSAGES = "reminders-silent-v1", ALARMS = "alarms-playback-v2";
+    private static final String MESSAGES = "reminders-silent-v1";
+    static final String ALARMS = "alarms-playback-v2";
     private final Context context;
     private final SharedPreferences prefs;
     private static NativeAlerts instance;
@@ -35,6 +36,7 @@ final class NativeAlerts {
     private NativeAlerts(Context context) {
         this.context = context.getApplicationContext();
         prefs = this.context.getSharedPreferences("native-alerts", Context.MODE_PRIVATE);
+        if (enabled()) ensureChannels();
     }
     volatile boolean foreground;
     boolean enabled() { return prefs.getBoolean("enabled", false); }
@@ -59,16 +61,20 @@ final class NativeAlerts {
     private boolean paired() { return context.getSharedPreferences("pairing", Context.MODE_PRIVATE).contains("credential"); }
     synchronized void enable() {
         prefs.edit().putBoolean("enabled", true).commit();
+        ensureChannels();
+        if (paired()) context.getSystemService(JobScheduler.class).schedule(new JobInfo.Builder(JOB,
+            new ComponentName(context, AlertSyncJob.class)).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .setPersisted(true).setPeriodic(15 * 60_000L).build());
+        requestSync();
+    }
+    // Idempotent setup, separate from consent. Also needed after an in-place update.
+    private void ensureChannels() {
         NotificationChannel messages = new NotificationChannel(MESSAGES, "Rappels silencieux", NotificationManager.IMPORTANCE_DEFAULT);
         messages.setSound(null, null); messages.enableVibration(false);
         NotificationChannel alarm = new NotificationChannel(ALARMS, "Alarmes demandées", NotificationManager.IMPORTANCE_HIGH);
         // Audio belongs to AlarmPlayback, never to notification-channel repetition.
         alarm.setSound(null, null); alarm.enableVibration(false);
         notifications().createNotificationChannel(messages); notifications().createNotificationChannel(alarm);
-        if (paired()) context.getSystemService(JobScheduler.class).schedule(new JobInfo.Builder(JOB,
-            new ComponentName(context, AlertSyncJob.class)).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-            .setPersisted(true).setPeriodic(15 * 60_000L).build());
-        requestSync();
     }
     synchronized void disable() {
         PrivateReceiver.disable(context);
@@ -125,6 +131,7 @@ final class NativeAlerts {
     }
     synchronized void rearm() {
         if (!enabled()) return;
+        ensureChannels();
         JSONObject cached = read("alerts");
         for (var ids = cached.keys(); ids.hasNext();) arm(cached.optJSONObject(ids.next()));
         requestSync();
@@ -156,6 +163,7 @@ final class NativeAlerts {
             || item.optBoolean("cancelled") || read("fired").has(id)
             || !notifications().areNotificationsEnabled()) return null;
         try {
+            ensureChannels();
             NotificationChannel channel = notifications().getNotificationChannel(ALARMS);
             if (channel == null || channel.getImportance() == NotificationManager.IMPORTANCE_NONE) {
                 receipt(item, "permission_denied"); requestSync(); return null;

@@ -3,7 +3,10 @@
 Thin Android host for the server's shared React UI. The server owns the conversation;
 Tailscale is a separate app, not an embedded VPN. Android 8.0+ (API 26).
 
-Version 0.1.5 fixes audible alarms with an explicit, bounded audio loop.
+Version 0.1.6 repairs alarm-channel initialization after an in-place update and adds
+an offline diagnostic export. Version 0.1.5 introduced the bounded audio loop; the
+first real-phone test of that update was refused before playback, so its audio
+behavior remains unverified on the phone.
 Version 0.1.4 added an **opt-in private notification receiver**, alongside the
 native local alerts introduced in 0.1.3. Local alerts are configured in the menu:
 **Alertes locales et alarmes**. Allow notifications, then grant Android's special
@@ -114,6 +117,33 @@ permission handler and an isolated test page, without a server or Tailscale.
 Both `RECORD_AUDIO` (runtime permission) and `MODIFY_AUDIO_SETTINGS` (install-time
 permission for Chromium audio routing) are needed. This test does not validate
 the complete Realtime call or physical microphone/speaker quality.
+
+## Offline diagnostic (0.1.6)
+
+Open **Diagnostic local** from the native top menu, pairing screen or connection
+error screen. If normal startup fails, long-press the launcher icon and choose
+**Diagnostic local**: this opens a separate native activity without starting the
+WebView, pairing, private receiver or audio. No USB/server/Tailscale connection is
+needed. Launcher shortcut visibility depends on the phone's launcher.
+
+**Exporter le diagnostic…** opens Android's document picker. Save the text file,
+then deliberately attach it to the conversation if desired. Nothing is uploaded
+automatically. The report contains app/SDK version, alert permissions/channel,
+private-receiver opt-in, up to five historical Android process-exit metadata
+entries (API 30+), and the most recent captured Java exception's class/frames.
+Exception messages, source filenames, addresses, credentials and notification/chat
+content are not collected. Native crashes/ANRs may have exit metadata but no Java
+stack. The Java collector cannot recover crashes predating this update. **Effacer
+la trace locale** clears only the captured Java exception, not Android's exit history.
+
+`DiagnosticsTest` exercises sanitization, persistence, bounded traces, offline
+activity and user-mediated export; include it in the emulator-only class selection
+above. `UpgradeAlertsTest` is a separate installation-regression fixture: install
+0.1.4 on a disposable muted emulator, prepare `native-alerts` preferences with
+`enabled=true` and `upgrade_marker=preserved` (no pairing), verify the v2 alarm
+channel is absent, install 0.1.6 over it, then run only that test. It checks silent
+channel creation and preservation of consent/marker, without enabling the private
+receiver or firing an alarm. It is not part of the normal instrumentation selection.
 
 ## Pair
 

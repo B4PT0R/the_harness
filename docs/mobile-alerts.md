@@ -9,6 +9,43 @@ Aucun téléphone réel sollicité, aucune sonnerie, aucun compte externe créé
 aucune nouvelle exposition réseau pour ce nouveau lot. Baptiste a ensuite confirmé
 l’installation de l’APK et autorisé le redémarrage du backend.
 
+## Correctif 0.1.6 et diagnostic hors ligne — 20 octobre 2026
+
+Après installation de 0.1.5, l'essai autorisé de 13:25:05 a produit `armed` puis
+`permission_denied`, sans `fired`, sans ACK ; Baptiste confirme n'avoir entendu
+aucune alarme. Le nouveau canal silencieux n'était créé que lors de l'activation
+manuelle, pas après une mise à jour. C'est une cause probable du refus, non prouvée
+par une lecture de l'état du téléphone. La création idempotente est maintenant
+séparée du consentement, assurée à l'initialisation si les alertes sont actives,
+au réarmement et avant lecture ; elle n'active aucune fonction désactivée.
+
+Baptiste a également signalé plusieurs fermetures complètes au démarrage, puis
+une reprise. Aucun journal ne permet encore d'en attribuer la cause à Tailscale,
+au réseau ou à un composant Android. Le nouveau collecteur garde localement la
+dernière exception Java (classes et frames, sans messages/adresses/secrets) et
+les métadonnées de fins de processus Android disponibles. Le rapport s'exporte
+volontairement par le sélecteur de documents ; aucun envoi automatique.
+
+**Diagnostic local** est accessible dans le menu natif, sur les écrans de connexion
+et d'association, et via un raccourci d'appui long sur l'icône du lanceur. Ce dernier
+ouvre une activité séparée, sans WebView, connexion privée ni micro/sonnerie.
+Les anciennes exceptions Java ne peuvent pas être récupérées rétroactivement ;
+les crashs natifs/ANR peuvent n'avoir que les métadonnées de fin de processus.
+Le guide Android décrit les tests et l'export sans USB.
+
+Validation : build APK/instrumentation, tests unitaires et lint réussis ; **20 tests
+instrumentés distincts validés** sur API 35 muet (14 alertes/lecture, 5 diagnostic,
+1 mise à jour réelle 0.1.4 → 0.1.6). Le premier lot de 19 avait un échec dans
+l'interception du sélecteur par le test ; correction du filtre du test puis les
+5 tests diagnostic repassent. Le test de lecture exerce les trois minutes réelles.
+Écran inspecté, raccourci enregistré par Android, ouverture réelle du sélecteur
+vérifiée, signature APK identique à 0.1.4. Ces tests ne prouvent pas la sonnerie
+sur le téléphone, ni la cause de ses fermetures. APK livré pour installation
+par-dessus la version existante ; pas d'installation réelle présumée.
+
+Aucun nouveau test sonore du téléphone autorisé ni effectué pour ce correctif.
+Aucun redémarrage serveur, changement Tailscale ou réassociation nécessaire.
+
 ## Deuxième lot — réception privée par instance, 20 octobre 2026
 
 Décision de Baptiste : chaque Harness reste autonome et privé, modulo Tailscale.
