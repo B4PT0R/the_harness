@@ -47,6 +47,23 @@ not display an image. Generation-output handling and presentation belong to this
 application plugin; the Framework supplies generic lifecycle hooks and reusable
 image preparation.
 
+## Account quota and resets
+
+The composer’s weekly quota gauge opens the available reset credits and their
+expiry dates. Manual redemption requires confirmation. Conversation settings
+persist the exhausted-quota policy: hold new turns (default), or redeem the
+available reset with the earliest expiry. A turn already running is not cut off.
+Held prompts survive worker restarts and autonomous work rechecks its owner’s
+admission before resuming.
+
+An independent server loop also redeems credits expiring in strictly less than
+one hour, even with no UI open. Decisions and results are journalled in
+`data_root/quota.json` before account mutation. An uncertain result is never
+blindly retried and blocks further redemption until reconciled. The interface
+shows operation receipts; unknown or unavailable quota is explicitly labelled.
+Initial backend unavailability permits conversation for local repair, while a
+previously observed exhausted quota stays blocked until recovery is observed.
+
 ## A private cloud for your clients
 
 An architectural goal is for the app server to double as a small private cloud

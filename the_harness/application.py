@@ -7,6 +7,7 @@ from the_framework import (
     Application,
     ClientSurface,
     Plugin,
+    ServerExtension,
 )
 from the_framework.plugins.agentic import AGENTIC
 from the_framework.plugins.bash import BASH
@@ -35,7 +36,13 @@ application = Application(
     name="The Harness",
     version=package_version("the-harness"),
     agents=(ASSISTANT_AGENT,),
-    server_extensions=(access_boundary(),),
+    server_extensions=(
+        access_boundary(),
+        ServerExtension(name="quota", service_factory="the_harness.quota:build_service"),
+        ServerExtension(name="quota_bridge", scope="session",
+                        service_factory="the_harness.quota:build_bridge",
+                        requires_services=("runtime", "quota"), endpoints=(), websockets=()),
+    ),
     plugins=(
         MEMORY,
         Plugin({**GENERIC_REALTIME, "agent_extension": RealtimeExtension}),

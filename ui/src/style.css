@@ -247,3 +247,22 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 .server-notice { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3); margin-bottom: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-muted); }
 .server-notice small { display: block; overflow-wrap: anywhere; }
 .server-notice[data-phase="failed"] { background: var(--color-error-background); color: var(--color-error-text); }
+
+/* Weekly account quota, intentionally distinct from the context ring. */
+.quota-gauge { display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 5px; min-width: 58px; padding: 4px 7px; border: 0; background: transparent; color: var(--color-muted); font-size: 11px; border-radius: var(--radius-sm); }
+.quota-gauge:hover { background: var(--color-surface); color: var(--color-text); }
+.quota-gauge-caption { font-size: 10px; opacity: .8; }
+.quota-gauge-track { grid-column: 1 / -1; height: 3px; overflow: hidden; border-radius: 2px; background: var(--color-border); }
+.quota-gauge-track > span { display: block; height: 100%; background: var(--color-accent); }
+.quota-gauge.is-full .quota-gauge-track > span { background: var(--color-danger); }
+.quota-dialog { width: 540px; max-height: 85dvh; overflow-y: auto; }
+.quota-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.quota-dialog h2 { margin: 0; }
+.quota-dialog h3 { font-size: var(--font-size-control); }
+.quota-credits { list-style: none; padding: 0; margin: var(--space-3) 0; }
+.quota-credits li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-block: var(--space-3); border-bottom: 1px solid var(--color-border); }
+.quota-credits small { display: block; margin-top: var(--space-1); color: var(--color-muted); }
+.quota-confirm, .quota-hold { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.quota-receipts { margin-block: var(--space-4); font-size: var(--font-size-control); }
+.quota-receipts li { margin-block: var(--space-2); }
+.quota-settings { margin-bottom: var(--space-5); }

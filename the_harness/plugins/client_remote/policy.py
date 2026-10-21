@@ -11,6 +11,9 @@ from the_framework.server.clients.remote import RemoteClientPolicy
 
 
 BASE_REMOTE_DESKTOP_API = (
+    ("GET", "/api/v1/quota"),
+    ("PUT", "/api/v1/quota/policy"),
+    ("POST", "/api/v1/quota/consume"),
     ("GET", "/api/v1/health"),
     ("GET", "/api/v1/status"),
     ("POST", "/api/v1/agent/compact"),

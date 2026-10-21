@@ -6,9 +6,10 @@ import { DangerZone } from "./DangerZone";
 import { DeviceSettings } from "./DeviceSettings";
 import { VoiceSettings } from "./VoiceSettings";
 import { FileEditorSettings } from "./FileEditorSettings";
+import { QuotaSettings } from "./QuotaSettings";
 import { pluginStatusKey } from "../plugins";
 
-export function Settings({ api, onClose, readOnly = false }) {
+export function Settings({ quota, api, onClose, readOnly = false }) {
   const { locale, setLocale, t } = useLocale();
   const [section, setSection] = useState("general");
   const [original, setOriginal] = useState("");
@@ -123,6 +124,7 @@ export function Settings({ api, onClose, readOnly = false }) {
               <FileEditorSettings readOnly={readOnly} api={api} />
             </section>
             <section id="settings-conversation" hidden={section !== "conversation"}>
+              {quota && <QuotaSettings quota={quota} readOnly={readOnly} />}
               <label className="setting-field">
                 {t("model")}
                 <input value={typeof parsed?.model === "string" ? parsed.model : ""}

@@ -7,6 +7,7 @@ from the_framework.agent.runtime.protocol import PromptRequest
 
 from .prompts import compaction_instructions, install_assistant_instructions
 from .turn_timing import TurnTiming
+from .quota_gate import wait_for_quota
 
 
 async def measure_turn(agent, command, call_next):
@@ -47,7 +48,7 @@ ASSISTANT_AGENT = AgentSpec(
     ),
     configuration={"model": "gpt-5.5"},
     initializers=(configure_assistant,),
-    command_middleware=(measure_turn,),
+    command_middleware=(wait_for_quota, measure_turn),
     resources=assistant_resources,
 )
 

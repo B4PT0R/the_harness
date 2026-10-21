@@ -1,12 +1,13 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { useLocale } from "../i18n";
 import { initialContext } from "../context.js";
+import { QuotaGauge } from "./QuotaGauge";
 import { ContextGauge } from "./ContextGauge";
 import { IconButton } from "./Icons";
 import { handleComposerKeyDown } from "../composer-keyboard.js";
 import { resizeComposerTextarea } from "../composer-size.js";
 
-export function Composer({ server = { phase: "idle" }, onDismissServer, readOnly = false, sending, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
+export function Composer({ quota, server = { phase: "idle" }, onDismissServer, readOnly = false, sending, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
   const { t } = useLocale();
   const [draft, setDraft] = useState("");
   const [files, setFiles] = useState([]);
@@ -79,6 +80,7 @@ export function Composer({ server = { phase: "idle" }, onDismissServer, readOnly
         <input ref={fileInput} type="file" multiple hidden onChange={(event) => { setFiles([...files, ...event.target.files]); event.target.value = ""; }} />
         <IconButton icon="attach" label={t("attach")} disabled={sending || voiceState !== "idle"} onClick={() => fileInput.current.click()} />
         <div className="composer-main-actions">
+          {quota && <QuotaGauge quota={quota} readOnly={readOnly} />}
           <ContextGauge context={context} disabled={readOnly || !connected || sending || voiceState !== "idle"} onCompact={onCompact} />
           {voiceAvailable && <IconButton
             icon={voiceState === "idle" ? "mic" : voiceState === "connecting" ? "close" : "stop"}

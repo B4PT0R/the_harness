@@ -197,9 +197,9 @@ def test_fullscreen_settings_preserve_drafts_and_keyboard_navigation(page, width
     assert instructions.input_value() == "Une instruction conservée entre les sections"
     nav.get_by_role("button", name="Données", exact=True).click()
     settings.get_by_role("button", name="Réinitialiser la session", exact=True).click()
-    page.locator("dialog").wait_for(state="visible")
+    page.locator('dialog[aria-labelledby="reset-title"]').wait_for(state="visible")
     page.keyboard.press("Escape")
-    assert page.locator("dialog").is_hidden()
+    assert page.locator('dialog[aria-labelledby="reset-title"]').is_hidden()
     assert settings.is_visible()
     nav.get_by_role("button", name="Général", exact=True).click()
     assert nav.get_by_role("button", name="Général", exact=True).get_attribute("aria-current") == "page"
