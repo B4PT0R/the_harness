@@ -1,5 +1,15 @@
 # The Harness — backlog de la base neutre
 
+- [x] **Livraison Jiminy interrompue après redémarrage — 21 octobre.** Le serveur
+  et son interface étaient disponibles, mais un résultat de spécialiste du 18 octobre
+  était bloqué sur un reçu `interrupted`, renvoyé puis rejeté indéfiniment avec le
+  même identifiant. Autoriser la reprise de cette livraison technique dans le
+  worker, conserver la déduplication des livraisons terminées et ne pas rejouer les
+  prompts utilisateur interrompus. Correctif Framework testé, rechargement supervisé,
+  ancien résultat terminé et file durable entièrement vidée. Suites : 976 succès
+  Framework / 10 skips, 246 succès Harness / 1 skip. La consigne de reprise
+  vocale reste sauvegardée ; Baptiste choisit de relancer lui-même la voix.
+
 - [ ] **Résilience de la compaction distante — 19 octobre.** Le tour scheduler
   `bac175f9-53d0-450f-9b59-fa118f403443` a échoué sur `Response ended prematurely`
   à environ 192k tokens : interruption HTTP chunked pendant la lecture du flux.
