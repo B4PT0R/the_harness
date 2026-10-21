@@ -39,14 +39,16 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     } catch { /* Storage may be disabled. */ }
   }, [restartKey]);
   useEffect(() => {
-    if (server.phase !== "restarting") return;
+    if (!["restarting", "restarted"].includes(server.phase)) return;
     const timer = setTimeout(() => {
-      const next = { ...serverRef.current, phase: "waiting" };
+      const current = serverRef.current;
+      if (current.phase !== server.phase || current.instanceId !== server.instanceId) return;
+      const next = { ...current, phase: server.phase === "restarted" ? "idle" : "waiting" };
       serverRef.current = next;
       setServer(next);
-    }, 30000);
+    }, server.phase === "restarted" ? 5000 : 30000);
     return () => clearTimeout(timer);
-  }, [server.phase]);
+  }, [server.phase, server.instanceId]);
   const [voiceState, setVoiceState] = useState("idle");
   const [voiceAvailable, setVoiceAvailable] = useState(false);
   const [captions, setCaptions] = useState({});

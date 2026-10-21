@@ -762,6 +762,32 @@ def test_planned_restart_has_neutral_feedback_until_new_instance_is_ready(page, 
     assert page.get_by_role("alert").count() == 0
     page.screenshot(path=f"/tmp/harness-server-restarted-{width}.png", full_page=True)
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.clock.install()
+    page.clock.fast_forward(5100)
+    notice.wait_for(state="detached")
+    # Later healthy status refreshes must not resurrect the confirmation.
+    page.evaluate("window.emit({type:'command_completed',command:{id:'refresh',type:'prompt_request'}})")
+    page.wait_for_timeout(100)
+    assert notice.count() == 0
+
+
+def test_restart_success_timer_does_not_hide_a_subsequent_restart(page):
+    page.clock.install()
+    page.evaluate("""() => {
+      window.emit({type:'server_restarting',instance_id:'server-one'});
+      localStorage.setItem('test-server-instance','server-two');
+      window.emit({type:'command_completed',command:{id:'resumed',type:'prompt_request'}});
+    }""")
+    notice = page.locator(".server-notice")
+    notice.filter(has_text="Serveur redémarré.").wait_for()
+    page.clock.fast_forward(4000)
+    assert notice.is_visible()
+    page.evaluate("window.emit({type:'server_restarting',instance_id:'server-two'})")
+    page.clock.fast_forward(2000)
+    notice.filter(has_text="Redémarrage du serveur…").wait_for()
+    page.evaluate("window.emit({type:'server_restart_failed',instance_id:'server-two',error:'Supervisor unavailable'})")
+    page.clock.fast_forward(31000)
+    notice.filter(has_text="Le redémarrage du serveur a échoué.").wait_for()
     notice.get_by_role("button", name="Fermer", exact=True).click()
     assert notice.count() == 0
 
