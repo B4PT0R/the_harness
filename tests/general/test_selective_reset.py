@@ -39,7 +39,7 @@ class FixtureHarness(HarnessSession):
 @pytest.mark.parametrize("fail_start", [False, True])
 def test_reset_preserves_unrelated_data_and_restores_failed_reset(tmp_path, kind, fail_start):
     paths = [
-        "session.json", "session.turn-timing.json", "system-control.json",
+        "session.json", "session.turn-timing.json", "system-control.json", "agentic.json",
         "session.auxiliaries/memory.jiminy/session.json",
         "session.auxiliaries/other/session.json",
         *MEMORY_RESET_ENTRIES[:3], "registry.json", "config.json",

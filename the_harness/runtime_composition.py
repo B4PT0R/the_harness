@@ -69,7 +69,7 @@ class HarnessSession(SessionRuntime):
             "status": "reset",
             "session_id": ready.session_id,
             "cleared": ["conversation", "archive", "auxiliaries"],
-            "preserved": ["memory", "registry", "config", "environment", "scheduler", "files"],
+            "preserved": ["memory", "registry", "config", "environment", "scheduler", "goals", "files"],
         }
 
     async def reset_memory(self):

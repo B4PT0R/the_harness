@@ -8,6 +8,7 @@ from the_framework import (
     ClientSurface,
     Plugin,
 )
+from the_framework.plugins.agentic import AGENTIC
 from the_framework.plugins.bash import BASH
 from the_framework.plugins.registry import REGISTRY
 from the_framework.plugins.web_search import WEB_SEARCH
@@ -46,6 +47,7 @@ application = Application(
         IMAGES,
         BASH,
         WEB_SEARCH,
+        AGENTIC,
         SCHEDULER,
         CHROMIUM,
         Plugin({**SYSTEM, "agent_binding_required": True}),

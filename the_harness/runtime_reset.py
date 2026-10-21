@@ -7,6 +7,7 @@ RESET_ENTRIES = (
     "relational-memory.sqlite3-wal",
     "session.auxiliaries",
     "system-control.json",
+    "agentic.json",
     "registry.json",
 )
 

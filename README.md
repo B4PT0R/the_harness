@@ -143,6 +143,15 @@ current declarations. The worker emits one catalogue for its fleet, including
 inactive bindings; AgentSpec does not carry compiled profiles. Launch settings
 override initial resource defaults, while saved Session settings remain authoritative.
 
+The bundled `agentic` plugin owns persistent goals and immediate turn controls
+(`wait`, `end_turn`). One authorized goal remains open until verified completion
+or explicit human cancellation; the agent may suspend it with progress preserved.
+Low-priority continuations use the canonical worker, survive server restarts and
+stop when suspended or disabled. This does not expand tool permissions. Timed
+reminders and persistent response deadlines remain owned by `scheduler`.
+Clearing conversation history preserves goals, just like scheduled obligations;
+only an explicit complete application reset clears their stored records.
+
 Plugins represent application features. Changing an agent binding during voice
 recreates the call from the current canonical conversation, while installed
 services and data remain available. The owning client reconnects automatically;
