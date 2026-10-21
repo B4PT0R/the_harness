@@ -816,3 +816,37 @@ def test_delayed_restart_never_claims_success(page):
     page.clock.fast_forward(31000)
     page.locator(".server-notice").filter(has_text="Le serveur ne répond pas encore. Reconnexion en cours…").wait_for()
     assert page.get_by_text("Serveur redémarré.", exact=True).count() == 0
+
+
+def test_desktop_browser_button_preserves_draft_and_prevents_duplicate_requests(page):
+    button = page.get_by_role("button", name="Ouvrir le navigateur", exact=True)
+    assert button.is_enabled()
+    assert page.locator(".topbar-actions button").evaluate_all("buttons => buttons.map(b => b.getAttribute('aria-label'))") == ["Ouvrir le navigateur", "Réglages"]
+    field = page.locator(".composer textarea")
+    field.fill("Brouillon conservé")
+    page.screenshot(path="/tmp/harness-browser-toolbar.png")
+    page.evaluate("window.holdBrowserOpen = true")
+    button.click()
+    page.wait_for_function("typeof window.releaseBrowserOpen === 'function'")
+    assert button.is_disabled()
+    assert button.get_attribute("aria-busy") == "true"
+    assert page.evaluate("window.requests.filter(r => r.path === 'browser/open').map(r => r.method)") == ["POST"]
+    page.evaluate("window.releaseBrowserOpen()")
+    page.wait_for_function("!document.querySelector('[aria-label=\"Ouvrir le navigateur\"]').disabled")
+    assert field.input_value() == "Brouillon conservé"
+    page.evaluate("window.failBrowserOpen = true; window.holdBrowserOpen = false")
+    button.click()
+    page.get_by_role("alert").filter(has_text="Integrated browser unavailable").wait_for()
+    assert button.is_enabled()
+
+
+@pytest.mark.parametrize("preview_client", [True])
+def test_preview_cannot_open_local_browser(page, preview_client):
+    assert page.get_by_role("button", name="Ouvrir le navigateur", exact=True).is_disabled()
+    assert not page.evaluate("window.requests.some(r => r.path === 'browser/open')")
+
+
+def test_remote_mobile_has_no_local_browser_button(page):
+    page.goto("https://harness.ts.net/")
+    page.get_by_role("button", name="Réglages", exact=True).wait_for()
+    assert page.get_by_role("button", name="Ouvrir le navigateur", exact=True).count() == 0

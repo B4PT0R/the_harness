@@ -183,6 +183,7 @@ def test_remote_policy_collects_all_features_before_accepting_clients(tmp_path, 
         assert service.desktop_api_allowed('GET', '/api/v1/notifications/desktop')
         assert not service.desktop_api_allowed('POST', '/api/v1/weather')
         assert not service.desktop_api_allowed('GET', '/api/v1/local-files/open')
+        assert not service.desktop_api_allowed('POST', '/api/v1/browser/open')
         with pytest.raises(RuntimeError, match='fixed'):
             service.desktop_access.add_exact(('POST', '/api/v1/weather'))
         headers = {'Authorization': 'Bearer local'}

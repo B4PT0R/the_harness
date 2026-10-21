@@ -44,7 +44,9 @@ async function request(path, options = {}) {
     ? Object.fromEntries(['id', 'prompt'].map(key => [key, options.body.get(key)]).concat([
       ['files', options.body.getAll('files').map(file => file.name)],
     ])) : options.body;
-  window.requests.push({ path, body });
+  window.requests.push({ path, body, method: options.method || 'GET' });
+  if (path === 'browser/open' && window.holdBrowserOpen)
+    await new Promise(resolve => { window.releaseBrowserOpen = resolve; });
   if (path.startsWith('agent/') && window.holdSend)
     await new Promise(resolve => { window.releaseSend = resolve; });
   if (path === 'config' && options.method === 'PATCH' && window.failConfigSave) throw new Error('Config save failed');
@@ -54,7 +56,7 @@ async function request(path, options = {}) {
     return { editor: window.fileEditor || 'system' };
   }
   if (path === 'local-files/open' && window.failFileOpen) throw new Error('File no longer exists');
-  if (path === 'browser/open-external' && window.failBrowserOpen) throw new Error('Integrated browser unavailable');
+  if (['browser/open', 'browser/open-external'].includes(path) && window.failBrowserOpen) throw new Error('Integrated browser unavailable');
   if (path === 'client-remote/network') {
     if (options.method === 'PUT') window.remoteEnabled = body.enabled;
     return { enabled: Boolean(window.remoteEnabled), available: true, endpoint: window.remoteEnabled ? 'https://computer.example.ts.net' : null };

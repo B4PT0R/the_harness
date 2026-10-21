@@ -49,6 +49,7 @@ select:focus-visible, a:focus-visible, summary:focus-visible {
   align-items: center;
   justify-content: space-between;
 }
+.topbar-actions { display: flex; align-items: center; gap: var(--space-2); }
 .brand { display: flex; align-items: center; gap: var(--space-2); }
 .brand img { width: var(--brand-icon-size); height: var(--brand-icon-size); }
 .connection { display: inline-flex; color: var(--color-muted); margin-left: var(--space-2); }

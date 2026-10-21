@@ -85,6 +85,28 @@ class HostedUiApi:
             )
         return {"status": "opened", "url": f"{base_url}/ui/"}
 
+    def _show_browser(self):
+        status = self.browser.session_call("web", "status")
+        if not status["tabs"]:
+            self.browser.call("open_web", "https://www.google.com")
+            status = self.browser.session_call("web", "status")
+        active = next(tab["index"] for tab in status["tabs"] if tab["active"])
+        self.browser.session_call("web", "select_tab", active)
+
+    @endpoint(
+        "post", "/api/v1/browser/open",
+        authorization={"scope": "browser:write"},
+    )
+    async def open_browser(self):
+        """Open or foreground the local browser, preserving its existing tabs."""
+        try:
+            await asyncio.to_thread(self._show_browser)
+        except Exception as error:
+            return JSONResponse(
+                {"error": f"browser service unavailable: {error}"}, status_code=503,
+            )
+        return {"status": "opened"}
+
     @endpoint(
         "post", "/api/v1/browser/open-external",
         request={

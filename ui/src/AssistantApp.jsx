@@ -17,8 +17,17 @@ const preview = document.querySelector('meta[name="framework-client-role"]')?.co
 
 function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./assistant.svg", artifactRenderers }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [openingBrowser, setOpeningBrowser] = useState(false);
   const state = useAssistant({ request, eventsUrl: eventsUrl || (mobile ? `wss://${location.host}/remote/v1/ui-events` : undefined), eventProtocol, refreshKey: settingsOpen });
+  async function openBrowser() {
+    if (preview || openingBrowser) return;
+    setOpeningBrowser(true);
+    try { await request("browser/open", { method: "POST" }); }
+    catch (failure) { state.setError(failure.message); }
+    finally { setOpeningBrowser(false); }
+  }
   return <ResourceRequest.Provider value={request}><AppShell preview={preview} connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
+    onOpenBrowser={mobile ? undefined : openBrowser} openingBrowser={openingBrowser}
     settings={settingsOpen && (mobile ? <MobileSettings onClose={() => setSettingsOpen(false)} /> : <Settings readOnly={preview} api={request} onClose={() => setSettingsOpen(false)} />)}
   >
     <Conversation messages={state.messages} artifacts={state.artifacts} captions={state.captions} subagents={state.subagents} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}

@@ -112,3 +112,33 @@ def test_web_links_use_integrated_browser_and_reject_other_schemes():
     for url in ("file:///tmp/a", "javascript:alert(1)", "relative/path"):
         assert asyncio.run(api.open_external(url)).status_code == 422
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize("empty", [False, True])
+def test_browser_button_preserves_active_tab_or_opens_google(empty):
+    calls = []
+    tabs = [{"index": 0, "active": False}, {"index": 1, "active": True}]
+
+    class Browser:
+        def session_call(self, target, method, *args):
+            calls.append((target, method, *args))
+            return {"tabs": [] if empty and len(calls) == 1 else tabs}
+
+        def call(self, *args):
+            calls.append(args)
+
+    api = HostedUiApi(Browser(), browser_token="test")
+    assert asyncio.run(api.open_browser()) == {"status": "opened"}
+    assert calls == [("web", "status"), *(
+        [("open_web", "https://www.google.com"), ("web", "status")] if empty else []
+    ), ("web", "select_tab", 1)]
+
+
+def test_browser_button_reports_service_failure():
+    class Browser:
+        def session_call(self, *args):
+            raise RuntimeError("browser offline")
+
+    response = asyncio.run(HostedUiApi(Browser(), browser_token="test").open_browser())
+    assert response.status_code == 503
+    assert "browser offline" in json.loads(response.body)["error"]
