@@ -17,8 +17,18 @@ def test_assistant_receives_base_compactor_and_custom_policy(tmp_path):
 def test_memory_declaration_installs_full_curator_policy(tmp_path):
     agent = Agent(tmp_path / "session.json")
     extension = MemoryExtension(agent).load()
-    declaration = next(value for kind, value in extension._contributions if kind == "agents")
+    declaration = next(value for kind, value in extension._contributions if kind == "agents" and value.name == "memory.jiminy")
     assert declaration.name == "memory.jiminy"
     assert declaration.spec.instructions[0].content == MemoryExtension.curator_instructions
     assert declaration.completion_tool == "complete_curation"
     assert Path(declaration.spec.configuration["memory_curator"]["store_path"]).parent == tmp_path
+
+
+def test_memory_consultation_is_jiminy_without_curation_capabilities(tmp_path):
+    extension = MemoryExtension(Agent(tmp_path / "session.json")).load()
+    declaration = next(value for kind, value in extension._contributions
+                       if kind == "agents" and value.name == "memory.consultation")
+    assert "Jiminy" in declaration.spec.instructions[0].content
+    assert not declaration.spec.extensions
+    assert not declaration.retain_history
+    assert declaration.completion_tool is None
