@@ -6,7 +6,7 @@ import { IconButton } from "./Icons";
 import { handleComposerKeyDown } from "../composer-keyboard.js";
 import { resizeComposerTextarea } from "../composer-size.js";
 
-export function Composer({ readOnly = false, sending, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
+export function Composer({ server = { phase: "idle" }, onDismissServer, readOnly = false, sending, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
   const { t } = useLocale();
   const [draft, setDraft] = useState("");
   const [files, setFiles] = useState([]);
@@ -60,6 +60,12 @@ export function Composer({ readOnly = false, sending, voiceAvailable, voiceState
     : busy ? activity || t("working") : "";
   const voiceLabel = voiceState === "idle" ? "voiceStart" : voiceState === "connecting" ? "cancel" : voiceState === "stopping" ? "voiceStopping" : "voiceEnd";
   return <div className="composer-area">
+    {server.phase !== "idle" && <div className="server-notice" data-phase={server.phase} role={server.phase === "failed" ? "alert" : "status"}>
+      <span>{t({ restarting: "serverRestarting", waiting: "serverRestartWaiting", restarted: "serverRestarted", failed: "serverRestartFailed" }[server.phase])}
+        {server.phase === "failed" && server.error && <small>{server.error}</small>}
+      </span>
+      {["restarted", "failed"].includes(server.phase) && <IconButton icon="close" label={t("close")} onClick={onDismissServer} />}
+    </div>}
     {error && <div className="error" role="alert">{error}<IconButton icon="close" label={t("close")} onClick={onDismissError} /></div>}
     <div className="activity" role="status">{activityText}</div>
     <form className="composer" onSubmit={submit}>

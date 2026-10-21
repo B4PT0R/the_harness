@@ -4,6 +4,7 @@ import { RemoteRealtimeTranscriptAssembler } from "../realtime-transcript";
 import { voiceSession } from "../voice";
 import { translate } from "../locales.js";
 import { contextState, initialContext } from "../context.js";
+import { initialServer, restartPending, restoreServer, serverLifecycle } from "../server-lifecycle.js";
 import { pluginBindingEnabled } from "../plugins";
 import { conversationBusy, conversationCommand, eventMessages, providerArtifacts, snapshot, voiceCaptions, voiceMessages, subagentActivities } from "../session";
 
@@ -25,6 +26,27 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   const compactSubmitting = useRef(false);
   const contextRevision = useRef(0);
   const [error, setError] = useState("");
+  const restartKey = `server-restart:${eventsUrl}`;
+  const [server, setServer] = useState(() => restoreServer(window.sessionStorage, restartKey));
+  const serverRef = useRef(server);
+  const updateServer = useCallback((output) => {
+    const next = serverLifecycle(serverRef.current, output);
+    serverRef.current = next;
+    setServer(next);
+    try {
+      if (restartPending(next)) window.sessionStorage.setItem(restartKey, JSON.stringify(next));
+      else window.sessionStorage.removeItem(restartKey);
+    } catch { /* Storage may be disabled. */ }
+  }, [restartKey]);
+  useEffect(() => {
+    if (server.phase !== "restarting") return;
+    const timer = setTimeout(() => {
+      const next = { ...serverRef.current, phase: "waiting" };
+      serverRef.current = next;
+      setServer(next);
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [server.phase]);
   const [voiceState, setVoiceState] = useState("idle");
   const [voiceAvailable, setVoiceAvailable] = useState(false);
   const [captions, setCaptions] = useState({});
@@ -62,7 +84,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     voice.current = session;
     if (connection === "Connected") {
       api("status").then(status => {
-        if (mounted && !conversationBusy(status)) return session.resume();
+        if (mounted && !restartPending(serverRef.current) && !conversationBusy(status)) return session.resume();
       }).catch(cause => { if (mounted) setError(cause.message); });
     }
     return () => {
@@ -124,7 +146,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       } catch (cause) {
         if (!disposed && cause.name !== "AbortError") {
           statusError = cause.message;
-          setError(statusError);
+          if (!restartPending(serverRef.current)) setError(statusError);
         }
         return null;
       }
@@ -136,10 +158,11 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       try {
         const status = await readStatus();
         if (status && !disposed && requested === contextRevision.current) {
+          updateServer(status);
           workerRecovered();
           setContext((current) => contextState(current, status));
           setBusy(conversationBusy(status));
-          if (transportReady && !conversationBusy(status)) void voice.current?.resume();
+          if (transportReady && !restartPending(serverRef.current) && !conversationBusy(status)) void voice.current?.resume();
         }
       } finally { statusLoading = false; }
     }
@@ -156,9 +179,10 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       });
       const statusRequest = readStatus().then((status) => {
         if (!status || disposed || requested !== revision || requestedContext !== contextRevision.current) return;
+        updateServer(status);
         workerRecovered();
         setBusy(conversationBusy(status));
-        if (transportReady && !conversationBusy(status)) void voice.current?.resume();
+        if (transportReady && !restartPending(serverRef.current) && !conversationBusy(status)) void voice.current?.resume();
         setContext((current) => contextState(current, status));
       });
       await Promise.all([pageRequest, statusRequest]);
@@ -181,6 +205,12 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       active.onmessage = ({ data }) => {
         if (!current()) return;
         const output = JSON.parse(data);
+        if (["server_restarting", "server_restart_failed"].includes(output.type)) {
+          updateServer(output);
+          // Voice has its own post-drain restarting event: do not cut speech here.
+          transportReady = output.type !== "server_restarting";
+          if (output.type === "server_restart_failed") refreshStatus().catch(fail);
+        }
         if (output.type === "subagent_event") setSubagents((items) => subagentActivities(items, output));
         if (output.type === "realtime_control_requested") {
           void voice.current?.control(output);
@@ -202,12 +232,13 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
           updateContext(output);
         if (output.type === "command_event" && output.event?.type === "agent.compaction.end")
           refreshStatus().catch(fail);
-        if (output.type === "command_failed" && output.error) setError(output.error);
+        if (output.type === "command_failed" && output.error &&
+            !(restartPending(serverRef.current) && output.error === "interrupted")) setError(output.error);
         if (["worker_exited", "worker_transport_error"].includes(output.type)) {
           setArtifacts([]);
           setSubagents({});
           workerError = output.error || translate("workerDisconnected");
-          setError(workerError);
+          if (!(restartPending(serverRef.current) && output.type === "worker_exited" && output.returncode === 0)) setError(workerError);
         }
         if (output.type === "realtime_event" && output.call_id !== voiceCallId) {
           voiceCallId = output.call_id;
@@ -233,7 +264,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         if (output.type === "worker_status") {
           workerRecovered();
           setBusy(conversationBusy(output));
-          if (transportReady && !conversationBusy(output)) void voice.current?.resume();
+          if (transportReady && !restartPending(serverRef.current) && !conversationBusy(output)) void voice.current?.resume();
         }
         if (output.type === "command_accepted" && conversationCommand(output))
           setBusy(true);
@@ -264,7 +295,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       active.onerror = () => active.close();
     }
     function fail(error) {
-      if (!disposed && error.name !== "AbortError") setError(error.message);
+      if (!disposed && error.name !== "AbortError" && !restartPending(serverRef.current)) setError(error.message);
     }
     connect();
     const statusTimer = setInterval(() => {
@@ -278,7 +309,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       clearInterval(statusTimer);
       socket?.close();
     };
-  }, [api, eventsUrl, eventProtocol]);
+  }, [api, eventsUrl, eventProtocol, updateServer]);
   useLayoutEffect(() => {
     followLatest();
   }, [messages, artifacts, activity, captions, subagents, followLatest]);
@@ -351,7 +382,8 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     } finally { compactSubmitting.current = false; }
   }
   return {
-    context, compact,
+    context, compact, server,
+    dismissServer: () => { serverRef.current = { ...initialServer, instanceId: serverRef.current.instanceId }; setServer(serverRef.current); },
     messages, artifacts, captions, subagents, before, loadingHistory, loadHistory, scroll, follow, onScroll, onContentLoad: followLatest,
     sending, connection, activity, busy,
     error, setError, voiceAvailable, voiceState, send,

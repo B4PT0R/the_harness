@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { api } from "./api";
 import { LocaleProvider } from "./i18n";
+import { restartPending } from "./server-lifecycle.js";
 import { useAssistant } from "./hooks/useAssistant";
 import { AppShell } from "./components/AppShell";
 import { Conversation } from "./components/Conversation";
@@ -23,8 +24,8 @@ function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./ass
     <Conversation messages={state.messages} artifacts={state.artifacts} captions={state.captions} subagents={state.subagents} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
       onScroll={state.onScroll} onContentLoad={state.onContentLoad} artifactRenderers={artifactRenderers}
     />
-    <Composer readOnly={preview} sending={state.sending}
-      voiceAvailable={state.voiceAvailable} voiceState={state.voiceState} busy={state.busy} connected={state.connection === "Connected"}
+    <Composer server={state.server} onDismissServer={state.dismissServer} readOnly={preview} sending={state.sending}
+      voiceAvailable={state.voiceAvailable} voiceState={state.voiceState} busy={state.busy} connected={state.connection === "Connected" && !restartPending(state.server)}
       context={state.context} onCompact={state.compact}
       activity={state.activity} error={state.error} onDismissError={() => state.setError("")} onSubmit={state.send} onToggleVoice={state.toggleVoice} onInterrupt={state.interrupt}
     />

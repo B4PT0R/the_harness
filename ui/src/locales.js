@@ -3,6 +3,10 @@
 export const languages = { fr: "Français", en: "English" };
 export const messages = {
   fr: {
+    serverRestarting: "Redémarrage du serveur…",
+    serverRestarted: "Serveur redémarré.",
+    serverRestartWaiting: "Le serveur ne répond pas encore. Reconnexion en cours…",
+    serverRestartFailed: "Le redémarrage du serveur a échoué.",
     settings_devices: "Appareils et accès distant",
     remoteHelp: "Connectez le téléphone et cet ordinateur au même réseau Tailscale. L’accès utilise HTTPS et reste privé : aucun accès Internet public ni Funnel.",
     remoteEnabled: "Accès privé activé",
@@ -77,6 +81,10 @@ export const messages = {
     plugin_scheduler: "Planification", plugin_chromium: "Navigateur", plugin_system: "Système", plugin_registry: "Registre",
   },
   en: {
+    serverRestarting: "Server restarting…",
+    serverRestarted: "Server restarted.",
+    serverRestartWaiting: "The server has not responded yet. Reconnecting…",
+    serverRestartFailed: "Server restart failed.",
     settings_devices: "Devices and remote access",
     remoteHelp: "Connect your phone and this computer to the same Tailscale network. Access uses private HTTPS: no public Internet access or Funnel.",
     remoteEnabled: "Private access enabled",

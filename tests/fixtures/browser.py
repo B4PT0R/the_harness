@@ -66,7 +66,7 @@ async function request(path, options = {}) {
     { name: 'realtime', running: true, binding_available: true, binding_enabled: Boolean(window.voiceEnabled) }] };
   if (path === 'status' && window.holdStatus) await new Promise(resolve => { window.releaseStatus = resolve; });
   if (path === 'status' && window.failStatus) throw new Error('agent status temporarily unavailable');
-  if (path === 'status') return { foreground_active: false, foreground_pending: 0 };
+  if (path === 'status') return { foreground_active: false, foreground_pending: 0, server: { instance_id: localStorage.getItem('test-server-instance') || 'server-one', phase: window.serverPhase || 'ready' } };
   if (path.startsWith('session')) return { turns: [{ items: [...items, ...JSON.parse(localStorage.getItem('test-artifacts') || '[]')] }], has_more: true, next_before: 'older' };
   if (path.startsWith('agent/') && window.failSend) throw new Error('Send failed');
   return {};

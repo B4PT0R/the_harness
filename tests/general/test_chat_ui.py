@@ -640,13 +640,19 @@ def test_voice_survives_server_reconnect_and_interface_publication(page):
     page.wait_for_function("window.requests.filter(r => r.path === 'realtime/calls/current/ready').length === 1")
     original = page.evaluate("window.requests.find(r => r.path === 'realtime/calls').body.call_id")
     page.screenshot(path='/tmp/harness-voice-continuity-before.png')
+    page.evaluate("window.emit({type:'server_restarting',instance_id:'server-one'})")
+    page.locator('.server-notice').filter(has_text='Redémarrage du serveur…').wait_for()
+    # The general announcement must not stop an utterance before voice drains it.
+    assert not page.evaluate("window.requests.some(r => r.method === 'DELETE' && r.path === 'realtime/calls/current')")
+    page.get_by_role('button', name='Terminer la voix', exact=True).wait_for()
     page.evaluate("""id => {
       window.emit({type:'realtime_restarting',call_id:id});
       window.emit({type:'worker_status',foreground_active:false,foreground_pending:0});
     }""", original)
     assert page.evaluate("window.requests.filter(r => r.path === 'realtime/calls').length") == 1
-    page.evaluate("window.socket.readyState = 3; window.socket.onclose()")
+    page.evaluate("localStorage.setItem('test-server-instance','server-two'); window.socket.readyState = 3; window.socket.onclose()")
     page.wait_for_function("window.requests.filter(r => r.path === 'realtime/calls/current/ready').length === 2")
+    page.locator('.server-notice').filter(has_text='Serveur redémarré.').wait_for()
     resumed = page.evaluate("window.requests.filter(r => r.path === 'realtime/calls').at(-1).body.call_id")
     assert resumed != original
     assert page.locator('.message').count() == 80
@@ -725,3 +731,62 @@ def test_status_failure_does_not_discard_history_and_recovers(page, width):
     }""")
     page.get_by_role("alert").wait_for(state="detached")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+
+
+@pytest.mark.parametrize("width", [1280, 390])
+def test_planned_restart_has_neutral_feedback_until_new_instance_is_ready(page, width):
+    page.set_viewport_size({"width": width, "height": 800})
+    field = page.locator(".composer textarea")
+    field.fill("Draft preserved during restart")
+    page.evaluate("window.emit({type:'server_restarting',instance_id:'server-one',phase:'restarting'})")
+    notice = page.locator(".server-notice")
+    notice.filter(has_text="Redémarrage du serveur…").wait_for()
+    assert page.get_by_role("button", name="Envoyer", exact=True).is_disabled()
+    page.evaluate("""() => {
+      window.emit({type:'command_failed',error:'interrupted',command:{id:'drained',type:'prompt_request'}});
+      window.emit({type:'worker_exited',returncode:0});
+      window.socket.onclose();
+    }""")
+    page.wait_for_function("document.querySelector('.connection').dataset.state === 'Connected'")
+    # A successful reconnect to the old server is not proof of a restart.
+    assert notice.inner_text() == "Redémarrage du serveur…"
+    assert page.get_by_role("alert").count() == 0
+    assert field.input_value() == "Draft preserved during restart"
+    page.reload()
+    notice.filter(has_text="Redémarrage du serveur…").wait_for()
+    page.evaluate("""() => {
+      localStorage.setItem('test-server-instance','server-two');
+      window.emit({type:'command_completed',command:{id:'resumed',type:'prompt_request'}});
+    }""")
+    notice.filter(has_text="Serveur redémarré.").wait_for()
+    assert page.get_by_role("alert").count() == 0
+    page.screenshot(path=f"/tmp/harness-server-restarted-{width}.png", full_page=True)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    notice.get_by_role("button", name="Fermer", exact=True).click()
+    assert notice.count() == 0
+
+
+def test_restart_does_not_hide_real_errors_and_reports_explicit_failure(page):
+    page.evaluate("window.emit({type:'server_restarting',instance_id:'server-one'})")
+    page.evaluate("window.emit({type:'command_failed',error:'disk full',command:{id:'failed',type:'prompt_request'}})")
+    page.get_by_role("alert").filter(has_text="disk full").wait_for()
+    page.evaluate("window.emit({type:'server_restart_failed',instance_id:'server-one',error:'Supervisor unavailable'})")
+    notice = page.locator(".server-notice")
+    notice.filter(has_text="Le redémarrage du serveur a échoué.").wait_for()
+    assert notice.get_attribute("role") == "alert"
+    assert "Supervisor unavailable" in notice.inner_text()
+
+
+def test_unplanned_interruption_remains_an_error(page):
+    page.evaluate("window.emit({type:'command_failed',error:'interrupted',command:{id:'failed',type:'prompt_request'}})")
+    page.get_by_role("alert").filter(has_text="interrupted").wait_for()
+    assert page.locator(".server-notice").count() == 0
+
+
+def test_delayed_restart_never_claims_success(page):
+    page.clock.install()
+    page.evaluate("window.emit({type:'server_restarting',instance_id:'server-one'})")
+    page.locator(".server-notice").filter(has_text="Redémarrage du serveur…").wait_for()
+    page.clock.fast_forward(31000)
+    page.locator(".server-notice").filter(has_text="Le serveur ne répond pas encore. Reconnexion en cours…").wait_for()
+    assert page.get_by_text("Serveur redémarré.", exact=True).count() == 0
