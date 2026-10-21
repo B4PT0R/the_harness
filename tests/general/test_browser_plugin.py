@@ -317,6 +317,7 @@ def test_browser_plugin_observation_is_fresh_ephemeral_provider_context(tmp_path
         ChromiumExtension(agent, runtime_root=tmp_path, service_factory=lambda: service)
     )
 
+    plugin.open_session("web")
     result = plugin.open_web("https://example.com")
     outputs = asyncio.run(agent.registry("providers").aoutputs(channel="text"))
 
@@ -354,13 +355,16 @@ def test_browser_plugin_closes_web_tabs_without_touching_harness_ui(tmp_path):
     plugin = agent.add_extension(
         ChromiumExtension(agent, runtime_root=tmp_path, service_factory=lambda: service)
     )
+    plugin.open_session("web")
     plugin.open_web("https://first.example")
     plugin.open_web("https://second.example", new_tab=True)
     plugin.controller.call("open_application_ui", "http://127.0.0.1:48887/ui/")
 
     closed_tab = plugin.close_tab(0)
-    web_status = plugin.status("web")
-    ui_status = plugin.status("harness_ui")
+    web_status = plugin.status()
+    plugin.open_session("harness_ui")
+    ui_status = plugin.status()
+    plugin.open_session("web")
 
     assert closed_tab["closed_index"] == 0
     assert closed_tab["remaining_tabs"] == 1
@@ -380,6 +384,45 @@ def test_browser_plugin_closes_web_tabs_without_touching_harness_ui(tmp_path):
     assert service.sessions["harness_ui"].started is True
 
     plugin.deactivate()
+
+
+def test_observation_closure_preserves_tabs_and_resume_recovers_user_navigation(tmp_path):
+    factory = PlaywrightFactory()
+    service = BrowserService(tmp_path, playwright_factory=factory)
+    agent = Agent(client=object())
+    plugin = agent.add_extension(
+        ChromiumExtension(agent, runtime_root=tmp_path, service_factory=lambda: service)
+    )
+    try:
+        assert asyncio.run(plugin.chromium_state()) is None
+        assert not factory.managers
+        assert plugin.open_session("web")["tabs"] == []
+        assert not factory.managers  # Observation alone never starts Chromium.
+        plugin.open_web("https://retained.example")
+        plugin.controller.call("open_application_ui", "http://127.0.0.1:48887/ui/")
+        plugin.close_session()
+        assert asyncio.run(plugin.chromium_state()) is None
+        assert asyncio.run(agent.registry("providers").aoutputs(channel="text")) == []
+        assert service.sessions["web"].started
+        assert service.sessions["harness_ui"].started
+
+        # The user keeps navigating while no browser context is injected.
+        plugin.controller.call("goto", "web", "https://user.example/changed")
+        plugin.controller.call("open_web", "https://user.example/new", new_tab=True)
+        assert asyncio.run(plugin.chromium_state()) is None
+        resumed = plugin.open_session("web")
+        assert [tab["url"] for tab in resumed["tabs"]] == [
+            "https://user.example/changed", "https://user.example/new",
+        ]
+        snapshot, image = asyncio.run(plugin.chromium_state())
+        assert "https://user.example/new" in snapshot
+        assert isinstance(image, Image)
+        plugin.open_session("harness_ui")
+        plugin.close_session()
+        assert service.sessions["harness_ui"].started
+        assert len(plugin.controller.session_call("web", "status")["tabs"]) == 2
+    finally:
+        plugin.deactivate()
 
 
 def test_browser_rpc_client_disconnect_does_not_close_persistent_browser(tmp_path):
