@@ -235,7 +235,7 @@ async def _browser_service_uses_separate_persistent_profiles(tmp_path):
         "--start-maximized",
     ]
     assert ui_launch["ignore_default_args"] == ["about:blank"]
-    assert web_launch["args"] == []
+    assert web_launch["args"] == ["--disable-blink-features=AutomationControlled"]
     assert web_launch["ignore_default_args"] == []
 
     ui_context = factory.managers[1].playwright.chromium.context
