@@ -75,7 +75,7 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   text-transform: uppercase;
   letter-spacing: var(--letter-spacing-label);
 }
-.message.user { background: var(--color-surface-raised); padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); }
+.message.user { background: var(--color-surface-raised); padding: var(--space-4) var(--space-5); border-radius: var(--composer-radius); }
 .message-source { display: block; color: var(--color-muted); font-size: var(--font-size-xs); margin-bottom: var(--space-2); }
 .text-agent-output { color: var(--color-text); margin-bottom: var(--space-3); }
 .text-agent-output > summary { color: var(--color-muted); cursor: pointer; font-size: var(--font-size-control); padding: var(--space-2) 0; width: fit-content; }
@@ -122,8 +122,32 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .artifact-fallback pre { margin-bottom: 0; max-height: 20rem; }
 .message .katex-display { overflow-x: auto; overflow-y: hidden; padding: var(--space-2); }
 .composer-area { padding: 0 var(--page-padding) var(--space-5); width: min(100%, var(--composer-width)); margin: auto; }
-.activity { font-size: var(--font-size-sm); color: var(--color-muted); padding: var(--space-1); margin-bottom: var(--space-2); }
-.activity:empty { padding: 0; margin: 0; }
+.activity:empty { display: none; }
+.activity-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-raised);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--composer-radius);
+  font-size: var(--font-size-sm);
+}
+.activity-indicator {
+  flex: none;
+  width: var(--status-dot-size);
+  height: var(--status-dot-size);
+  margin-top: var(--space-2);
+  border-radius: 50%;
+  background: var(--color-link);
+}
+.activity-card[data-active="true"] .activity-indicator { animation: activity-pulse 1.8s ease-in-out infinite; }
+.activity-text { min-width: 0; overflow-wrap: anywhere; }
+@keyframes activity-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) {
+  .activity-card[data-active="true"] .activity-indicator { animation: none; }
+}
 .composer { background: var(--color-surface); border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--composer-radius); padding: var(--space-3); box-shadow: var(--composer-shadow); }
 .composer textarea {
   display: block;

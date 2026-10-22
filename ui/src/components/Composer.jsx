@@ -68,7 +68,12 @@ export function Composer({ quota, server = { phase: "idle" }, onDismissServer, r
       {["restarted", "failed"].includes(server.phase) && <IconButton icon="close" label={t("close")} onClick={onDismissServer} />}
     </div>}
     {error && <div className="error" role="alert">{error}<IconButton icon="close" label={t("close")} onClick={onDismissError} /></div>}
-    <div className="activity" role="status">{activityText}</div>
+    <div className="activity" role="status" aria-live="polite" aria-atomic="true">
+      {activityText && <div className="activity-card" data-active={busy || ["queued", "running"].includes(context.phase)}>
+        <span className="activity-indicator" aria-hidden="true" />
+        <span className="activity-text">{activityText}</span>
+      </div>}
+    </div>
     <form className="composer" onSubmit={submit}>
       {!!files.length && <div className="attachments">{files.map((file, index) => <button
         type="button" key={index} disabled={sending} aria-label={t("removeAttachment", { name: file.name })}
