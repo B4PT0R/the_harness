@@ -41,3 +41,14 @@ test("reconnect restores automatic and queued compaction from worker status", ()
   assert.equal(contextState(running, status()).phase, "idle");
   assert.equal(contextState(running, { type: "worker_exited" }).phase, "failed");
 });
+
+
+test("cache EMA comes from durable worker status, never recalculated on reconnect", () => {
+  const cache_hit = { alpha: 0.1, ema_percent: 0, last_percent: null, samples: 3, unreported: 1 };
+  const measured = contextState(initialContext, status({ cache_hit }));
+  assert.equal(measured.cacheHit.ema_percent, 0);
+  assert.equal(contextState(measured, status({ cache_hit })).cacheHit.samples, 3);
+  assert.equal(contextState(measured, event("agent.generation.start")).cacheHit, cache_hit);
+  assert.equal(contextState(measured, status()).cacheHit, null);
+  assert.equal(contextState(measured, { type: "worker_exited" }).cacheHit, null);
+});

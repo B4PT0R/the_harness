@@ -28,7 +28,7 @@ function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./ass
     catch (failure) { state.setError(failure.message); }
     finally { setOpeningBrowser(false); }
   }
-  return <ResourceRequest.Provider value={request}><AppShell preview={preview} connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
+  return <ResourceRequest.Provider value={request}><AppShell preview={preview} cacheHit={state.context.cacheHit} connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
     onOpenBrowser={mobile ? undefined : openBrowser} openingBrowser={openingBrowser}
     settings={settingsOpen && (mobile ? <MobileSettings onClose={() => setSettingsOpen(false)} /> : <Settings quota={quota} readOnly={preview} api={request} onClose={() => setSettingsOpen(false)} />)}
   >

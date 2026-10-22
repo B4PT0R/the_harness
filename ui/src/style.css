@@ -48,6 +48,7 @@ select:focus-visible, a:focus-visible, summary:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
 }
 .topbar-actions { display: flex; align-items: center; gap: var(--space-2); }
 .brand { display: flex; align-items: center; gap: var(--space-2); }
@@ -266,3 +267,6 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 .quota-receipts { margin-block: var(--space-4); font-size: var(--font-size-control); }
 .quota-receipts li { margin-block: var(--space-2); }
 .quota-settings { margin-bottom: var(--space-5); }
+
+.cache-hit { color: var(--color-muted); font-size: var(--font-size-control); white-space: nowrap; font-variant-numeric: tabular-nums; cursor: help; }
+@media (max-width: 400px) { .brand strong { display: none; } }

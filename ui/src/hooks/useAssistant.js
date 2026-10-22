@@ -232,7 +232,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
         if (["worker_status", "command_accepted", "command_completed", "command_failed", "worker_exited", "worker_transport_error"].includes(output.type) ||
             (output.type === "command_event" && ["agent.compaction.start", "agent.compaction.end", "agent.generation.start", "agent.turn.start"].includes(output.event?.type)))
           updateContext(output);
-        if (output.type === "command_event" && output.event?.type === "agent.compaction.end")
+        if (output.type === "command_event" && ["agent.compaction.end", "agent.generation.end"].includes(output.event?.type))
           refreshStatus().catch(fail);
         if (output.type === "command_failed" && output.error &&
             !(restartPending(serverRef.current) && output.error === "interrupted")) setError(output.error);

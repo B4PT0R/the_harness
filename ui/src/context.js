@@ -1,5 +1,5 @@
 // Display-only state. The worker remains the owner of context and compaction.
-export const initialContext = { tokens: null, limit: null, ratio: null, phase: "idle", commandId: null };
+export const initialContext = { tokens: null, limit: null, ratio: null, phase: "idle", commandId: null, cacheHit: null };
 
 export function contextState(current, output) {
   if (output.type === "worker_status") {
@@ -16,6 +16,7 @@ export function contextState(current, output) {
       commandId = null;
     }
     return { ...current, phase, commandId,
+      cacheHit: output.cache_hit ?? null,
       tokens: known ? output.local_input_tokens : null,
       limit: known ? output.context_token_limit : null,
       ratio: known ? output.local_input_tokens / output.context_token_limit : null,
