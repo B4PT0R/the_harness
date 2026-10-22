@@ -68,7 +68,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "codex-backend-sdk", specifier = ">=0.5.3" },
+    { name = "codex-backend-sdk", editable = "../codex-backend-sdk" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "httpx2", marker = "extra == 'dev'", specifier = ">=2.0.0" },
@@ -170,7 +170,7 @@ wheels = [
 
 [[package]]
 name = "codex-backend-sdk"
-version = "0.5.4"
+version = "0.5.5"
 source = { editable = "../codex-backend-sdk" }
 dependencies = [
     { name = "pydantic" },
