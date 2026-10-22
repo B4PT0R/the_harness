@@ -49,7 +49,7 @@ image preparation.
 
 ## Account quota and resets
 
-The composer’s weekly quota gauge opens the available reset credits and their
+The shared desktop and mobile composer’s weekly quota gauge opens the available reset credits and their
 expiry dates. Manual redemption requires confirmation. Conversation settings
 persist the exhausted-quota policy: hold new turns (default), or redeem the
 available reset with the earliest expiry. A turn already running is not cut off.

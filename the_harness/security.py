@@ -93,6 +93,9 @@ class HarnessSecurityPolicy:
         if client is None:
             return None
         scopes = frozenset(client.get("scopes", ()))
+        if "mobile" in scopes:
+            # Product capability for existing paired companions, not host administration.
+            scopes = scopes | {"quota:write"}
         if {"desktop", "full_ui"} & scopes:
             scopes = frozenset({*scopes, "*"})
         return Principal(id=f"remote:{client['id']}", scopes=scopes, attributes={"client": client})

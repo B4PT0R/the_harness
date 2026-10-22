@@ -19,7 +19,7 @@ const preview = document.querySelector('meta[name="framework-client-role"]')?.co
 function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./assistant.svg", artifactRenderers }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [openingBrowser, setOpeningBrowser] = useState(false);
-  const quota = useQuota(request, !mobile);
+  const quota = useQuota(request);
   const state = useAssistant({ request, eventsUrl: eventsUrl || (mobile ? `wss://${location.host}/remote/v1/ui-events` : undefined), eventProtocol, refreshKey: settingsOpen });
   async function openBrowser() {
     if (preview || openingBrowser) return;
@@ -35,7 +35,7 @@ function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./ass
     <Conversation messages={state.messages} artifacts={state.artifacts} captions={state.captions} subagents={state.subagents} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
       onScroll={state.onScroll} onContentLoad={state.onContentLoad} artifactRenderers={artifactRenderers}
     />
-    <Composer quota={mobile ? null : quota} server={state.server} onDismissServer={state.dismissServer} readOnly={preview} sending={state.sending}
+    <Composer quota={quota} server={state.server} onDismissServer={state.dismissServer} readOnly={preview} sending={state.sending}
       voiceAvailable={state.voiceAvailable} voiceState={state.voiceState} busy={state.busy} connected={state.connection === "Connected" && !restartPending(state.server)}
       context={state.context} onCompact={state.compact}
       activity={state.activity} error={state.error} onDismissError={() => state.setError("")} onSubmit={state.send} onToggleVoice={state.toggleVoice} onInterrupt={state.interrupt}

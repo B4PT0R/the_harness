@@ -69,6 +69,7 @@ async function request(path, options = {}) {
       operations: {}, exhausted_policy: 'block', exhausted: false };
     if (path === 'quota/policy') window.quotaState.exhausted_policy = body.exhausted_policy;
     if (path === 'quota/consume') {
+      if (window.failQuotaConsume) throw new Error('Reset unavailable');
       window.quotaState.credits = [];
       window.quotaState.quota_7d.used_percent = 0;
       return { ...window.quotaState, operation: { status: 'confirmed' } };
