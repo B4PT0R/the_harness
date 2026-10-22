@@ -1,5 +1,22 @@
 # The Harness — backlog de la base neutre
 
+- [x] **Lenteur et tempête de résultats de spécialistes — 22 octobre.** Mesures
+  en production : HTTP santé ~20 ms, état worker 503 après 5 s, historique ~10 s,
+  worker ~98 % CPU et ~12,5 Mio/s d'écritures, plus de 44 000 reçus et environ
+  1 100 descripteurs ouverts. Les échecs définitifs de tâches durables Jiminy
+  étaient remis en file avec le même identifiant déjà terminé, chaque passage
+  publiant un nouveau résultat puis réécrivant toute la session. L'attente de
+  livraison échouait aussi sur les événements Realtime dépourvus de request_id.
+  MemoryStore utilisait le contexte transactionnel SQLite sans fermer la connexion.
+  Correctifs Framework : distinguer panne transport récupérable et échec terminal,
+  ne publier que les résultats terminaux, filtrer les événements sans corrélation,
+  fermer les connexions disque sur succès/erreur. Ne pas supprimer les conversations
+  ni les reçus pour masquer la cause. Tests : 50 ciblés, 1052 Framework / 11 skips,
+  289 Harness / 1 skip. Chargement supervisé après fin du tour et de l’appel vocal,
+  avec copie de secours. Après : état ~9 ms, historique ~40 ms, CPU principal
+  ~0,3 %, aucune écriture sur la fenêtre mesurée, 8 descripteurs. Jiminy conserve
+  ses 45 tâches en attente et reprend leur traitement ; aucune donnée supprimée.
+
 - [x] **Livraison Jiminy interrompue après redémarrage — 21 octobre.** Le serveur
   et son interface étaient disponibles, mais un résultat de spécialiste du 18 octobre
   était bloqué sur un reçu `interrupted`, renvoyé puis rejeté indéfiniment avec le
