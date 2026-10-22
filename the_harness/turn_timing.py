@@ -95,7 +95,7 @@ class TurnTiming:
                 return None
             current = self._active_started_at
             previous = self._previous
-            result = {"current_turn_started_at": current.isoformat()}
+            result = {"current_turn_started_at": current.isoformat(timespec="milliseconds")}
             if previous is None:
                 result["previous_turn"] = None
                 return result
@@ -105,8 +105,8 @@ class TurnTiming:
             )
             elapsed = max(0.0, (current - previous["ended_at"]).total_seconds())
             result["previous_turn"] = {
-                "started_at": previous["started_at"].isoformat(),
-                "ended_at": previous["ended_at"].isoformat(),
+                "started_at": previous["started_at"].isoformat(timespec="milliseconds"),
+                "ended_at": previous["ended_at"].isoformat(timespec="milliseconds"),
                 "duration_seconds": round(duration, 3),
                 "elapsed_since_end_seconds": round(elapsed, 3),
             }
