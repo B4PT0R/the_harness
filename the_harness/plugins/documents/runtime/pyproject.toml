@@ -1,0 +1,22 @@
+[project]
+name = "harness-documents-runtime"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "docling[rapidocr]==2.142.1",
+    "odfdo>=3.22,<4",
+    "torch>=2.2.2,<3",
+    "torchvision<1",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

@@ -23,6 +23,7 @@ from .plugins.desktop_notifications import PLUGIN as DESKTOP_NOTIFICATIONS
 from .plugins.hosted_ui import PLUGIN as HOSTED_UI
 from .plugins.local_files import PLUGIN as LOCAL_FILES
 from .plugins.images import PLUGIN as IMAGES
+from .plugins.documents import PLUGIN as DOCUMENTS
 from .plugins.memory import PLUGIN as MEMORY
 from the_framework.plugins.realtime import REALTIME as GENERIC_REALTIME
 from .plugins.realtime.agent import RealtimeExtension
@@ -52,6 +53,7 @@ application = Application(
         HOSTED_UI,
         ARTIFACTS,
         IMAGES,
+        DOCUMENTS,
         BASH,
         WEB_SEARCH,
         AGENTIC,

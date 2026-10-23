@@ -47,6 +47,10 @@ not display an image. Generation-output handling and presentation belong to this
 application plugin; the Framework supplies generic lifecycle hooks and reusable
 image preparation.
 
+The `documents` plugin adds local Docling conversion, OCR, paginated reading and
+search for PDFs, Office files and scans. It uses an isolated CPU runtime and
+private session caches; see [setup, privacy and limits](docs/documents.md).
+
 ## Account quota and resets
 
 The shared desktop and mobile composer’s weekly quota gauge opens the available reset credits and their
