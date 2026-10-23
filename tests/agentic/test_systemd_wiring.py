@@ -9,7 +9,13 @@ def test_server_orders_initial_ui_build_before_surface_adoption():
     server.read(root / "the-harness.service.in")
     browser.read(root / "the-harness-browser.service.in")
     tray.read(root / "the-harness-tray.service.in")
-    assert {"the-harness-ui.service", "the-harness-browser.service"} <= set(server["Unit"]["After"].split())
-    assert {"the-harness-ui.service", "the-harness-browser.service"} <= set(server["Unit"]["Wants"].split())
+    assert "the-harness-ui.service" in server["Unit"]["After"].split()
+    assert "the-harness-ui.service" in server["Unit"]["Wants"].split()
+    assert "the-harness-browser.service" not in server["Unit"]["Wants"].split()
+    assert "graphical-session.target" not in server["Unit"]["After"].split()
+    assert browser["Install"]["WantedBy"] == "graphical-session.target"
+    assert browser["Service"]["KillMode"] == server["Service"]["KillMode"] == "mixed"
+    assert int(browser["Service"]["TimeoutStopSec"]) > 30
+    assert "the-harness-browser.service" in tray["Unit"]["Wants"].split()
     assert "the-harness.service" not in browser["Unit"].get("PartOf", "").split()
     assert "the-harness.service" in tray["Unit"]["Requires"].split()

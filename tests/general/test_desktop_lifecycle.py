@@ -120,6 +120,81 @@ def test_two_instances_cold_start_restart_and_clean_shutdown(tmp_path):
 
 @pytest.mark.skipif(not os.environ.get("PLAYWRIGHT_BROWSERS_PATH"),
                     reason="requires an explicitly configured Chromium installation")
+def test_abrupt_loss_of_all_processes_recovers_conversation_and_browser_profile(tmp_path, monkeypatch):
+    for key in ("DISPLAY", "WAYLAND_DISPLAY", "XAUTHORITY"):
+        monkeypatch.delenv(key, raising=False)
+    ui = tmp_path / "ui"
+    ui.mkdir()
+    (ui / "index.html").write_text("""<!doctype html><title>Power recovery</title>
+<textarea aria-label="Recoverable draft" oninput="localStorage.setItem('draft', this.value)"></textarea>
+<h1 id="history"></h1><script>
+document.querySelector('textarea').value = localStorage.getItem('draft') || '';
+fetch('/api/v1/session').then(r => r.text()).then(text => {
+  document.querySelector('#history').textContent = text.includes('Durable power-loss marker')
+    ? 'Recovered conversation' : 'Missing conversation';
+});
+</script>""")
+    machine = tmp_path / "machine"
+    data = machine / "data"
+    data.mkdir(parents=True)
+    session = Session.open(data / "session.json")
+    session.update_agent(configuration={"chromium": {"ui_headless": True, "web_headless": True}})
+    session.append(Message(role="user", content=[{"type": "input_text", "text": "Durable power-loss marker"}]))
+    session_id = session.id
+    control = HarnessControl(machine)
+    rpc = BrowserRPCClient(browser_socket_path(machine))
+    args = ("--ui-root", str(ui), "--exit-on-parent-stdin-close")
+
+    def observe():
+        return rpc.call("observe", "harness_ui", str(tmp_path / "power-recovery.png"))[0]
+
+    with ExitStack() as stack:
+        # Server readiness is independent of the graphical/browser service.
+        server = stack.enter_context(daemon("the_harness.server_process", machine, *args))
+        wait_for(server, lambda: control.status().get("status") == "ok")
+        assert not browser_socket_path(machine).exists()
+        old_descriptor = control.descriptor.read()
+        ui_key = (machine / "runtime/ui-session.key").read_bytes()
+        browser = stack.enter_context(daemon("the_harness.browser_process", machine))
+        wait_for(browser, lambda: browser_socket_path(machine).exists())
+        assert control.request("POST", "/api/v1/ui/open")["status"] == "opened"
+        wait_for(browser, lambda: "Recovered conversation" in json.dumps(observe()))
+        field = next(x for x in observe()["elements"] if x["name"] == "Recoverable draft")
+        draft = "Draft committed before power loss"
+        rpc.session_call("harness_ui", "fill", field["id"], draft)
+        profile = machine / "browser/profiles/harness_ui"
+        # Wait for Chromium's actual storage log, not an arbitrary delay.
+        def draft_is_durable():
+            return any(draft.encode() in path.read_bytes() or draft.encode("utf-16-le") in path.read_bytes()
+                       for path in (profile / "Default/Local Storage/leveldb").glob("*.log"))
+        wait_for(browser, draft_is_durable)
+        saved_configuration = Session.open(data / "session.json").configuration
+
+        for process in (server, browser):
+            os.killpg(process.pid, signal.SIGKILL)
+            assert process.wait(timeout=5) == -signal.SIGKILL
+        assert control.descriptor.path.exists()
+        assert browser_socket_path(machine).exists()
+
+        replacement = stack.enter_context(daemon(
+            "the_harness.server_process", machine, *args, "--port", str(old_descriptor["port"]),
+        ))
+        wait_for(replacement, lambda: control.status().get("status") == "ok")
+        assert Session.open(data / "session.json").id == session_id
+        assert Session.open(data / "session.json").configuration == saved_configuration
+        assert "Durable power-loss marker" in json.dumps(control.request("GET", "/api/v1/session"))
+        assert (machine / "runtime/ui-session.key").read_bytes() == ui_key
+        assert control.descriptor.read()["token"] != old_descriptor["token"]
+        recovered_browser = stack.enter_context(daemon("the_harness.browser_process", machine))
+        wait_for(recovered_browser, lambda: browser_socket_path(machine).exists())
+        assert control.request("POST", "/api/v1/ui/open")["status"] == "opened"
+        wait_for(recovered_browser, lambda: "Recovered conversation" in json.dumps(observe()))
+        restored = next(x for x in observe()["elements"] if x["name"] == "Recoverable draft")
+        assert restored["value"] == draft
+
+
+@pytest.mark.skipif(not os.environ.get("PLAYWRIGHT_BROWSERS_PATH"),
+                    reason="requires an explicitly configured Chromium installation")
 def test_server_replacement_preserves_live_browser_cookie_and_draft(tmp_path):
     ui = tmp_path / "ui"
     ui.mkdir()

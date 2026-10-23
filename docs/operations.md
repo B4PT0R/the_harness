@@ -36,6 +36,23 @@ client waits for healthy backend status and briefly retries interface opening wh
 the browser becomes available. A backend restart does not restart the browser.
 Graceful shutdown removes the private discovery descriptor.
 
+After an unexpected shutdown, start the launcher normally. The server and asset
+builder can recover before a graphical session exists; the browser and tray belong
+to the graphical session instead. The launcher explicitly starts a stopped browser
+without replacing a running one. Systemd first signals the owning server/browser
+process during normal shutdown, allowing it to close its children; it kills any
+remaining processes only after the shutdown deadline (45 seconds for the browser).
+
+Chromium startup is bounded to 20 seconds, followed by resource cleanup on failure;
+a failed launch can be retried without deleting the profile. Chromium itself handles
+stale profile locks. Do not routinely remove `Singleton*` files or rewrite profile
+preferences to claim a clean exit: an active profile may belong to another process.
+If opening the UI hangs again, capture the browser service logs and process stacks
+before restarting it. A SIGKILL test covers loss of both isolated service trees,
+recovery of the canonical conversation, stale discovery/socket files, authentication
+and a draft actually written to the browser's local storage. This tests process-loss
+recovery, not physical storage failure or loss of writes that were never committed.
+
 For startup diagnostics:
 
 ```sh

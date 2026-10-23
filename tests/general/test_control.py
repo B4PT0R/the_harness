@@ -65,6 +65,7 @@ def test_control_reads_private_descriptor_and_opens_ui(tmp_path):
         "--user",
         "start",
         "fixture-tray.service",
+        "fixture-browser.service",
     ]
     assert Client.calls[-1][:3] == (
         "POST",

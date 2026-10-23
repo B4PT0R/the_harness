@@ -1,5 +1,22 @@
 # The Harness — backlog de la base neutre
 
+- [x] **Reprise après arrêt brutal / redémarrage du PC — 23 octobre.**
+  Serveur et build UI indépendants du bureau graphique ; navigateur et tray attachés
+  à graphical-session.target, lanceur capable de démarrer explicitement le navigateur.
+  Installation réactualisée (reenable déplace l'ancien lien default.target). Arrêt
+  systemd KillMode=mixed pour laisser les propriétaires fermer leurs enfants, délai
+  navigateur 45 s. Framework : démarrage Playwright/Chromium borné à 20 s, nettoyage
+  des ressources après échec/timeout puis nouvelle tentative possible, diagnostic
+  sans URL de bootstrap. Test réel SIGKILL des deux arbres isolés : reprise du serveur
+  sans DISPLAY, même conversation/configuration, secret UI conservé, ancien descriptor
+  et socket remplacés, profil Chromium réutilisé et brouillon localStorage récupéré.
+  Aucun effacement manuel des verrous ou profils. 1082 tests Framework / 12 skips,
+  292 tests Harness avec Chromium, plus répétition du scénario sans variables GUI.
+  Unités vérifiées et installées sans changement des PID des services actifs.
+  Limite : simulation de perte des processus, pas une coupure matérielle ni la
+  récupération de données jamais validées sur disque. Origine exacte du blocage
+  initial du daemon toujours non prouvée (voir note ci-dessous).
+
 - [ ] **Blocage du navigateur après ouverture de session — 23 octobre.**
   Le serveur et le worker étaient sains, mais le daemon navigateur lancé au login
   restait sans fenêtre Chromium ; POST ui/open expirait. Relance du seul service

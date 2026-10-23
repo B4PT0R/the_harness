@@ -1,7 +1,5 @@
 [Unit]
 Description=The Harness live interface builder
-After=graphical-session.target
-PartOf=graphical-session.target
 
 [Service]
 Type=oneshot

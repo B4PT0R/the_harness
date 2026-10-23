@@ -27,7 +27,8 @@ for template in "$repo_root"/packaging/systemd/*.service.in; do
 done
 sed "s|@REPO_ROOT@|$escaped_root|g" packaging/the-harness.desktop.in > "$application_root/the-harness.desktop"
 systemctl --user daemon-reload
-systemctl --user enable the-harness.service the-harness-browser.service the-harness-ui.service the-harness-tray.service
+systemctl --user enable the-harness.service the-harness-ui.service the-harness-tray.service
+systemctl --user reenable the-harness-browser.service
 if $start_services; then
   systemctl --user restart the-harness-ui.service the-harness-browser.service the-harness.service
   systemctl --user restart the-harness-tray.service

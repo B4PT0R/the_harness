@@ -108,7 +108,7 @@ class HarnessControl:
         self._require_local_ui()
         # The tray requires the server, so this single operation restores the
         # complete user-facing runtime from either the launcher or the tray.
-        self.systemctl("start", self.tray_service)
+        self.systemctl("start", self.tray_service, self.browser_service)
         return self.wait_until_ready()
 
     def open(self, timeout=30):

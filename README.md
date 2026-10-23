@@ -115,6 +115,13 @@ The installer builds the interface, downloads its Chromium runtime, installs the
 launcher and tray integration, and enables the user services. The server listens
 on `127.0.0.1:48887`; installation does not expose it to the network.
 
+The server and UI build start independently of the desktop session. The browser
+and tray start with the graphical session; opening the launcher also starts the
+browser if it is stopped. During normal shutdown, systemd lets each owner close
+its children before forcibly cleaning up a stuck service. After an unexpected
+shutdown, the existing session and browser profile are reused; do not delete
+Chromium's profile or its locks as a routine recovery step.
+
 Start with an ordinary request such as “Explore this repository and explain how
 it is assembled.” In Settings, select a model available to your account, add any
 personal instructions and adjust the optional capabilities. The initial model

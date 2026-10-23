@@ -1,8 +1,8 @@
 [Unit]
 Description=The Harness system tray client
-After=graphical-session.target the-harness.service
+After=graphical-session-pre.target the-harness.service
 Requires=the-harness.service
-Wants=the-harness-ui.service
+Wants=the-harness-ui.service the-harness-browser.service
 PartOf=graphical-session.target the-harness.service
 
 [Service]

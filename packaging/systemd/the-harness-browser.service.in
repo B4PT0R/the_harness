@@ -1,6 +1,6 @@
 [Unit]
 Description=The Harness persistent Playwright browser
-After=graphical-session.target
+After=graphical-session-pre.target
 PartOf=graphical-session.target
 
 [Service]
@@ -12,7 +12,8 @@ Environment="THE_HARNESS_MACHINE_ROOT=%h/.the_harness_assistant"
 ExecStart="@REPO_ROOT@/.venv/bin/python" -m the_harness.browser_process
 Restart=on-failure
 RestartSec=2
-TimeoutStopSec=20
+KillMode=mixed
+TimeoutStopSec=45
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target
