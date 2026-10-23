@@ -1,5 +1,15 @@
 # The Harness — backlog de la base neutre
 
+- [ ] **Blocage du navigateur après ouverture de session — 23 octobre.**
+  Le serveur et le worker étaient sains, mais le daemon navigateur lancé au login
+  restait sans fenêtre Chromium ; POST ui/open expirait. Relance du seul service
+  the-harness-browser puis ouverture authentifiée : fenêtre, historique et brouillon
+  retrouvés, serveur non redémarré. L'environnement initial du service était incomplet,
+  mais un lancement isolé sans XAUTHORITY/WAYLAND réussit : cette hypothèse ne prouve
+  pas la cause. Pas de modification spéculative du lancement conservée. En cas de
+  récidive, capturer les piles Python/état Playwright du daemon et les logs de
+  lancement avant de le relancer ; conserver le profil et la session serveur.
+
 - [x] **Lenteur et tempête de résultats de spécialistes — 22 octobre.** Mesures
   en production : HTTP santé ~20 ms, état worker 503 après 5 s, historique ~10 s,
   worker ~98 % CPU et ~12,5 Mio/s d'écritures, plus de 44 000 reçus et environ
