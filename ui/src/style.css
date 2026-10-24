@@ -298,3 +298,5 @@ button.technical-gauge:hover:not(:disabled) { background: var(--color-surface); 
 
 .cache-hit { cursor: help; }
 @media (min-width: 481px) and (max-width: 900px) { .brand strong { display: none; } }
+
+.artifact-audio audio { display: block; width: 100%; min-width: 0; margin-bottom: var(--space-3, 12px); }

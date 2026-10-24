@@ -25,6 +25,7 @@ from .plugins.local_files import PLUGIN as LOCAL_FILES
 from .plugins.images import PLUGIN as IMAGES
 from .plugins.documents import PLUGIN as DOCUMENTS
 from .plugins.dictation import PLUGIN as DICTATION
+from .plugins.tts import PLUGIN as TTS
 from .plugins.memory import PLUGIN as MEMORY
 from the_framework.plugins.realtime import REALTIME as GENERIC_REALTIME
 from .plugins.realtime.agent import RealtimeExtension
@@ -56,6 +57,7 @@ application = Application(
         IMAGES,
         DOCUMENTS,
         DICTATION,
+        TTS,
         BASH,
         WEB_SEARCH,
         AGENTIC,

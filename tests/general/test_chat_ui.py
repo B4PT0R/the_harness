@@ -850,3 +850,59 @@ def test_remote_mobile_has_no_local_browser_button(page):
     page.goto("https://harness.ts.net/")
     page.get_by_role("button", name="Réglages", exact=True).wait_for()
     assert page.get_by_role("button", name="Ouvrir le navigateur", exact=True).count() == 0
+
+
+@pytest.mark.parametrize("width", [1280, 390])
+def test_audio_artifact_is_manual_persistent_and_downloadable(page, width):
+    from io import BytesIO
+    import wave
+
+    data = BytesIO()
+    with wave.open(data, "wb") as audio:
+        audio.setparams((1, 2, 22050, 0, "NONE", "not compressed"))
+        audio.writeframes(b"\x01\x00" * 2205)
+    requests = []
+
+    def serve_audio(route):
+        requests.append(route.request.url)
+        route.fulfill(body=data.getvalue(), content_type="audio/wav")
+
+    page.route("**/api/v1/bucket/speech.wav", serve_audio)
+    page.set_viewport_size({"width": width, "height": 900})
+    page.evaluate("item => window.publishArtifact(item)", {
+        "type": "artifact", "id": "speech", "kind": "audio", "payload": {
+            "src": "/api/v1/bucket/speech.wav", "name": "speech.wav",
+            "title": "Synthèse vocale", "description": "Un test de voix locale.",
+        },
+    })
+    player = page.locator(".artifact-audio audio")
+    player.wait_for()
+    player.scroll_into_view_if_needed()
+    assert player.evaluate("el => el.controls && el.paused && !el.autoplay && el.preload === 'none'")
+    assert player.get_attribute("aria-label") == "Synthèse vocale"
+    assert requests == []
+    # Decode metadata explicitly, without playing sound or opening a microphone.
+    player.evaluate("el => { el.preload = 'metadata'; el.load(); }")
+    page.wait_for_function("document.querySelector('.artifact-audio audio')?.readyState >= 1")
+    assert player.evaluate("el => el.duration") == pytest.approx(.1)
+    assert player.evaluate("el => el.paused")
+    link = page.get_by_role("link", name="Télécharger speech.wav")
+    assert link.get_attribute("href") == "/api/v1/bucket/speech.wav"
+    assert link.get_attribute("download") == "speech.wav"
+    assert page.get_by_text("Un test de voix locale.", exact=True).is_visible()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.screenshot(path=f"/tmp/harness-audio-{width}.png")
+    page.reload()
+    player.wait_for()
+    assert player.evaluate("el => el.paused && !el.autoplay")
+    player.dispatch_event("error")
+    page.locator(".artifact-audio [role=status]").wait_for()
+    assert player.count() == 0
+    assert link.is_visible()
+    page.evaluate("item => window.publishArtifact(item)", {
+        "type": "artifact", "id": "unsafe-audio", "kind": "audio",
+        "payload": {"src": "javascript:alert(1)", "title": "Unsafe"},
+    })
+    unsafe = page.locator(".artifact-audio").last
+    assert unsafe.locator("audio, a").count() == 0
+    assert unsafe.get_by_role("status").count() == 1

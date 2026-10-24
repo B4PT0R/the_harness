@@ -51,6 +51,10 @@ The `documents` plugin adds local Docling conversion, OCR, paginated reading and
 search for PDFs, Office files and scans. It uses an isolated CPU runtime and
 private session caches; see [setup, privacy and limits](docs/documents.md).
 
+The optional `tts` plugin uses local CPU Piper synthesis with an isolated runtime
+and a French voice. It produces WAV files and durable `audio` artifacts with manual
+playback controls and a download link; see [setup and configuration](docs/tts.md).
+
 ## Account quota and resets
 
 The shared desktop and mobile composer’s weekly quota gauge opens the available reset credits and their

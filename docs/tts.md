@@ -1,0 +1,73 @@
+# Local text-to-speech
+
+The optional `tts` plugin reads text with Piper on CPU. It runs in a separate
+Python 3.12 process: no Piper, ONNX Runtime or NumPy imports in the agent worker,
+no persistent synthesis server and no GPU dependency. Synthesis is local;
+installation and voice downloads are separate, explicit setup steps.
+
+## Setup
+
+From the repository root:
+
+```sh
+uv sync --project the_harness/plugins/tts/runtime --frozen
+the_harness/plugins/tts/runtime/.venv/bin/python -m piper.download_voices \
+  --data-dir "$HOME/.local/share/piper/voices" fr_FR-siwis-medium
+```
+
+The default voice is `~/.local/share/piper/voices/fr_FR-siwis-medium.onnx`, alongside
+its `.onnx.json` configuration. Keep its upstream MODEL_CARD with the voice:
+https://huggingface.co/rhasspy/piper-voices/blob/main/fr/fr_FR/siwis/medium/MODEL_CARD
+The card attributes the SIWIS dataset under CC-BY 4.0. Piper itself is GPL-3.0;
+check each voice's licensing before redistributing it. Dependencies and voices
+are downloaded locally, not vendored into this repository.
+
+On the development machine the initial runtime occupies about 170 MiB and the
+single French voice about 61 MiB (filesystem usage, not a portable guarantee).
+Restart the server after installing the plugin; its agent binding can then be
+enabled or disabled like other optional tools.
+
+## Tool and configuration
+
+`tts.synthesize(text)` accepts 1–4000 characters and generates a mono PCM16 WAV.
+It returns the private path, duration and sample rate, and automatically presents
+an `audio` artifact in the conversation. No autoplay: the user presses Play.
+This is separate from the Realtime voice, and does not schedule a reminder or
+change notification behavior. Do not republish the same result with show_artifact.
+
+The session configuration supports:
+
+- `tts.model`: local ONNX path (the corresponding `.json` file is required).
+- `tts.python`: optional alternative interpreter with Piper installed.
+- `tts.timeout_seconds`: default 60, range 1–300.
+
+Missing dependencies or models fail with setup instructions, without downloads
+or a remote fallback during synthesis. Work is serialized per extension; timeout
+or cancellation terminates the subprocess group and removes partial output.
+Completed WAVs live under the private session's `tts/` directory. Publication
+copies audio into the existing authenticated bucket, so the player survives
+restarts independently of the source file. Published audio follows the same
+access controls as existing file/image artifacts. Text passed to the tool is
+part of the normal agent conversation; local synthesis does not make the model
+conversation offline.
+
+## Audio artifacts
+
+`artifacts.show_artifact(kind="audio", payload={"path": "/local/speech.wav",
+"title": "Reminder", "description": "Optional transcript"})` presents an existing
+file with browser playback controls and a download link. Common recognized audio
+extensions such as WAV, MP3, OGG, FLAC and M4A are accepted; actual codec support
+depends on the browser. A playback error keeps the download link available.
+The player never autoplays or preloads the whole recording. An artifact does not
+prove playback or that anyone heard its content.
+
+## Verification
+
+```sh
+uv run pytest -q tests/general/test_tts_plugin.py
+HARNESS_TTS_LIVE=1 uv run pytest -q -s tests/agentic/test_tts_live.py
+```
+
+The live test requires the installed runtime and default voice. It uses only a
+synthetic reminder, validates WAV metadata and non-silent samples, and does not
+play audio or open the microphone.
