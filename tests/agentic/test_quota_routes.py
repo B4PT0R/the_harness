@@ -32,7 +32,7 @@ def test_account_routes_validate_and_deduplicate(tmp_path, monkeypatch):
         assert len(backend.calls) == 1
 
 
-def test_existing_mobile_pairing_can_read_and_redeem_but_not_administer(tmp_path, monkeypatch):
+def test_existing_mobile_pairing_can_manage_quota_but_not_network(tmp_path, monkeypatch):
     backend = Backend()
     backend.credit(expires=86400)
     monkeypatch.setattr("the_harness.quota.sdk_client", lambda: backend)
@@ -48,10 +48,10 @@ def test_existing_mobile_pairing_can_read_and_redeem_but_not_administer(tmp_path
         phone = {"Host": "computer.example.ts.net", "Origin": remote.network.endpoint,
                  "Cookie": "harness_mobile=" + token}
         assert client.get("/api/v1/quota", headers=phone).status_code == 200
-        for path in ("/api/v1/config", "/api/v1/client-remote/network"):
-            assert client.get(path, headers=phone).status_code in {401, 403}
+        assert client.get("/api/v1/config", headers=phone).status_code == 200
+        assert client.get("/api/v1/client-remote/network", headers=phone).status_code in {401, 403}
         assert client.put("/api/v1/quota/policy", headers=phone,
-                          json={"exhausted_policy": "consume_earliest"}).status_code in {401, 403}
+                          json={"exhausted_policy": "consume_earliest"}).status_code == 200
         assert client.post("/api/v1/quota/consume", headers={**phone, "Origin": "https://evil.example"},
                            json={"credit_id": "a"}).status_code == 403
         assert client.post("/api/v1/quota/consume", headers=phone,

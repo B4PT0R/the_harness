@@ -10,21 +10,38 @@ import modict
 from the_framework.server.clients.remote import RemoteClientPolicy
 
 
+# Settings belong to the canonical session, regardless of the paired client.
+SHARED_SETTINGS_API = frozenset({
+    ("GET", "/api/v1/client-remote/context"),
+    ("GET", "/api/v1/config"),
+    ("PATCH", "/api/v1/config"),
+    ("PUT", "/api/v1/quota/policy"),
+    ("DELETE", "/api/v1/session"),
+    ("DELETE", "/api/v1/memory"),
+    ("DELETE", "/api/v1/registry"),
+})
+SHARED_SETTINGS_SCOPES = frozenset({
+    "config:read", "config:write", "plugins:write", "session:write",
+    "memory:write", "registry:write",
+})
+
+
+def shared_settings_allowed(method, path):
+    parts = path.split("/")
+    return (method, path) in SHARED_SETTINGS_API or (
+        method == "PUT" and len(parts) == 6 and parts[:4] == ["", "api", "v1", "plugins"]
+        and bool(parts[4]) and parts[5] == "binding"
+    )
+
+
 BASE_REMOTE_DESKTOP_API = (
     ("GET", "/api/v1/quota"),
-    ("PUT", "/api/v1/quota/policy"),
     ("POST", "/api/v1/quota/consume"),
     ("GET", "/api/v1/health"),
     ("GET", "/api/v1/status"),
     ("POST", "/api/v1/agent/compact"),
     ("POST", "/api/v1/dictation/transcribe"),
-    ("DELETE", "/api/v1/session"),
-    ("DELETE", "/api/v1/memory"),
-    ("DELETE", "/api/v1/registry"),
-    ("GET", "/api/v1/config"),
-    ("PATCH", "/api/v1/config"),
-    ("GET", "/api/v1/client-remote"),
-    ("POST", "/api/v1/client-remote/pairings"),
+    *SHARED_SETTINGS_API,
 )
 
 
@@ -44,7 +61,6 @@ class RemoteDesktopAccess:
         self.subtrees = []
         self.frozen = False
         self.add_exact(*BASE_REMOTE_DESKTOP_API)
-        self.add_subtree("/api/v1/client-remote/clients", ("DELETE",), include_base=False)
         self.add_subtree("/api/v1/bucket", ("GET",), include_base=False)
 
     def _ensure_mutable(self):
@@ -95,7 +111,7 @@ class RemoteDesktopAccess:
         ):
             return False
         method = method.upper()
-        if (method, path) in self.exact:
+        if (method, path) in self.exact or shared_settings_allowed(method, path):
             return True
         return any(
             method in methods
@@ -105,9 +121,11 @@ class RemoteDesktopAccess:
 
 
 def mobile_api_allowed(method, path):
-    """A companion can chat, not administer the host or read configuration."""
+    """Allow conversation and shared settings, never host-local administration."""
     if "//" in path or any(part in {".", ".."} for part in path.split("/")):
         return False
+    if shared_settings_allowed(method, path):
+        return True
     if method == "GET":
         return path in {"/remote/v1/alerts", "/remote/v1/notifications", "/remote/v1/notifications/wait", "/ui", "/ui/", "/api/v1/quota", "/api/v1/session", "/api/v1/status", "/api/v1/plugins"} or path.startswith(("/ui/assets/", "/api/v1/bucket/")) or path == "/ui/assistant.svg"
     if method == "POST":

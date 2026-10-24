@@ -22,7 +22,8 @@ def test_native_routes_are_narrowly_allowed():
     assert not mobile_api_allowed("POST", "/remote/v1/alerts")
     assert not mobile_api_allowed("GET", "/remote/v1/alerts/receipt")
     assert not mobile_api_allowed("POST", "/remote/v1/alerts/../commands")
-    assert not mobile_api_allowed("GET", "/api/v1/config")
+    assert mobile_api_allowed("GET", "/api/v1/config")
+    assert not mobile_api_allowed("GET", "/api/v1/client-remote/network")
 
 
 def test_device_identity_and_wait_context_stay_server_side(tmp_path, monkeypatch):

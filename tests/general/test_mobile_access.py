@@ -40,7 +40,7 @@ def test_mobile_cookie_never_grants_local_or_desktop_credentials():
         phone = await policy.authenticate(request("harness_mobile=phone"))
         assert phone.id == "remote:phone" and "*" not in phone.scopes
         req = request("harness_mobile=phone"); req.scope.update(method="GET", path="/api/v1/config")
-        assert not policy.http_access_allowed(phone, req)
+        assert policy.http_access_allowed(phone, req)
         req = request("harness_mobile=phone"); req.scope.update(method="GET", path="/ui/")
         assert policy.http_access_allowed(phone, req)
         assert await policy.authenticate(connection(host="computer.example.ts.net", headers=[("authorization", "Bearer local")])) is None
@@ -57,7 +57,6 @@ def test_mobile_conversation_routes(method, path):
 
 
 @pytest.mark.parametrize("method,path", [
-    ("DELETE", "/api/v1/session"), ("GET", "/api/v1/config"), ("PATCH", "/api/v1/config"),
     ("POST", "/api/v1/client-remote/pairings"), ("PUT", "/api/v1/client-remote/network"),
     ("POST", "/api/v1/local-files/open"), ("POST", "/api/v1/server/restart"),
     ("GET", "/ui/bootstrap"), ("GET", "/ui/assets/../../secret"),
@@ -122,7 +121,8 @@ def test_private_cookie_routes_and_live_revocation(assembled):
     device, token = service.clients.issue("phone", platform="android")
     phone = {"Host": "computer.example.ts.net", "Origin": ENDPOINT, "Cookie": "harness_mobile=" + token}
     assert client.get("/api/v1/plugins", headers=phone).status_code == 200
-    for path in ("/api/v1/config", "/api/v1/client-remote/network", "/ui/bootstrap"):
+    assert client.get("/api/v1/config", headers=phone).status_code == 200
+    for path in ("/api/v1/client-remote/network", "/ui/bootstrap"):
         assert client.get(path, headers=phone).status_code in (401, 403)
     assert client.get("/api/v1/plugins", headers={**phone, "Origin": "https://evil.example"}).status_code == 403
     with client.websocket_connect("/remote/v1/ui-events", headers=phone, subprotocols=["the-harness"]) as socket:
@@ -146,3 +146,60 @@ def test_network_preview_can_read_but_not_configure(tmp_path, monkeypatch):
     with pytest.raises(HttpError):
         asyncio.run(api.configure_network(preview, True))
     assert not network.path.exists()
+
+
+@pytest.mark.parametrize("platform", ["android", "desktop"])
+def test_paired_clients_share_settings_but_never_local_administration(assembled, platform):
+    client, remote = assembled
+    remote.service.network.endpoint = ENDPOINT
+    device, token = remote.service.clients.issue("device", platform=platform)
+    headers = {"Host": "computer.example.ts.net", "Origin": ENDPOINT,
+               "Authorization": "Bearer " + token}
+    local = {"Authorization": "Bearer local"}
+    context = "/api/v1/client-remote/context"
+    assert client.get(context, headers=headers).json() == {"local_ui": False}
+    assert client.get(context, headers=local).json() == {"local_ui": True}
+    assert client.get(context).status_code == 401
+    config = "/api/v1/config"
+    assert client.get(config, headers=headers).status_code == 200
+    updated = client.patch(config, headers=headers, json={"instructions": "Shared fixture settings"})
+    assert updated.status_code == 200, updated.text
+    assert client.get(config, headers=local).json()["config"]["instructions"] == "Shared fixture settings"
+    quota = client.put("/api/v1/quota/policy", headers=headers, json={"exhausted_policy": "block"})
+    assert quota.status_code == 200, quota.text
+    # A nonexistent plugin proves routing + scope checks passed without changing bindings.
+    binding = client.put("/api/v1/plugins/nonexistent/binding", headers=headers, json={"enabled": True})
+    assert binding.status_code == 404
+    for method, path, body in [
+        ("GET", "/api/v1/client-remote/network", None),
+        ("PUT", "/api/v1/client-remote/network", {"enabled": True}),
+        ("POST", "/api/v1/client-remote/pairings", {}),
+        ("DELETE", "/api/v1/client-remote/clients/" + device["id"], None),
+        ("GET", "/api/v1/local-files/settings", None),
+        ("POST", "/api/v1/local-files/open", {"path": "/tmp/private"}),
+        ("POST", "/api/v1/server/restart", {}),
+    ]:
+        assert client.request(method, path, headers=headers, json=body).status_code in (401, 403)
+    assert remote.service.clients.authenticate(token) is not None
+
+
+@pytest.mark.parametrize("method,path", [
+    ("GET", "/api/v1/config"), ("PATCH", "/api/v1/config"),
+    ("GET", "/api/v1/client-remote/context"), ("PUT", "/api/v1/quota/policy"),
+    ("PUT", "/api/v1/plugins/memory/binding"),
+    ("DELETE", "/api/v1/session"), ("DELETE", "/api/v1/memory"), ("DELETE", "/api/v1/registry"),
+])
+def test_shared_settings_allowlist(method, path):
+    from the_harness.plugins.client_remote.policy import RemoteDesktopAccess
+    assert mobile_api_allowed(method, path)
+    assert RemoteDesktopAccess().allowed(method, path)
+
+
+@pytest.mark.parametrize("path", [
+    "/api/v1/plugins/../binding", "/api/v1/plugins//binding",
+    "/api/v1/plugins/memory/runtime", "/api/v1/plugins/memory/binding/extra",
+])
+def test_shared_settings_do_not_admit_other_plugin_operations(path):
+    from the_harness.plugins.client_remote.policy import RemoteDesktopAccess
+    assert not mobile_api_allowed("PUT", path)
+    assert not RemoteDesktopAccess().allowed("PUT", path)

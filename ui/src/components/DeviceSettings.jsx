@@ -111,13 +111,3 @@ export function DeviceSettings({ api, readOnly = false }) {
     {error && <p className="error" role="alert">{error}</p>}
   </div>;
 }
-
-export function MobileSettings({ onClose }) {
-  const { t, locale, setLocale } = useLocale();
-  return <section className="settings mobile-settings" aria-label={t("settings")}>
-    <header className="settings-header"><h1>{t("settings")}</h1><button autoFocus type="button" onClick={onClose}>{t("backToConversation")}</button></header>
-    <div className="settings-content-inner"><label className="setting-field">{t("language")}
-      <select value={locale} onChange={event => setLocale(event.target.value)}><option value="fr">Français</option><option value="en">English</option></select>
-    </label><p className="setting-help">{t("remoteMobileHelp")}</p><code>{location.origin}</code></div>
-  </section>;
-}

@@ -221,9 +221,9 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 @media (max-width: 720px) {
   :root { --topbar-padding: var(--space-4); --page-padding: var(--space-4); --conversation-padding: var(--space-6); }
   .settings-header { padding: var(--space-4); }
-  .settings-layout { grid-template-columns: 112px minmax(0, 1fr); }
-  .settings-nav { padding: var(--space-3) var(--space-2); }
-  .settings-nav button { padding: var(--space-3) var(--space-2); font-size: var(--font-size-sm); }
+  .settings-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .settings-nav { flex-direction: row; padding: var(--space-3) var(--space-2); border-right: 0; border-bottom: var(--border-width) solid var(--color-border-subtle); }
+  .settings-nav button { flex: none; white-space: nowrap; padding: var(--space-3) var(--space-2); font-size: var(--font-size-sm); }
   .settings-content { padding: var(--space-5) var(--space-4); }
   .settings h2 { font-size: var(--font-size-title); }
   .settings-footer { padding: var(--space-3) var(--space-4); }
@@ -269,7 +269,7 @@ button.technical-gauge:hover:not(:disabled) { background: var(--color-surface); 
 .device-settings { display: grid; gap: 1rem; }
 .device-settings h3, .device-settings p { margin: 0; }
 .remote-status { display: grid; gap: .6rem; padding: 1rem; border: 1px solid var(--color-border-subtle); border-radius: 12px; }
-.remote-status code, .mobile-settings code { overflow-wrap: anywhere; }
+.remote-status code { overflow-wrap: anywhere; }
 .remote-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
 .remote-pairing { display: grid; justify-items: start; gap: .8rem; padding: 1rem; border: 1px solid var(--color-border-subtle); border-radius: 12px; }
 .remote-pairing img { max-width: 100%; height: auto; border-radius: 8px; background: white; }

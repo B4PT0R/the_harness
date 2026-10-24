@@ -61,6 +61,7 @@ async function request(path, options = {}) {
     if (options.method === 'PUT') window.remoteEnabled = body.enabled;
     return { enabled: Boolean(window.remoteEnabled), available: true, endpoint: window.remoteEnabled ? 'https://computer.example.ts.net' : null };
   }
+  if (path === 'client-remote/context') return { local_ui: !location.hostname.endsWith('.ts.net') && !window.remoteClient };
   if (path === 'client-remote') return { clients: [] };
   if (path === 'client-remote/pairings') return { pairing_uri: 'theharness://pair?v=1&endpoint=https%3A%2F%2Fcomputer.example.ts.net&pairing_id=test&secret=test', expires_at: new Date(Date.now() + 300000).toISOString() };
   if (path.startsWith('quota')) {

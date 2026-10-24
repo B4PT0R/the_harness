@@ -3,6 +3,20 @@
 Thin Android host for the server's shared React UI. The server owns the conversation;
 Tailscale is a separate app, not an embedded VPN. Android 8.0+ (API 26).
 
+## Shared settings
+
+The WebView uses the same settings panel as desktop: conversation, quota policy,
+voice, agent capabilities, advanced configuration and confirmed data resets.
+These settings belong to the server's canonical session; language remains a
+client preference. Device pairing/revocation, private network configuration and
+the PC file editor remain local-client-only. The server identifies the authenticated
+client and enforces this boundary for remote desktop clients too, independently
+of screen size. Existing paired Android clients receive the current shared-settings
+permissions without re-pairing; they do not receive local credentials or unrestricted
+API access. Android permissions, private reception, local alerts and disconnect
+remain in the native menu. This shared-UI update requires a server/UI update,
+not a new APK.
+
 Version 0.1.6 repairs alarm-channel initialization after an in-place update and adds
 an offline diagnostic export. Version 0.1.5 introduced the bounded audio loop; the
 first real-phone test of that update was refused before playback, so its audio

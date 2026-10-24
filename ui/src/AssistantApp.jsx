@@ -11,7 +11,6 @@ import { QuotaGauge } from "./components/QuotaGauge";
 import { ContextGauge } from "./components/ContextGauge";
 import { CacheHitStatus } from "./components/CacheHitStatus";
 import { Settings } from "./components/Settings";
-import { MobileSettings } from "./components/DeviceSettings";
 import { ResourceRequest } from "./components/ResourceLink";
 import "./theme.css";
 import "./style.css";
@@ -39,7 +38,7 @@ function Assistant({ request = api, eventsUrl, eventProtocol, brandIcon = "./ass
     <CacheHitStatus stats={state.context.cacheHit} />
   </>} connection={state.connection} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((value) => !value)} brandIcon={brandIcon}
     onOpenBrowser={mobile ? undefined : openBrowser} openingBrowser={openingBrowser}
-    settings={settingsOpen && (mobile ? <MobileSettings onClose={() => setSettingsOpen(false)} /> : <Settings quota={quota} readOnly={preview} api={request} onClose={() => setSettingsOpen(false)} />)}
+    settings={settingsOpen && <Settings quota={quota} readOnly={preview} api={request} onClose={() => setSettingsOpen(false)} />}
   >
     <Conversation messages={state.messages} artifacts={state.artifacts} captions={state.captions} subagents={state.subagents} before={state.before} loadingHistory={state.loadingHistory} onLoadHistory={state.loadHistory} scrollRef={state.scroll}
       onScroll={state.onScroll} onContentLoad={state.onContentLoad} artifactRenderers={artifactRenderers}

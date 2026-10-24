@@ -20,6 +20,7 @@ export function Settings({ quota, api, onClose, readOnly = false }) {
   close.current = onClose;
   const [config, setConfig] = useState("");
   const [plugins, setPlugins] = useState([]);
+  const [localUi, setLocalUi] = useState(false);
   const [saving, setSaving] = useState(false);
   const [changingPlugin, setChangingPlugin] = useState(null);
   let parsed;
@@ -55,11 +56,13 @@ export function Settings({ quota, api, onClose, readOnly = false }) {
     Promise.all([
       api("config", { signal: controller.signal }),
       api("plugins", { signal: controller.signal }),
-    ]).then(([settings, installed]) => {
+      api("client-remote/context", { signal: controller.signal }),
+    ]).then(([settings, installed, client]) => {
       const value = JSON.stringify(settings.config, null, 2);
       setConfig(value);
       setOriginal(value);
       setPlugins(installed.plugins);
+      setLocalUi(client.local_ui === true);
     }).catch((failure) => {
       if (failure.name !== "AbortError") setError(failure.message);
     });
@@ -93,7 +96,7 @@ export function Settings({ quota, api, onClose, readOnly = false }) {
       setChangingPlugin(null);
     }
   }
-  const sections = ["general", "conversation", "voice", "devices", "capabilities", "advanced", "data"];
+  const sections = ["general", "conversation", "voice", ...(localUi ? ["devices"] : []), "capabilities", "advanced", "data"];
   return (
     <section className="settings" aria-label={t("settings")}>
       <header className="settings-header">
@@ -121,7 +124,8 @@ export function Settings({ quota, api, onClose, readOnly = false }) {
                 </select>
               </div>
               <p className="setting-help">{t("languageImmediate")}</p>
-              <FileEditorSettings readOnly={readOnly} api={api} />
+              {localUi ? <FileEditorSettings readOnly={readOnly} api={api} />
+                : <p className="setting-help">{t("remoteSettingsHelp")}</p>}
             </section>
             <section id="settings-conversation" hidden={section !== "conversation"}>
               {quota && <QuotaSettings quota={quota} readOnly={readOnly} />}
@@ -142,7 +146,7 @@ export function Settings({ quota, api, onClose, readOnly = false }) {
                 onChange={(realtime) => change("realtime", realtime)} />
             </section>
             <section id="settings-devices" hidden={section !== "devices"}>
-              {section === "devices" && <DeviceSettings api={api} readOnly={readOnly} />}
+              {localUi && section === "devices" && <DeviceSettings api={api} readOnly={readOnly} />}
             </section>
             <section id="settings-capabilities" hidden={section !== "capabilities"}>
               <p className="setting-help">{t("capabilitiesHelp")}</p>

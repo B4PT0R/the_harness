@@ -203,6 +203,13 @@ class ClientRemoteApi:
             "latest_event_sequence": self.service.sequence,
         }
 
+    @endpoint("get", "/api/v1/client-remote/context", response={"type": "object"},
+              authorization={"scope": "session:read"}, context="call")
+    def client_context(self, call):
+        """Describe this authenticated client, not its screen size or hostname."""
+        local = call.principal.id in {"local-bearer", "local-browser"}
+        return {"local_ui": local or is_preview(call.principal)}
+
     @staticmethod
     def _local(call):
         if call.principal.id not in {"local-bearer", "local-browser"}:
@@ -245,6 +252,7 @@ class ClientRemoteApi:
     )
     def create_pairing(self, call, endpoint=None):
         """Create one short-lived, single-use private-client pairing."""
+        self._local(call)
         advertised = getattr(getattr(self.service, "network", None), "endpoint", None) or self.advertised_endpoint
         parsed = urlparse(str(endpoint)) if endpoint else None
         if advertised and (
@@ -266,9 +274,11 @@ class ClientRemoteApi:
         },
         response={"type": "object"},
         authorization={"scope": "remote-clients:write"},
+        context="call",
     )
-    async def revoke(self, client_id):
+    async def revoke(self, call, client_id):
         """Revoke a private client and its active connections immediately."""
+        self._local(call)
         if not await self.service.revoke_client(client_id):
             raise HttpError(404, "unknown_remote_client", "Unknown remote client")
         return {"status": "revoked", "client_id": client_id}

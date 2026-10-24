@@ -120,7 +120,7 @@ def test_http_pairing_scopes_and_revocation_use_framework_declarations(assembled
 
     desktop, token = remote.service.clients.issue("laptop", platform="desktop")
     desktop_headers = {"Authorization": "Bearer " + token}
-    assert client.get(private, headers=desktop_headers).status_code == 200
+    assert client.get(private, headers=desktop_headers).status_code in (401, 403)
     assert client.get("/ui/", headers=desktop_headers).status_code == 401
     assert client.post("/api/v1/client-remote/pairings", headers=phone, json={}).status_code == 401
     assert client.delete("/api/v1/client-remote/clients/" + desktop["id"], headers=local).status_code == 200

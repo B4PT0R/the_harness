@@ -94,8 +94,9 @@ class HarnessSecurityPolicy:
             return None
         scopes = frozenset(client.get("scopes", ()))
         if "mobile" in scopes:
-            # Product capability for existing paired companions, not host administration.
-            scopes = scopes | {"quota:write"}
+            # Resolve current product rights for existing pairings as well as new ones.
+            from .plugins.client_remote.policy import SHARED_SETTINGS_SCOPES
+            scopes = scopes | SHARED_SETTINGS_SCOPES | {"quota:write"}
         if {"desktop", "full_ui"} & scopes:
             scopes = frozenset({*scopes, "*"})
         return Principal(id=f"remote:{client['id']}", scopes=scopes, attributes={"client": client})
