@@ -41,7 +41,7 @@ const items = Array.from({ length: 80 }, (_, id) => ({
 }));
 async function request(path, options = {}) {
   const body = options.body instanceof FormData
-    ? Object.fromEntries(['id', 'prompt'].map(key => [key, options.body.get(key)]).concat([
+    ? Object.fromEntries(['id', 'prompt', ...(options.body.has('language') ? ['language'] : [])].map(key => [key, options.body.get(key)]).concat([
       ['files', options.body.getAll('files').map(file => file.name)],
     ])) : options.body;
   window.requests.push({ path, body, method: options.method || 'GET' });
@@ -77,7 +77,13 @@ async function request(path, options = {}) {
     return structuredClone(window.quotaState);
   }
   if (path === 'config') return { config: { model: 'test-model', realtime: { model: 'gpt-live-1-codex', voice: 'maple', delegation_ack_filler: true, max_initial_items: 50 } } };
+  if (path === 'dictation/transcribe') {
+    if (window.holdDictation) await new Promise(resolve => { window.releaseDictation = resolve; });
+    if (window.failDictation) throw new Error('Transcription unavailable');
+    return { text: 'Bonjour depuis la dictée.' };
+  }
   if (path === 'plugins') return { plugins: [{ name: 'hosted_ui', running: true },
+    { name: 'dictation', running: Boolean(window.dictationEnabled) },
     { name: 'realtime', running: true, binding_available: true, binding_enabled: Boolean(window.voiceEnabled) }] };
   if (path === 'status' && window.holdStatus) await new Promise(resolve => { window.releaseStatus = resolve; });
   if (path === 'status' && window.failStatus) throw new Error('agent status temporarily unavailable');

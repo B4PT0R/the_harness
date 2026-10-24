@@ -51,6 +51,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
   }, [server.phase, server.instanceId]);
   const [voiceState, setVoiceState] = useState("idle");
   const [voiceAvailable, setVoiceAvailable] = useState(false);
+  const [dictationAvailable, setDictationAvailable] = useState(false);
   const [captions, setCaptions] = useState({});
   const [subagents, setSubagents] = useState({});
   const voice = useRef(null);
@@ -59,6 +60,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     api("plugins", { signal: controller.signal })
       .then((result) => {
         setVoiceAvailable(pluginBindingEnabled(result.plugins, "realtime"));
+        setDictationAvailable(result.plugins.some(plugin => plugin.name === "dictation" && plugin.running));
       })
       .catch((cause) => {
         if (cause.name !== "AbortError") setError(cause.message);
@@ -388,7 +390,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
     dismissServer: () => { serverRef.current = { ...initialServer, instanceId: serverRef.current.instanceId }; setServer(serverRef.current); },
     messages, artifacts, captions, subagents, before, loadingHistory, loadHistory, scroll, follow, onScroll, onContentLoad: followLatest,
     sending, connection, activity, busy,
-    error, setError, voiceAvailable, voiceState, send,
+    error, setError, voiceAvailable, dictationAvailable, voiceState, send,
     toggleVoice: () => voiceState === "idle" ? voice.current.start() : voice.current.stop(),
     interrupt: () => api("agent/interrupt", { method: "POST", body: {} }).catch((error) => setError(error.message)),
   };

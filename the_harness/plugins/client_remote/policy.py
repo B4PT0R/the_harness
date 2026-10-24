@@ -17,6 +17,7 @@ BASE_REMOTE_DESKTOP_API = (
     ("GET", "/api/v1/health"),
     ("GET", "/api/v1/status"),
     ("POST", "/api/v1/agent/compact"),
+    ("POST", "/api/v1/dictation/transcribe"),
     ("DELETE", "/api/v1/session"),
     ("DELETE", "/api/v1/memory"),
     ("DELETE", "/api/v1/registry"),
@@ -110,7 +111,7 @@ def mobile_api_allowed(method, path):
     if method == "GET":
         return path in {"/remote/v1/alerts", "/remote/v1/notifications", "/remote/v1/notifications/wait", "/ui", "/ui/", "/api/v1/quota", "/api/v1/session", "/api/v1/status", "/api/v1/plugins"} or path.startswith(("/ui/assets/", "/api/v1/bucket/")) or path == "/ui/assistant.svg"
     if method == "POST":
-        return path in {"/api/v1/quota/consume", "/remote/v1/alerts/receipt", "/api/v1/agent/prompt", "/api/v1/agent/attachments", "/api/v1/agent/interrupt", "/api/v1/agent/compact", "/api/v1/realtime/calls", "/api/v1/realtime/calls/current/ready", "/api/v1/realtime/calls/current/suspend"}
+        return path in {"/api/v1/dictation/transcribe", "/api/v1/quota/consume", "/remote/v1/alerts/receipt", "/api/v1/agent/prompt", "/api/v1/agent/attachments", "/api/v1/agent/interrupt", "/api/v1/agent/compact", "/api/v1/realtime/calls", "/api/v1/realtime/calls/current/ready", "/api/v1/realtime/calls/current/suspend"}
     return method == "DELETE" and path == "/api/v1/realtime/calls/current"
 
 

@@ -6,15 +6,26 @@ import { ContextGauge } from "./ContextGauge";
 import { IconButton } from "./Icons";
 import { handleComposerKeyDown } from "../composer-keyboard.js";
 import { resizeComposerTextarea } from "../composer-size.js";
+import { api } from "../api.js";
+import { appendDictation } from "../dictation.js";
+import { useDictation } from "../hooks/useDictation.js";
 
-export function Composer({ quota, server = { phase: "idle" }, onDismissServer, readOnly = false, sending, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
-  const { t } = useLocale();
+export function Composer({ request = api, dictationAvailable = false, quota, server = { phase: "idle" }, onDismissServer, readOnly = false, sending, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
+  const { t, locale } = useLocale();
   const [draft, setDraft] = useState("");
   const [files, setFiles] = useState([]);
   const [restoreFocus, setRestoreFocus] = useState(false);
   const submitting = useRef(false);
   const fileInput = useRef(null);
   const textarea = useRef(null);
+  const dictation = useDictation({ request, locale,
+    enabled: dictationAvailable && !readOnly && connected && !sending && voiceState === "idle",
+    onText: text => {
+      setDraft(current => appendDictation(current, text));
+      setRestoreFocus(true);
+    },
+  });
+  const dictating = dictation.state !== "idle";
   useLayoutEffect(() => { resizeComposerTextarea(textarea.current); }, [draft]);
   useLayoutEffect(() => {
     if (sending || !restoreFocus) return;
@@ -39,7 +50,7 @@ export function Composer({ quota, server = { phase: "idle" }, onDismissServer, r
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const canSubmit = !readOnly && !sending && (Boolean(draft.trim()) || files.length > 0) && connected;
+  const canSubmit = !readOnly && !sending && !dictating && (Boolean(draft.trim()) || files.length > 0) && connected;
   async function submit(event) {
     event.preventDefault();
     if (!canSubmit || submitting.current) return;
@@ -74,7 +85,9 @@ export function Composer({ quota, server = { phase: "idle" }, onDismissServer, r
         <span className="activity-text">{activityText}</span>
       </div>}
     </div>
+    {dictation.error && <div className="error" role="alert">{dictation.error}<IconButton icon="close" label={t("close")} onClick={dictation.dismissError} /></div>}
     <form className="composer" onSubmit={submit}>
+      {dictating && <div className="dictation-status" role="status">{t({ requesting: "dictationRequesting", recording: "dictationRecording", transcribing: "dictationTranscribing" }[dictation.state])}</div>}
       {!!files.length && <div className="attachments">{files.map((file, index) => <button
         type="button" key={index} disabled={sending} aria-label={t("removeAttachment", { name: file.name })}
         onClick={() => setFiles(files.filter((_, i) => i !== index))}
@@ -86,11 +99,18 @@ export function Composer({ quota, server = { phase: "idle" }, onDismissServer, r
         <IconButton icon="attach" label={t("attach")} disabled={sending || voiceState !== "idle"} onClick={() => fileInput.current.click()} />
         <div className="composer-main-actions">
           {quota && <QuotaGauge quota={quota} readOnly={readOnly} />}
-          <ContextGauge context={context} disabled={readOnly || !connected || sending || voiceState !== "idle"} onCompact={onCompact} />
+          <ContextGauge context={context} disabled={readOnly || !connected || sending || dictating || voiceState !== "idle"} onCompact={onCompact} />
+          {dictationAvailable && <IconButton
+            icon={dictation.state === "recording" ? "stop" : dictating ? "close" : "dictate"}
+            label={t(dictation.state === "recording" ? "dictationStop" : dictating ? "dictationCancel" : "dictationStart")}
+            aria-pressed={dictating} className="composer-dictation"
+            disabled={readOnly || !dictation.supported || !connected || sending || voiceState !== "idle"}
+            onClick={dictation.toggle}
+          />}
           {voiceAvailable && <IconButton
             icon={voiceState === "idle" ? "mic" : voiceState === "connecting" ? "close" : "stop"}
             label={t(voiceLabel)} aria-pressed={voiceState !== "idle"}
-            disabled={readOnly || voiceState === "stopping" || (voiceState === "idle" && (busy || sending || files.length > 0 || !connected))}
+            disabled={readOnly || dictating || voiceState === "stopping" || (voiceState === "idle" && (busy || sending || files.length > 0 || !connected))}
             onClick={onToggleVoice}
           />}
           {busy && <IconButton icon="stop" label={t("stop")} disabled={readOnly} onClick={onInterrupt} />}
