@@ -41,16 +41,18 @@ select:focus-visible, a:focus-visible, summary:focus-visible {
 .icon-button[aria-pressed="true"] { color: var(--color-link); border-color: var(--color-accent); }
 .app { height: 100dvh; display: flex; flex-direction: column; }
 .topbar {
-  height: var(--topbar-height);
+  min-height: var(--topbar-height);
   flex: none;
   border-bottom: var(--border-width) solid var(--color-border-subtle);
-  padding-inline: var(--topbar-padding);
+  padding: var(--space-2) var(--topbar-padding);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
 }
-.topbar-actions { display: flex; align-items: center; gap: var(--space-2); }
+.topbar-left { display: flex; align-items: center; gap: var(--space-4); min-width: 0; flex-wrap: wrap; }
+.technical-status { display: flex; align-items: center; gap: var(--space-2); }
+.topbar-actions { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; flex: none; }
 .brand { display: flex; align-items: center; gap: var(--space-2); }
 .brand img { width: var(--brand-icon-size); height: var(--brand-icon-size); }
 .connection { display: inline-flex; color: var(--color-muted); margin-left: var(--space-2); }
@@ -233,28 +235,31 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 .attachments button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-control); }
 @media (max-width: 480px) {
   :root { --topbar-padding: var(--space-3); }
-  .composer-area { padding-inline: var(--space-3); }
-  .composer { padding: var(--space-2); }
-  .composer-actions, .composer-main-actions { gap: 2px; }
-  .composer-actions { flex-wrap: wrap; }
-  .composer-main-actions { min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
-  .composer-actions .icon-button { width: 34px; }
+  .topbar { flex-wrap: wrap; }
+  .topbar-left { gap: var(--space-2); }
+  .brand img, .brand strong { display: none; }
+  .connection { margin-left: 0; }
+  .technical-status { gap: var(--space-1); }
 }
 
-/* Compact, theme-owned context meter; no extra toolbar or persistent legend. */
-.context-gauge svg { width: 32px; height: 32px; overflow: visible; }
-.context-gauge circle { fill: none; stroke-width: 2; }
-.context-gauge-track { stroke: var(--color-border); }
-.context-gauge-fill { stroke: var(--color-muted); transition: stroke-dasharray .25s ease; }
-.context-gauge text { fill: var(--color-muted); font-size: 9px; font-family: inherit; }
-.context-gauge.is-full .context-gauge-fill { stroke: var(--color-danger); }
-.composer .context-gauge.is-compacting { opacity: 1; }
-.context-gauge.is-compacting .context-gauge-fill { stroke: var(--color-accent); }
+/* Same geometry and captions for the three technical indicators. */
+.technical-gauge { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none; gap: 0; width: 40px; padding: 2px 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+button.technical-gauge:hover:not(:disabled) { background: var(--color-surface); }
+.gauge-caption { font-size: 9px; line-height: 12px; letter-spacing: .04em; }
+.gauge-ring { width: 32px; height: 32px; overflow: visible; }
+.gauge-ring circle { fill: none; stroke-width: 2; }
+.gauge-track { stroke: var(--color-border); }
+.gauge-fill { stroke: var(--color-link); transition: stroke-dasharray .25s ease; }
+.gauge-ring text { fill: var(--color-muted); font-size: 8px; font-family: inherit; }
+.gauge-unit { font-size: 6px; }
+.technical-gauge.is-full .gauge-fill { stroke: var(--color-danger); }
+.context-gauge.is-compacting { opacity: 1; }
+.context-gauge.is-compacting .gauge-fill { stroke: var(--color-accent); }
 .context-gauge.is-compacting svg { animation: context-spin 1.2s linear infinite; }
 @keyframes context-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .context-gauge.is-compacting svg { animation: none; }
-  .context-gauge-fill { transition: none; }
+  .gauge-fill { transition: none; }
 }
 
 .setting-help { color: var(--color-muted); font-size: var(--font-size-sm); line-height: var(--line-height-body); }
@@ -280,13 +285,6 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 .server-notice small { display: block; overflow-wrap: anywhere; }
 .server-notice[data-phase="failed"] { background: var(--color-error-background); color: var(--color-error-text); }
 
-/* Weekly account quota, intentionally distinct from the context ring. */
-.quota-gauge { display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 5px; min-width: 58px; padding: 4px 7px; border: 0; background: transparent; color: var(--color-muted); font-size: 11px; border-radius: var(--radius-sm); }
-.quota-gauge:hover { background: var(--color-surface); color: var(--color-text); }
-.quota-gauge-caption { font-size: 10px; opacity: .8; }
-.quota-gauge-track { grid-column: 1 / -1; height: 3px; overflow: hidden; border-radius: 2px; background: var(--color-border); }
-.quota-gauge-track > span { display: block; height: 100%; background: var(--color-accent); }
-.quota-gauge.is-full .quota-gauge-track > span { background: var(--color-danger); }
 .quota-dialog { width: 540px; max-height: 85dvh; overflow-y: auto; }
 .quota-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .quota-dialog h2 { margin: 0; }
@@ -299,5 +297,5 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 .quota-receipts li { margin-block: var(--space-2); }
 .quota-settings { margin-bottom: var(--space-5); }
 
-.cache-hit { color: var(--color-muted); font-size: var(--font-size-control); white-space: nowrap; font-variant-numeric: tabular-nums; cursor: help; }
-@media (max-width: 400px) { .brand strong { display: none; } }
+.cache-hit { cursor: help; }
+@media (min-width: 481px) and (max-width: 900px) { .brand strong { display: none; } }

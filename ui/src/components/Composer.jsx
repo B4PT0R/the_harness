@@ -1,8 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { useLocale } from "../i18n";
 import { initialContext } from "../context.js";
-import { QuotaGauge } from "./QuotaGauge";
-import { ContextGauge } from "./ContextGauge";
 import { IconButton } from "./Icons";
 import { handleComposerKeyDown } from "../composer-keyboard.js";
 import { resizeComposerTextarea } from "../composer-size.js";
@@ -10,7 +8,7 @@ import { api } from "../api.js";
 import { appendDictation } from "../dictation.js";
 import { useDictation } from "../hooks/useDictation.js";
 
-export function Composer({ request = api, dictationAvailable = false, quota, server = { phase: "idle" }, onDismissServer, readOnly = false, sending, voiceAvailable, voiceState, busy, connected, context = initialContext, onCompact, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
+export function Composer({ request = api, dictationAvailable = false, onDictationChange, server = { phase: "idle" }, onDismissServer, readOnly = false, sending, voiceAvailable, voiceState, busy, connected, context = initialContext, activity, error, onDismissError, onSubmit, onToggleVoice, onInterrupt }) {
   const { t, locale } = useLocale();
   const [draft, setDraft] = useState("");
   const [files, setFiles] = useState([]);
@@ -26,6 +24,7 @@ export function Composer({ request = api, dictationAvailable = false, quota, ser
     },
   });
   const dictating = dictation.state !== "idle";
+  useLayoutEffect(() => { onDictationChange?.(dictating); }, [dictating, onDictationChange]);
   useLayoutEffect(() => { resizeComposerTextarea(textarea.current); }, [draft]);
   useLayoutEffect(() => {
     if (sending || !restoreFocus) return;
@@ -98,8 +97,6 @@ export function Composer({ request = api, dictationAvailable = false, quota, ser
         <input ref={fileInput} type="file" multiple hidden onChange={(event) => { setFiles([...files, ...event.target.files]); event.target.value = ""; }} />
         <IconButton icon="attach" label={t("attach")} disabled={sending || voiceState !== "idle"} onClick={() => fileInput.current.click()} />
         <div className="composer-main-actions">
-          {quota && <QuotaGauge quota={quota} readOnly={readOnly} />}
-          <ContextGauge context={context} disabled={readOnly || !connected || sending || dictating || voiceState !== "idle"} onCompact={onCompact} />
           {dictationAvailable && <IconButton
             icon={dictation.state === "recording" ? "stop" : dictating ? "close" : "dictate"}
             label={t(dictation.state === "recording" ? "dictationStop" : dictating ? "dictationCancel" : "dictationStart")}

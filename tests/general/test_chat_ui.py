@@ -124,7 +124,7 @@ def test_attachments_and_draft_survive_updates_and_failed_send(page):
         "name": "note.txt", "mimeType": "text/plain", "buffer": b"test attachment",
     })
     page.evaluate("window.emit({ type: 'worker_status', foreground_active: false, local_input_tokens: 40, context_token_limit: 200 })")
-    page.wait_for_function("document.querySelector('.context-gauge text').textContent === '20'")
+    page.wait_for_function("document.querySelector('.context-gauge text').textContent === '20%'")
     assert field.input_value() == "With attachment"
     assert page.locator(".attachments button").inner_text() == "note.txt ×"
     page.evaluate("window.holdSend = true; window.failSend = true")

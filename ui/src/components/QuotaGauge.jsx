@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocale } from "../i18n";
 import { IconButton } from "./Icons";
+import { GaugeRing } from "./GaugeRing";
 
 export function QuotaGauge({ quota, readOnly = false }) {
   const { t, locale } = useLocale();
@@ -9,7 +10,7 @@ export function QuotaGauge({ quota, readOnly = false }) {
   const [error, setError] = useState(false);
   const data = quota.data;
   const raw = data?.quota_7d?.used_percent;
-  const percent = typeof raw === "number" ? Math.round(Math.min(100, Math.max(0, raw))) : null;
+  const percent = Number.isFinite(raw) ? Math.round(Math.min(100, Math.max(0, raw))) : null;
   const unavailable = quota.failed || data?.error;
   const label = !data && !quota.failed ? t("quotaLoading")
     : unavailable || percent === null ? t("quotaUnavailable") : t("quotaUsage", { percent });
@@ -30,12 +31,11 @@ export function QuotaGauge({ quota, readOnly = false }) {
     } catch { setError(true); await quota.refresh(); }
   }
   return <>
-    <button type="button" className={`quota-gauge${data?.exhausted ? " is-full" : ""}`}
+    <button type="button" className={`technical-gauge quota-gauge${data?.exhausted ? " is-full" : ""}`}
       aria-haspopup="dialog" aria-label={`${label}. ${t("quotaOpen")}`} title={`${label}\n${t("quotaOpen")}`}
       onClick={() => { dialog.current.showModal(); quota.refresh(); }}>
-      <span className="quota-gauge-caption" aria-hidden="true">7{locale === "fr" ? "j" : "d"}</span>
-      <span aria-hidden="true">{unavailable || percent === null ? "–" : `${percent}%`}</span>
-      <span className="quota-gauge-track" aria-hidden="true"><span style={{ width: `${percent ?? 0}%` }} /></span>
+      <GaugeRing value={unavailable ? null : percent} />
+      <span className="gauge-caption" aria-hidden="true">7D</span>
     </button>
     <dialog ref={dialog} className="reset-dialog quota-dialog" aria-labelledby="quota-title"
       onCancel={() => { setConfirm(null); setError(false); }}>
