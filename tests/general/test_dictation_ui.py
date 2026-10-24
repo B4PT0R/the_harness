@@ -99,3 +99,31 @@ def test_cancel_late_transcription_does_not_change_draft(page):
 
 def test_dictation_hidden_when_plugin_unavailable(page):
     expect(page.get_by_role('button', name='Dicter un message', exact=True)).to_have_count(0)
+
+
+@pytest.mark.parametrize('width', [320, 360, 390, 480, 1280])
+@pytest.mark.parametrize('busy', [False, True])
+def test_all_composer_actions_fit_without_overlap(page, width, busy):
+    enable(page)
+    page.set_viewport_size({'width': width, 'height': 800})
+    page.evaluate("busy => window.emit({type: 'worker_status', foreground_active: busy, foreground_pending: 0})", busy)
+    buttons = page.locator('.composer-actions button').filter(visible=True)
+    expect(buttons).to_have_count(7 if busy else 6)
+    layout = buttons.evaluate_all('''buttons => {
+      const form = document.querySelector('.composer').getBoundingClientRect();
+      return {left: form.left, right: form.right, buttons: buttons.map(button => {
+        const r = button.getBoundingClientRect();
+        return {left: r.left, right: r.right, top: r.top, height: r.height,
+          icon: button.classList.contains('icon-button')};
+      })};
+    }''')
+    previous = None
+    for rect in layout['buttons']:
+        assert layout['left'] <= rect['left'] < rect['right'] <= layout['right']
+        if rect['icon']:
+            assert rect['height'] >= 40
+        if previous:
+            assert rect['left'] >= previous['right']
+            assert abs(rect['top'] + rect['height'] / 2 - previous['top'] - previous['height'] / 2) <= 1
+        previous = rect
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

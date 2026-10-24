@@ -233,6 +233,12 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 .attachments button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-control); }
 @media (max-width: 480px) {
   :root { --topbar-padding: var(--space-3); }
+  .composer-area { padding-inline: var(--space-3); }
+  .composer { padding: var(--space-2); }
+  .composer-actions, .composer-main-actions { gap: 2px; }
+  .composer-actions { flex-wrap: wrap; }
+  .composer-main-actions { min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .composer-actions .icon-button { width: 34px; }
 }
 
 /* Compact, theme-owned context meter; no extra toolbar or persistent legend. */
