@@ -69,3 +69,30 @@ def test_technical_indicators_share_top_left_without_crowding_actions(page, widt
     indicators.locator('.context-gauge').click()
     page.wait_for_function("window.requests.some(r => r.path === 'agent/compact')")
     expect(indicators.locator('.context-gauge')).to_have_attribute('aria-busy', 'true')
+
+
+@pytest.mark.parametrize("width", [320, 390, 1280])
+def test_brand_logo_is_the_connection_status_on_every_screen(page, width):
+    page.set_viewport_size({"width": width, "height": 800})
+    status = page.locator(".brand .connection")
+    logo = status.locator("img")
+    expect(status).to_have_attribute("role", "status")
+    expect(status).to_have_attribute("aria-label", "Connecté")
+    expect(logo).to_be_visible()
+    expect(page.locator(".brand img")).to_have_count(1)
+    expect(logo).to_have_css("opacity", "1")
+    connected = logo.evaluate("node => ({filter: getComputedStyle(node).filter, opacity: getComputedStyle(node).opacity})")
+    assert "drop-shadow" in connected["filter"]
+    assert connected["opacity"] == "1"
+    assert status.evaluate("node => getComputedStyle(node, '::before').content") == "none"
+    # Keep the fake socket offline until explicitly reopened.
+    page.evaluate("window.WebSocket = class { constructor() { window.offlineSocket = this; } close() {} }; window.socket.onclose()")
+    expect(status).to_have_attribute("data-state", "Reconnecting")
+    expect(status).to_have_attribute("aria-label", "Reconnexion…")
+    expect(logo).to_have_css("opacity", "0.65")
+    assert "grayscale(1)" in logo.evaluate("node => getComputedStyle(node).filter")
+    page.wait_for_function("typeof window.offlineSocket?.onopen === 'function'")
+    page.evaluate("window.offlineSocket.onopen()")
+    expect(status).to_have_attribute("data-state", "Connected")
+    expect(logo).to_have_css("opacity", "1")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")

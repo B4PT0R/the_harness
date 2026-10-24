@@ -8,10 +8,11 @@ export function AppShell({ preview = false, indicators, connection, settingsOpen
     <header className="topbar">
       <div className="topbar-left">
         <div className="brand">
-          <img src={brandIcon} alt="" />
+          <span className="connection" data-state={connection} role="status" aria-label={t(connection)} title={t(connection)}>
+            <img src={brandIcon} alt="" />
+          </span>
           <strong>The Harness</strong>
           {preview && <span className="preview-badge">{t("previewReadOnly")}</span>}
-          <span className="connection" data-state={connection} role="status" aria-label={t(connection)} title={t(connection)} />
         </div>
         <div className="technical-status">{indicators}</div>
       </div>
