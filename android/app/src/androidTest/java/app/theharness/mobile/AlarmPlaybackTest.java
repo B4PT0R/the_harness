@@ -85,11 +85,13 @@ public class AlarmPlaybackTest {
         }
         fail("Playback service did not stop");
     }
-    private void arm(String id) throws Exception {
+    private void arm(String id) throws Exception { arm(id, null); }
+    private void arm(String id, String audioSrc) throws Exception {
         JSONObject item = new JSONObject().put("id", id).put("kind", "alarm").put("title", "Muted alarm lab")
             .put("body", "Emulator -no-audio only").put("ack_required", true)
             .put("at", Instant.now().plusMillis(800).toString())
             .put("deadline_at", Instant.now().plusSeconds(600).toString());
+        if (audioSrc != null) item.put("audio_src", audioSrc);
         JSONObject cached = new JSONObject(prefs.getString("alerts", "{}"));
         cached.put(id, item);
         prefs.edit().putString("alerts", cached.toString()).commit();
@@ -198,4 +200,73 @@ public class AlarmPlaybackTest {
         alerts.receive("cancelled", NativeAlerts.FIRE);
         Thread.sleep(300); assertNull(service());
     }
+    static void silentWav(java.io.File file, int milliseconds) throws Exception {
+        int size = 8000 * milliseconds / 1000 * 2;
+        var bytes = java.nio.ByteBuffer.allocate(44 + size).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        bytes.put("RIFF".getBytes(java.nio.charset.StandardCharsets.US_ASCII)).putInt(36 + size)
+            .put("WAVEfmt ".getBytes(java.nio.charset.StandardCharsets.US_ASCII)).putInt(16)
+            .putShort((short) 1).putShort((short) 1).putInt(8000).putInt(16000)
+            .putShort((short) 2).putShort((short) 16)
+            .put("data".getBytes(java.nio.charset.StandardCharsets.US_ASCII)).putInt(size);
+        try (var out = new java.io.FileOutputStream(file)) { out.write(bytes.array()); }
+    }
+    private void assertTrackDuration(int expected) {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            try {
+                var player = (MediaPlayer) field(service(), "player");
+                assertEquals(expected, player.getDuration());
+                assertTrue(player.isLooping());
+            } catch (Exception failure) { throw new AssertionError(failure); }
+        });
+    }
+    @Test public void cachedSpeechPlaysOfflineAndOverlappingVoicesResume() throws Exception {
+        AlarmAudio cache = new AlarmAudio(context);
+        String first = "/api/v1/bucket/first.wav", second = "/api/v1/bucket/second.wav";
+        silentWav(cache.file(first), 1000); silentWav(cache.file(second), 1600);
+        AlarmAudio.validate(cache.file(first));
+        assertTrue(cache.prepare(new JSONObject(), first, 0)); // No credential/network needed for preloaded bytes.
+        arm("voice-first", first);
+        assertTrackDuration(1000);
+        Thread.sleep(1300); // Real loop over end-of-file.
+        awaitPlayback(true);
+        arm("voice-second", second);
+        assertTrackDuration(1600);
+        alerts.receive("voice-second", NativeAlerts.ACK);
+        Thread.sleep(300); awaitPlayback(true); assertTrackDuration(1000);
+        alerts.receive("voice-first", NativeAlerts.ACK);
+        awaitPlayback(false); awaitServiceStopped();
+    }
+    @Test public void missingSpeechFallsBackToRingtoneAndReportsUnavailability() throws Exception {
+        arm("missing-voice", "/api/v1/bucket/missing.wav");
+        assertTrue(receipt("missing-voice", "audio_unavailable"));
+        awaitPlayback(true);
+        alerts.receive("missing-voice", NativeAlerts.ACK);
+        awaitPlayback(false);
+    }
+    @Test public void invalidSpeechFallsBackRatherThanSilencingAlarm() throws Exception {
+        String src = "/api/v1/bucket/corrupt.wav";
+        try (var out = new java.io.FileOutputStream(new AlarmAudio(context).file(src))) { out.write(new byte[]{1, 2, 3}); }
+        arm("corrupt-voice", src);
+        assertTrue(receipt("corrupt-voice", "audio_unavailable"));
+        assertNull(new AlarmAudio(context).cached(src));
+        awaitPlayback(true);
+        alerts.receive("corrupt-voice", NativeAlerts.ACK);
+        awaitPlayback(false);
+    }
+    @Test public void cacheRejectsUnsafePathsAndPrunesOnDisable() throws Exception {
+        for (String src : new String[]{"https://host/a.wav", "//host/a.wav", "/api/v1/bucket/../a",
+                "/api/v1/bucket/a?secret=x", "/api/v1/bucket/%2e.wav", "/api/v1/bucket/"})
+            assertFalse(src, AlarmAudio.allowed(src));
+        AlarmAudio cache = new AlarmAudio(context);
+        String kept = "/api/v1/bucket/kept.wav", discarded = "/api/v1/bucket/discarded.wav";
+        silentWav(cache.file(kept), 1000); silentWav(cache.file(discarded), 1000);
+        cache.prune(new org.json.JSONArray().put(new JSONObject().put("audio_src", kept)));
+        assertNotNull(cache.cached(kept)); assertNull(cache.cached(discarded));
+        assertTrue(cache.prepare(new JSONObject(), kept, 0)); // Cached voice needs no network.
+        assertFalse(cache.prepare(new JSONObject(), discarded, 0)); // Expired budget never fetches.
+        assertFalse(cache.prepare(new JSONObject(), "https://host/leak", SystemClock.elapsedRealtime() + 1000));
+        alerts.disable();
+        assertNull(cache.cached(kept));
+    }
+
 }

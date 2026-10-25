@@ -17,6 +17,12 @@ API access. Android permissions, private reception, local alerts and disconnect
 remain in the native menu. This shared-UI update requires a server/UI update,
 not a new APK.
 
+Version 0.1.7 adds optional preloaded spoken alarm messages, synthesized locally
+on the server and played offline instead of the default ringtone. Missing or
+invalid audio falls back to that ringtone. No additional permission or permanent
+service. See [spoken alarms](../docs/alarm-speech.md); install the updated APK and
+backend. Immediate unpredictable speech in deep sleep is not guaranteed.
+
 Version 0.1.6 repairs alarm-channel initialization after an in-place update and adds
 an offline diagnostic export. Version 0.1.5 introduced the bounded audio loop; the
 first real-phone test of that update was refused before playback, so its audio

@@ -28,6 +28,7 @@ public final class AlarmPlayback extends Service {
     private final LinkedHashMap<String, Ring> ringing = new LinkedHashMap<>();
     private record Ring(JSONObject item, long until) {}
     private MediaPlayer player;
+    private String activeId;
     private AudioManager audio;
     private AudioFocusRequest focus;
     private final Runnable timeout = () -> expire(SystemClock.elapsedRealtime());
@@ -52,8 +53,7 @@ public final class AlarmPlayback extends Service {
         ringing.put(id, new Ring(item, SystemClock.elapsedRealtime() + MAX_RING_MS));
         try {
             refresh(); // Foreground BEFORE audio/focus, including while app is in background.
-            if (player == null) startAudio();
-            alerts.receipt(item, "fired");
+            if (ringing.containsKey(id)) alerts.receipt(item, "fired");
         } catch (Exception failure) {
             alerts.receipt(item, "error");
             remove(id);
@@ -61,9 +61,9 @@ public final class AlarmPlayback extends Service {
         alerts.requestSync();
         return START_NOT_STICKY; // Never restart/replay an alarm after process death.
     }
-    private void startAudio() throws Exception {
+    private void startAudio(JSONObject item) throws Exception {
         AudioAttributes attributes = new AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
+            .setUsage(AudioAttributes.USAGE_ALARM).setContentType(item.has("audio_src") ? AudioAttributes.CONTENT_TYPE_SPEECH : AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
         audio = getSystemService(AudioManager.class);
         focus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
             .setAudioAttributes(attributes).setOnAudioFocusChangeListener(change -> {
@@ -80,12 +80,28 @@ public final class AlarmPlayback extends Service {
         player = new MediaPlayer();
         player.setAudioAttributes(attributes);
         player.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK);
-        var uri = RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM);
-        if (uri == null) uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        player.setDataSource(this, uri);
+        var cached = new AlarmAudio(this).cached(item.optString("audio_src", null));
+        boolean speech = false;
+        if (cached != null) {
+            try {
+                player.setDataSource(cached.getAbsolutePath());
+                player.prepare();
+                speech = true;
+            } catch (Exception invalid) {
+                cached.delete(); // Allow the next synchronization to repair a corrupt resource.
+                player.reset(); player.setAudioAttributes(attributes);
+                player.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK);
+            }
+        }
+        if (!speech) {
+            if (item.has("audio_src")) NativeAlerts.get(this).receipt(item, "audio_unavailable");
+            var uri = RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM);
+            if (uri == null) uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            player.setDataSource(this, uri);
+            player.prepare();
+        }
         player.setLooping(true);
         player.setOnErrorListener((failed, what, extra) -> { finishAll("error"); return true; });
-        player.prepare();
         player.start();
     }
     private void refresh() {
@@ -104,6 +120,16 @@ public final class AlarmPlayback extends Service {
             startForeground(NOTIFICATION, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
         else startForeground(NOTIFICATION, notification);
         handler.postDelayed(timeout, Math.max(0, next - SystemClock.elapsedRealtime()));
+        // One voice at a time: newest alarm takes priority; the previous resumes when it stops.
+        String id = latest.item().optString("id");
+        if (!id.equals(activeId)) {
+            releaseAudio();
+            try { startAudio(latest.item()); activeId = id; }
+            catch (Exception failure) {
+                NativeAlerts.get(this).receipt(latest.item(), "error");
+                ringing.remove(id); refresh();
+            }
+        }
     }
     private void remove(String id) {
         if (ringing.remove(id) != null) refresh();
@@ -129,6 +155,7 @@ public final class AlarmPlayback extends Service {
         ringing.clear(); refresh(); alerts.requestSync();
     }
     private void releaseAudio() {
+        activeId = null;
         if (player != null) { player.release(); player = null; }
         if (audio != null && focus != null) audio.abandonAudioFocusRequest(focus);
         focus = null;

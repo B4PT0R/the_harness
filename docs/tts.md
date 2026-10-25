@@ -103,3 +103,11 @@ HARNESS_TTS_LIVE=1 uv run pytest -q -s tests/agentic/test_tts_live.py
 The live test requires the installed runtime and default voice. It uses only a
 synthetic reminder, validates WAV metadata and non-silent samples, and does not
 play audio or open the microphone.
+
+## Spoken native alarms
+
+`tts.prepare_alarm_audio(text)` silently prepares a bucket resource for scheduled
+Android alarms. Pass its `audio_src` to an explicitly authorized native alarm;
+preparation alone neither displays a player, plays audio nor schedules anything.
+The phone preloads it and plays offline. Limits: 180 seconds / 8 MiB per file.
+See [alarm speech](alarm-speech.md) for synchronization, fallback and sleep limits.

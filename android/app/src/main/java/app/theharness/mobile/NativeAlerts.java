@@ -82,6 +82,7 @@ final class NativeAlerts {
         for (var ids = cached.keys(); ids.hasNext();) cancel(ids.next());
         notifications().cancel("conversation", 0);
         prefs.edit().clear().commit();
+        new AlarmAudio(context).prune(new JSONArray());
         context.getSystemService(JobScheduler.class).cancel(JOB);
         context.getSystemService(JobScheduler.class).cancel(URGENT_JOB);
     }
@@ -266,9 +267,9 @@ final class NativeAlerts {
             JSONObject schedule = request(credential, "/remote/v1/alerts", null);
             if (schedule.optBoolean("truncated") || schedule.getJSONArray("alerts").length() > 512)
                 throw new IllegalStateException("Calendrier trop volumineux ; cache conservé.");
+            JSONArray incoming = schedule.getJSONArray("alerts");
             synchronized (this) {
                 if (!enabled()) return;
-                JSONArray incoming = schedule.getJSONArray("alerts");
                 JSONObject next = new JSONObject(), old = read("alerts"), fired = read("fired"), keptFired = new JSONObject();
                 for (int i = 0; i < incoming.length(); i++) {
                     JSONObject item = incoming.getJSONObject(i);
@@ -293,6 +294,24 @@ final class NativeAlerts {
                 for (var ids = next.keys(); ids.hasNext();) arm(next.getJSONObject(ids.next()));
                 prefs.edit().putLong("last_sync", System.currentTimeMillis()).putString("error", "").commit();
             }
+            // Arm/cancel first: downloading speech must not delay schedule changes.
+            AlarmAudio audio = new AlarmAudio(context);
+            audio.prune(incoming);
+            long audioDeadline = android.os.SystemClock.elapsedRealtime() + 20_000;
+            int downloads = 0;
+            for (int i = 0; i < incoming.length() && enabled(); i++) {
+                JSONObject item = incoming.getJSONObject(i);
+                if (item.optBoolean("cancelled") || !"alarm".equals(item.optString("kind"))
+                    || !item.has("audio_src") || time(item, "deadline_at") <= System.currentTimeMillis()) continue;
+                String src = item.optString("audio_src");
+                boolean ready = audio.cached(src) != null;
+                if (!ready && downloads < 4 && android.os.SystemClock.elapsedRealtime() < audioDeadline) {
+                    downloads++;
+                    ready = audio.prepare(credential, src, audioDeadline);
+                }
+                receipt(item, ready ? "audio_ready" : "audio_unavailable");
+            }
+            if (!enabled()) { audio.prune(new JSONArray()); return; }
             // Bounded replay: ACK can be sent after an offline interval, never backdated as proof.
             for (int i = 0; i < 8 && enabled(); i++) {
                 JSONObject queue;

@@ -382,7 +382,7 @@ class ClientRemoteApi:
     @endpoint("post", "/remote/v1/alerts/receipt", context="call",
               request={"type": "object", "properties": {
                   "wait_id": {"type": "string", "minLength": 1, "maxLength": 200},
-                  "event": {"enum": ["armed", "fired", "acknowledged", "permission_denied", "error", "auto_stopped"]}},
+                  "event": {"enum": ["armed", "fired", "acknowledged", "permission_denied", "error", "auto_stopped", "audio_ready", "audio_unavailable"]}},
                   "required": ["wait_id", "event"], "additionalProperties": False},
               response={"type": "object"})
     async def alert_receipt(self, call, wait_id, event):

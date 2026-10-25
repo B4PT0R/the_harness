@@ -113,3 +113,20 @@ class TTSExtension(AgentExtension):
             if show_artifact:
                 return result, Artifact(kind="audio", payload=payload)
         return result
+
+    @tool
+    async def prepare_alarm_audio(self, text: str):
+        """Prepare exact spoken words for a native alarm, without playing or displaying audio.
+
+        Returns audio_src to pass to scheduler.create_wake (delivery=alarm) or
+        create_wait's alert.audio_src (kind=alarm). The phone must sync and report
+        audio_ready before offline speech is available. Otherwise the ringtone is
+        the fallback. This does not schedule anything or prove human receipt.
+        """
+        result = await self.synthesize(text, show_artifact=False, play_audio=False)
+        if result["duration_seconds"] > 180 or Path(result["path"]).stat().st_size > 8 * 1024 * 1024:
+            raise ValueError("Alarm speech must fit within 180 seconds and 8 MiB; shorten the text.")
+        payload = await self.agent.bridge.call("artifacts", "publish", {
+            "kind": "audio", "payload": {"path": result["path"], "title": "Message d’alarme"},
+        }, timeout_ms=120_000)
+        return {**result, "audio_src": payload["src"]}

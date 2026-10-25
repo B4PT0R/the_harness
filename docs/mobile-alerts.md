@@ -445,3 +445,28 @@ installé, aucun build d’interface publié, aucun redémarrage serveur effectu
 Documentation Samsung envisagée mais accès HTTP refusé (403) : aucune affirmation
 spécifique au modèle/à One UI n’en est déduite. Le modèle exact et sa version
 Android devront être relevés lors de la validation avec Baptiste.
+
+## Messages vocaux d’alarme — 0.1.7 (25 octobre 2026)
+
+Voir [le contrat des alarmes vocales](alarm-speech.md). Piper prépare silencieusement
+une ressource du bucket authentifié ; Android la précharge dans son stockage privé,
+puis la joue hors ligne avec le service d’alarme existant. Sonnerie de secours si
+le fichier est absent ou illisible. Les alarmes sont armées/annulées avant les
+préchargements bornés. Aucun nouveau fournisseur push, droit Android ou service
+permanent ; aucune garantie ajoutée pour un message imprévu en veille profonde.
+
+Vérifications de cette livraison :
+- Framework : **1112 tests réussis, 4 ignorés** ; dernière validation scheduler :
+  **184 tests réussis**, dont persistance/projection audio et refus atomiques.
+- Harness : **387 tests réussis, 2 ignorés** ; TTS ciblé avec Piper réel :
+  **20 tests réussis**, sans lecture ni microphone.
+- Android : compilation debug, tests unitaires et lint réussis ; **18 tests
+  instrumentés API 35 réussis**, exclusivement sur émulateur `-no-audio`.
+  Cache WAV préchargé sans réseau, boucle, priorité/reprise entre deux voix,
+  repli sonnerie (fichier absent/corrompu), élagage et arrêt réel à trois minutes.
+- APK 0.1.7 / code 8, même certificat de signature que 0.1.6.
+
+Ces tests ne couvrent pas un téléchargement authentifié réel sur Tailscale ni un
+Samsung physique endormi. **Aucune installation ni aucun essai sonore sur le
+vrai téléphone** pour cette livraison. Le backend doit être rechargé et l’APK mis
+à jour ; le reçu `audio_ready` d’une attente confirme le cache, pas l’écoute.

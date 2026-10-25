@@ -17,3 +17,11 @@ Piper runs locally on CPU in a separate process. Installation and voice download
 are separate setup steps in docs/tts.md, never automatic fallbacks. Missing runtime
 or model is an error, not permission to send text remotely. This is separate from
 Realtime voice. Do not infer human receipt from generated audio or an artifact.
+
+For an explicitly authorized spoken native alarm, use `prepare_alarm_audio(text)`
+to synthesize and publish exact words silently. It returns `audio_src`; pass that
+reference to `scheduler.create_wake(delivery="alarm", audio_src=...)` or native
+`create_wait`'s `alert.audio_src` with `kind="alarm"`. Preparation does not play,
+display or schedule anything. The paired Android 0.1.7+ phone must sync/cache
+before the alarm; missing audio falls back to its ringtone. No immediate-delivery
+guarantee in deep sleep. Never test audible alarms without consent.
