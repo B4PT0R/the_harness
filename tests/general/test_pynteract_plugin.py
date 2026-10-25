@@ -377,3 +377,249 @@ completed = True
         short = await plugin.execute('print("short"); 21 * 2')
         assert short["stdout"] == "short\n42\n" and short["stderr"] == ""
     asyncio.run(scenario())
+
+
+async def until_output(plugin, job_id, text, stream="stdout"):
+    async with asyncio.timeout(10):
+        while True:
+            state = await plugin.check(job_id)
+            if text in state[stream]:
+                return state
+            assert state["status"] in {"running", "interrupting"}, state
+            await asyncio.sleep(.01)
+
+
+def test_job_live_sync_output_busy_and_final_result(runtime):
+    _, plugin = runtime
+
+    async def scenario():
+        await plugin.execute("kept = object(); identity = id(kept)")
+        started = await plugin.job('''import time, sys
+print("FIRST")
+print("warning", file=sys.stderr)
+time.sleep(.6)
+print("LAST")
+agent.export(id(kept) == identity)
+42
+''')
+        job_id = started["job_id"]
+        assert started["status"] == "started"
+        with pytest.raises(RuntimeError, match="busy"):
+            await plugin.job("1")
+        with pytest.raises(RuntimeError, match="busy"):
+            await plugin.execute("1")
+        with pytest.raises(RuntimeError, match="busy"):
+            await plugin.call_python("anything", "{}", "value")
+        live = await until_output(plugin, job_id, "FIRST")
+        assert live["status"] == "running" and "LAST" not in live["stdout"]
+        assert (await until_output(plugin, job_id, "warning", "stderr"))["status"] == "running"
+        short = await plugin.wait(job_id, .01)
+        assert short["status"] == "running" and short["wait_reason"] == "timeout"
+        final = await plugin.wait(job_id, 10)
+        assert final["status"] == "completed" and final["result_status"] == "ok"
+        assert final["wait_reason"] == "job_completed" and not final["namespace_lost"]
+        assert final["stdout"] == "FIRST\nLAST\n42\n" and final["stderr"] == "warning\n"
+        assert final["exports"]["result"] is True
+        assert (await plugin.interrupt(job_id)) == (await plugin.check(job_id))
+        again = await plugin.execute("agent.export(id(kept) == identity)")
+        assert again["exports"]["result"] and again["session_id"] == final["session_id"]
+        assert (await plugin.check(job_id))["session_id"] == final["session_id"]
+    asyncio.run(scenario())
+
+
+def test_job_tail_rolls_and_large_frames_are_split(runtime):
+    _, plugin = runtime
+
+    async def scenario():
+        job_id = (await plugin.job('''import time
+print("OLD")
+print("é" * 20000 + "NEW")
+time.sleep(.5)
+'''))["job_id"]
+        live = await until_output(plugin, job_id, "NEW")
+        assert live["status"] == "running" and len(live["stdout"]) == 12000
+        assert "OLD" not in live["stdout"] and live["output_chars"]["stdout"] == 20008
+        final = await plugin.wait(job_id, 10)
+        assert final["status"] == "completed" and final["stdout"].startswith("OLD\n")
+        assert final["stdout"].endswith("NEW\n") and "Middle truncated" in final["stdout"]
+    asyncio.run(scenario())
+
+
+def test_job_kill_reset_shutdown_and_immediate_cancel(runtime):
+    _, plugin = runtime
+
+    async def scenario():
+        await plugin.execute("precious = 1")
+        immediate = (await plugin.job("import time; time.sleep(30)"))["job_id"]
+        stopped = await plugin.kill(immediate)
+        assert stopped["status"] == "interrupted" and stopped["namespace_lost"]
+        assert plugin._active_job is None and plugin._process is None
+        for action in ["kill", "reset", "shutdown", "deactivate"]:
+            job_id = (await plugin.job('import time; print("READY"); time.sleep(30)'))["job_id"]
+            live = await until_output(plugin, job_id, "READY")
+            process = plugin._process
+            if action == "kill":
+                await plugin.kill(job_id)
+            elif action == "reset":
+                await plugin.reset()
+            else:
+                await asyncio.to_thread(getattr(plugin, action))
+                await asyncio.gather(plugin._jobs[job_id]["task"], return_exceptions=True)
+                if action == "deactivate":
+                    plugin.activate()
+            assert process.poll() is not None
+            final = await plugin.check(job_id)
+            assert final["status"] == "interrupted" and final["namespace_lost"]
+            assert final["session_id"] == live["session_id"] and "READY" in final["stdout"]
+            restored = await plugin.execute('agent.export("precious" in globals())')
+            assert restored["session_id"] != live["session_id"]
+            assert restored["exports"]["result"] is False
+    asyncio.run(scenario())
+
+
+def test_job_timeout_crash_and_cell_error(runtime):
+    _, plugin = runtime
+
+    async def scenario():
+        await plugin.execute("x = 1")
+        for code, deadline, status, lost in [
+            ('import time; print("BEFORE"); time.sleep(30)', .5, "timed_out", True),
+            ('import os; os._exit(7)', 10, "failed", True),
+            ('x = 3; raise ValueError("oops")', 10, "failed", False),
+        ]:
+            job_id = (await plugin.job(code, deadline))["job_id"]
+            final = await plugin.wait(job_id, 10)
+            assert final["status"] == status and final["namespace_lost"] == lost, final
+            if status == "timed_out":
+                assert final["stdout"] == "BEFORE\n"
+            if not lost:
+                assert "ValueError: oops" in final["stderr"]
+                assert (await plugin.execute("x"))["stdout"] == "3\n"
+    asyncio.run(scenario())
+
+
+def test_job_worker_rpc_uses_canonical_pipeline(runtime):
+    agent, plugin = runtime
+    agent.add_extension(WorkerTools)
+    hooked = []
+
+    def on_tool_output(output):
+        hooked.append(output.call_id)
+        return output
+    agent.hooks.add(on_tool_output)
+
+    async def scenario():
+        job_id = (await plugin.job('''import asyncio
+print("RPC")
+await asyncio.sleep(.05)
+agent.export(await agent.call("example.echo", value=17,
+                             user_feedback="Je teste un outil depuis un job Python."))
+'''))["job_id"]
+        final = await plugin.wait(job_id, 10)
+        assert final["status"] == "completed", final
+        reply = final["exports"]["result"]
+        assert reply["outputs"][0]["value"]["echo"] == 17
+        calls = [item for item in agent.session.history
+                 if isinstance(item, FunctionCall) and item.namespace == "example"]
+        assert len(calls) == 1 and calls[0].call_id in hooked
+        assert sum(item.get("id") == reply["message_ids"][0] for item in agent.session.history) == 1
+    asyncio.run(scenario())
+
+
+def test_job_wait_steering_cancellation_limits_and_retention(runtime, monkeypatch):
+    agent, plugin = runtime
+
+    async def scenario():
+        job_id = (await plugin.job('import time; print("READY"); time.sleep(30)'))["job_id"]
+        await until_output(plugin, job_id, "READY")
+        with monkeypatch.context() as patch:
+            patch.setattr(agent.agentic_loop, "wait_for_activity", lambda _: "steering")
+            steered = await plugin.wait(job_id, 10)
+            assert steered["status"] == "running" and steered["wait_reason"] == "steering"
+        waiting = asyncio.create_task(plugin.wait(job_id, 10))
+        await asyncio.sleep(.02)
+        waiting.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await waiting
+        assert (await plugin.check(job_id))["status"] == "running"
+        for value in [-1, 61, True, float("nan"), float("inf")]:
+            with pytest.raises(ValueError):
+                await plugin.wait(job_id, value)
+        await plugin.interrupt(job_id)
+        assert (await plugin.wait(job_id, 10))["status"] == "interrupted"
+        for value in [0, 901, True, float("nan"), float("inf")]:
+            with pytest.raises(ValueError):
+                await plugin.job("1", value)
+        with pytest.raises(ValueError, match="128 KiB"):
+            await plugin.job("x" * (MAX_CODE + 1))
+        for _ in range(33):
+            next_id = (await plugin.job("pass"))["job_id"]
+            assert (await plugin.wait(next_id, 10))["status"] == "completed"
+        assert len(plugin._jobs) == 32
+        with pytest.raises(ValueError, match="expired"):
+            await plugin.check(job_id)
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("body", ["while True:\n        counter += 1", "await asyncio.sleep(30)", "time.sleep(30)"])
+def test_job_soft_interrupt_preserves_identity_and_finally(runtime, body):
+    _, plugin = runtime
+
+    async def scenario():
+        await plugin.execute("kept = object(); identity = id(kept)")
+        job_id = (await plugin.job('import asyncio, time\ncounter = 0\ntry:\n    print("READY")\n    '
+                                   + body + '\nfinally:\n    cleaned = True'))["job_id"]
+        live = await until_output(plugin, job_id, "READY")
+        process = plugin._process
+        requested = await plugin.interrupt(job_id)
+        assert requested["status"] == "interrupting"
+        final = await plugin.wait(job_id, 10)
+        assert final["status"] == "interrupted" and not final["namespace_lost"], final
+        assert final["result_status"] == "interrupted" and "READY" in final["stdout"]
+        assert process.poll() is None
+        after = await plugin.execute("agent.export([id(kept) == identity, cleaned])")
+        assert after["exports"]["result"] == [True, True]
+        assert after["session_id"] == live["session_id"] == final["session_id"]
+    asyncio.run(scenario())
+
+
+def test_soft_interrupt_requested_before_child_start(runtime):
+    _, plugin = runtime
+
+    async def scenario():
+        job_id = (await plugin.job("kept = 42\nwhile True:\n    pass"))["job_id"]
+        assert (await plugin.interrupt(job_id))["status"] == "interrupting"
+        final = await plugin.wait(job_id, 10)
+        assert final["status"] == "interrupted" and not final["namespace_lost"], final
+        assert (await plugin.execute("42"))["stdout"] == "42\n"
+    asyncio.run(scenario())
+
+
+def test_soft_interrupt_during_worker_rpc_drains_reply(runtime):
+    agent, plugin = runtime
+    agent.add_extension(WorkerTools)
+
+    async def scenario():
+        job_id = (await plugin.job('kept = 42; print("READY"); await agent.call("example.slow", user_feedback="Test interruption RPC.")'))["job_id"]
+        await until_output(plugin, job_id, "READY")
+        await plugin.interrupt(job_id)
+        final = await plugin.wait(job_id, 10)
+        assert final["status"] == "interrupted" and not final["namespace_lost"], final
+        after = await plugin.execute("agent.export(kept)")
+        assert after["exports"]["result"] == 42 and after["session_id"] == final["session_id"]
+    asyncio.run(scenario())
+
+
+def test_ignored_soft_interrupt_can_be_force_killed(runtime):
+    _, plugin = runtime
+
+    async def scenario():
+        job_id = (await plugin.job('from pynteract import ExecutionInterrupted\nimport time\ntry:\n    print("READY")\n    time.sleep(30)\nexcept ExecutionInterrupted:\n    print("IGNORED")\n    time.sleep(30)'))["job_id"]
+        await until_output(plugin, job_id, "READY")
+        await plugin.interrupt(job_id)
+        await until_output(plugin, job_id, "IGNORED")
+        assert (await plugin.check(job_id))["status"] == "interrupting"
+        final = await plugin.kill(job_id)
+        assert final["status"] == "interrupted" and final["namespace_lost"], final
+        assert (await plugin.execute('"ExecutionInterrupted" in globals()'))["stdout"] == "False\n"
+    asyncio.run(scenario())

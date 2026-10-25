@@ -4,9 +4,10 @@ import asyncio
 import inspect
 import json
 import socket
+import signal
 import sys
 
-from pynteract import Shell
+from pynteract import ExecutionInterrupted, Shell
 from the_framework.utils.tokens import truncate_middle
 
 from .protocol import MAX_FRAME, MAX_OUTPUT_TOKENS, encode, receive, send
@@ -43,18 +44,25 @@ class AgentProxy:
         self._reader, self._writer = reader, writer
         self._lock = asyncio.Lock()
         self._exports = {}
+        self._pending_replies = set()
 
     async def _rpc(self, method, **payload):
         async with self._lock:
             self._writer.write(encode({"type": "rpc", "method": method, **payload}))
-            try:
+            async def read_reply():
                 await self._writer.drain()
-                reply = await receive(self._reader)
+                return await receive(self._reader)
+
+            pending = asyncio.create_task(read_reply())
+            self._pending_replies.add(pending)
+            pending.add_done_callback(self._pending_replies.discard)
+            try:
+                reply = await asyncio.shield(pending)
             except asyncio.CancelledError:
                 # Once sent, consume this reply before releasing the RPC lock.
                 # Otherwise a cancelled cell task leaves it for the next cell.
                 # The outer deadline still bounds a worker that never replies.
-                await receive(self._reader)
+                await pending
                 raise
             if reply.get("type") != "rpc_result":
                 raise RuntimeError("Unexpected worker RPC response.")
@@ -89,11 +97,34 @@ async def main(fd):
     def no_input(*args):
         raise RuntimeError("Interactive input is unavailable in a Pynteract session.")
 
+    streaming = False
+
+    def output(stream):
+        def capture(text, _buffer):
+            if streaming:
+                # Synchronous hooks also deliver progress from blocking Python
+                # code. Small frames fit the protocol even for large print calls.
+                for offset in range(0, len(text), 8192):
+                    writer.write(encode({"type": "output", "stream": stream,
+                                         "text": text[offset:offset + 8192]}))
+        return capture
+
+    def started(code):
+        if streaming:
+            writer.write(encode({"type": "started"}))
+        return code
+
     shell = Shell(namespace={"agent": agent}, display_mode="last", history_size=10,
-                  stdin_hook=no_input)
+                  pre_run_hook=started, stdin_hook=no_input,
+                  stdout_hook=output("stdout"), stderr_hook=output("stderr"))
+    # A Python signal handler runs in the interpreter's owning thread even when
+    # synchronous user code blocks its event loop. Idle delivery is a no-op.
+    previous_handler = signal.signal(signal.SIGUSR1, lambda *_: shell.interrupt())
     try:
+        await send(writer, {"type": "ready"})
         while True:
             request = await receive(reader)
+            streaming = request.get("stream", False)
             agent._exports = {}
             existing_tasks = asyncio.all_tasks()
             try:
@@ -113,6 +144,8 @@ async def main(fd):
                               "result_type": type(value).__name__, "exports": agent._exports}
                 else:
                     raise ValueError("Unknown session operation.")
+            except ExecutionInterrupted:
+                result = {"status": "interrupted", "exports": agent._exports}
             except Exception as error:
                 result = {"status": "error", "error": truncate_middle(f"{type(error).__name__}: {error}",
                                                    max_tokens=MAX_OUTPUT_TOKENS),
@@ -120,7 +153,9 @@ async def main(fd):
             finally:
                 # Cells must join their async work. Do not let late RPCs steal the
                 # next cell's response or capture output into an expired context.
-                pending = asyncio.all_tasks() - existing_tasks
+                # Protocol readers must drain their reply, not be cancelled
+                # alongside the user tasks waiting on them.
+                pending = asyncio.all_tasks() - existing_tasks - agent._pending_replies
                 for task in pending:
                     task.cancel()
                 if pending:
@@ -130,6 +165,7 @@ async def main(fd):
             except ValueError as error:
                 await send(writer, {"type": "result", "value": {"status": "error", "error": str(error)}})
     finally:
+        signal.signal(signal.SIGUSR1, previous_handler)
         shell.close()
         writer.close()
         await writer.wait_closed()

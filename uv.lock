@@ -796,14 +796,20 @@ wheels = [
 [[package]]
 name = "pynteract"
 version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
+source = { editable = "../pynteract" }
 dependencies = [
     { name = "asttokens" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8a/4c/b6ad1f15975a8dd6d5889ae3cdca44e37b32d98164451f88953a9fbebd7b/pynteract-1.0.0.tar.gz", hash = "sha256:03a192462ea41f499974da71e3b91947cbd218cad7d08de7668de56661e9eed0", size = 84836, upload-time = "2026-10-25T15:19:01.117Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/40/80/234819d46eac477d09d2d4fd01d463af87d3313f8ca4420816139e3eee05/pynteract-1.0.0-py3-none-any.whl", hash = "sha256:5d4ad115a405fc65e3eb5dd4802941af3b0deb7a1056446042ed63362619089c", size = 53817, upload-time = "2026-10-25T15:18:59.665Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "asttokens", specifier = ">=2.4" },
+    { name = "prompt-toolkit", marker = "extra == 'terminal'", specifier = ">=3.0" },
+    { name = "pygments", marker = "extra == 'terminal'", specifier = ">=2.15" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
 ]
+provides-extras = ["terminal", "dev"]
 
 [[package]]
 name = "pyobjc-core"
@@ -1239,7 +1245,7 @@ requires-dist = [
     { name = "openai", marker = "extra == 'dev'", specifier = ">=3.16.1" },
     { name = "pillow" },
     { name = "playwright" },
-    { name = "pynteract", specifier = "==1.0.0" },
+    { name = "pynteract", editable = "../pynteract" },
     { name = "pystray" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "python-multipart" },

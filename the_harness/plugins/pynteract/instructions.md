@@ -29,7 +29,25 @@ Inside a cell, `agent` is a limited proxy, not the worker's Agent:
   `artifacts.show_artifact`. Write files with Python libraries, pass their local
   paths, and consult the normal artifact catalogue. Nothing is published implicitly.
 
-Cells are serialized. Await/join work before returning; leftover asyncio tasks
+For long runs use `job(code, timeout_seconds=900)`; its `job_id` works with
+`check`, `wait`, `interrupt` and `kill`. `check` returns immediately; `wait` waits at most
+60s (default 10), ending early for steering without cancelling computation.
+Jobs continue between turns but do not schedule a completion wake. Poll at useful
+intervals, not in a tight loop. Hooks aggregate stdout/stderr as code runs,
+including blocking synchronous code: while running the snapshot holds the last
+12,000 characters per stream, with total `output_chars`; final snapshots contain
+usual bounded output, exports and `result_status`. Checks are repeatable snapshots,
+not destructive reads. Up to 32 records survive in this worker, not a restart.
+A job reserves the namespace: another job/execute/call_python is rejected until it
+finishes. `interrupt` requests soft interruption and returns `interrupting`; use
+check/wait to confirm `interrupted` with `namespace_lost=false`. Prior mutations
+and object identities survive. Native calls can delay delivery; code can ignore
+it, and user cleanup is best effort under Python signal/cancellation semantics.
+`kill` forcibly stops the process group and **loses the namespace**, without user
+cleanup. Finished jobs are unchanged. `reset` kills an active job.
+Worker RPC uses the same canonical pipeline; output may wait behind a slow RPC.
+
+Foreground cells are serialized. Await/join work before returning; leftover asyncio tasks
 are cancelled. Interactive stdin is unavailable. Returned stdout/stderr are each
 centrally truncated to first/last text totaling 4,000 tokens (plus an omission
 marker), using the Framework helper. Verbose output does not abort the cell; the
@@ -37,7 +55,8 @@ Shell captures it in memory before truncation. Native file-descriptor output is
 discarded. Code is limited to 128 KiB, JSON frames to 1 MiB; use files for large
 exports. This is not an RSS, disk or OS resource sandbox.
 
-Timeouts (default 60s, max 900s), interruption or process exit destroy the session
+Timeouts (foreground default 60s, job default 900s, max 900s), forced kill,
+foreground cancellation or process exit destroy the session
 process group and its namespace; `namespace_lost` reports transport failures.
 The next call starts a fresh session, never silently replays code. Worker-tool
 side effects and files are not rolled back; an already-running synchronous worker
