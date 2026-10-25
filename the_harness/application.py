@@ -24,6 +24,7 @@ from .plugins.hosted_ui import PLUGIN as HOSTED_UI
 from .plugins.local_files import PLUGIN as LOCAL_FILES
 from .plugins.images import PLUGIN as IMAGES
 from .plugins.documents import PLUGIN as DOCUMENTS
+from .plugins.pynteract import PLUGIN as PYNTERACT
 from .plugins.dictation import PLUGIN as DICTATION
 from .plugins.tts import PLUGIN as TTS
 from .plugins.memory import PLUGIN as MEMORY
@@ -56,6 +57,7 @@ application = Application(
         ARTIFACTS,
         IMAGES,
         DOCUMENTS,
+        PYNTERACT,
         DICTATION,
         TTS,
         BASH,
