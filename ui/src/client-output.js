@@ -1,3 +1,5 @@
+import { getTtsVolume, subscribeTtsVolume } from "./audio-preferences.js";
+
 // Public per-page identity, not a credential. Reloads never restore media work.
 let instance;
 export function clientInstance() {
@@ -20,6 +22,9 @@ function audioSource(src) {
 export function clientOutput({ send, onError, createAudio = () => new Audio() }) {
   let current = null;
   const seen = new Set();
+  const unsubscribe = subscribeTtsVolume((volume) => {
+    if (current) current.audio.volume = volume;
+  });
   const reply = (id, status) => send({ type: "client_operation_result", id, status });
   function stop() {
     const item = current;
@@ -42,6 +47,7 @@ export function clientOutput({ send, onError, createAudio = () => new Audio() })
     const audio = createAudio();
     const item = { audio, id: event.id };
     current = item;
+    audio.volume = getTtsVolume();
     audio.preload = "none";
     audio.src = src;
     audio.onended = () => { if (current === item) stop(); };
@@ -63,5 +69,5 @@ export function clientOutput({ send, onError, createAudio = () => new Audio() })
       onError(blocked ? "Direct audio playback was blocked by this browser. Use the audio player if available." : "Audio playback failed.");
     }
   }
-  return { handle, stop };
+  return { handle, stop, dispose() { stop(); unsubscribe(); } };
 }

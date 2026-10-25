@@ -5,6 +5,7 @@ import { Icon } from "./Icons";
 import { DangerZone } from "./DangerZone";
 import { DeviceSettings } from "./DeviceSettings";
 import { VoiceSettings } from "./VoiceSettings";
+import { AudioSettings } from "./AudioSettings";
 import { FileEditorSettings } from "./FileEditorSettings";
 import { QuotaSettings } from "./QuotaSettings";
 import { pluginStatusKey } from "../plugins";
@@ -96,7 +97,7 @@ export function Settings({ quota, api, onClose, readOnly = false }) {
       setChangingPlugin(null);
     }
   }
-  const sections = ["general", "conversation", "voice", ...(localUi ? ["devices"] : []), "capabilities", "advanced", "data"];
+  const sections = ["general", "conversation", "voice", "audio", ...(localUi ? ["devices"] : []), "capabilities", "advanced", "data"];
   return (
     <section className="settings" aria-label={t("settings")}>
       <header className="settings-header">
@@ -144,6 +145,9 @@ export function Settings({ quota, api, onClose, readOnly = false }) {
             <section id="settings-voice" hidden={section !== "voice"}>
               <VoiceSettings config={parsed?.realtime} saving={saving}
                 onChange={(realtime) => change("realtime", realtime)} />
+            </section>
+            <section id="settings-audio" hidden={section !== "audio"}>
+              <AudioSettings readOnly={readOnly} />
             </section>
             <section id="settings-devices" hidden={section !== "devices"}>
               {localUi && section === "devices" && <DeviceSettings api={api} readOnly={readOnly} />}

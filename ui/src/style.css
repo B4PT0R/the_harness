@@ -204,6 +204,9 @@ input[type="checkbox"] { accent-color: var(--color-accent); }
 .setting-checkbox { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-control); }
 .setting-field { display: grid; gap: var(--space-2); font-size: var(--font-size-control); }
 .setting-field + .setting-field { margin-top: var(--space-4); }
+.audio-volume { display: flex; align-items: center; gap: var(--space-4); max-width: 32rem; }
+.audio-volume input[type="range"] { flex: 1; padding: 0; min-height: var(--button-size); accent-color: var(--color-accent); }
+.audio-volume output { min-width: 4.5ch; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .setting-field input, .setting-field select { width: 100%; min-width: 0; padding: var(--space-2) var(--space-3); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); background: var(--color-background); color: var(--color-text); }
 .instructions { min-height: var(--instructions-min-height); font-family: var(--font-sans); font-size: var(--font-size-control); line-height: var(--line-height-body); }
 .danger-zone { margin-top: var(--space-6); border-top: var(--border-width) solid var(--color-border); }

@@ -1,6 +1,10 @@
-import test from "node:test";
+import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { clientOutput, clientInstance, clientEventsUrl } from "../../src/client-output.js";
+
+import { setTtsVolume } from "../../src/audio-preferences.js";
+const outputs = [];
+afterEach(() => { for (const output of outputs.splice(0)) output.dispose(); setTtsVolume(1); });
 
 function setup(play = async () => {}) {
   const sent = [], errors = [], audio = {
@@ -8,6 +12,7 @@ function setup(play = async () => {}) {
   };
   let creations = 0;
   const output = clientOutput({ send: (v) => sent.push(v), onError: (v) => errors.push(v), createAudio: () => { creations++; return audio; } });
+  outputs.push(output);
   const event = { type: "client_operation", operation: "audio.play", id: "one", payload: { src: "/api/v1/bucket/audio.wav" } };
   return { output, event, sent, errors, audio, creations: () => creations };
 }
@@ -63,4 +68,19 @@ test("disconnect or handoff cancels an in-flight play without a late playing rec
   await pending;
   assert.deepEqual(s.sent.map(v => v.status), ["cancelled"]);
   assert.equal(s.audio.paused, true);
+});
+
+
+test("autoplay uses saved volume, changes live, mutes and unsubscribes on disposal", async () => {
+  setTtsVolume(0.35);
+  const s = setup();
+  await s.output.handle(s.event);
+  assert.equal(s.audio.volume, 0.35);
+  setTtsVolume(0);
+  assert.equal(s.audio.volume, 0);
+  setTtsVolume(0.8);
+  assert.equal(s.audio.volume, 0.8);
+  s.output.dispose();
+  setTtsVolume(0.5);
+  assert.equal(s.audio.volume, 0.8);
 });

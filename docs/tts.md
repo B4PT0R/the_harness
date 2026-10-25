@@ -76,6 +76,13 @@ access controls as existing file/image artifacts. Text passed to the tool is
 part of the normal agent conversation; local synthesis does not make the model
 conversation offline.
 
+## Autoplay volume
+
+Settings → Audio provides an immediate 0–100% volume control for direct TTS
+playback (0% mutes). It is remembered in this browser/device, independently of
+other devices, and also updates ongoing TTS playback. The default remains 100%.
+It does not alter Realtime voice or manual artifact players.
+
 ## Audio artifacts
 
 `artifacts.show_artifact(kind="audio", payload={"path": "/local/speech.wav",

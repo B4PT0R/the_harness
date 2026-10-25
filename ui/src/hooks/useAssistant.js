@@ -318,7 +318,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       controller.abort();
       clearTimeout(retry);
       clearInterval(statusTimer);
-      media.stop();
+      media.dispose();
       socket?.close();
     };
   }, [api, eventsUrl, eventProtocol, updateServer]);
