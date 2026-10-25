@@ -35,8 +35,8 @@ def build_service(context, runtime):
     return service
 
 
-def build_api(context, client_remote, chat, scheduler=None):
+def build_api(context, client_remote, chat, canonical_transport, scheduler=None):
     advertised_endpoint = context.plugin("client_remote").get("advertised_endpoint")
     if advertised_endpoint is not None:
         advertised_endpoint = ClientRemoteService._validate_endpoint(advertised_endpoint)
-    return ClientRemoteApi(client_remote, chat.ingress, scheduler=scheduler, advertised_endpoint=advertised_endpoint)
+    return ClientRemoteApi(client_remote, chat.ingress, scheduler=scheduler, advertised_endpoint=advertised_endpoint, clients=canonical_transport.clients)

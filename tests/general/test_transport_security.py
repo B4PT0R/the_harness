@@ -66,10 +66,10 @@ def test_socket_credentials_protocols_and_native_origins():
             headers.append(("cookie", "harness_session=" + cookie))
         return handshake(connection(scheme="ws", origin=origin, headers=headers, **kwargs))
 
-    assert accepted(cookie="browser") == {"subprotocol": "events"}
-    assert accepted("events, local") == {"subprotocol": "events"}
-    assert accepted("events, local", origin=None) == {"subprotocol": "events"}
-    assert accepted("events, local", origin="capacitor://localhost") == {"subprotocol": "events"}
+    assert accepted(cookie="browser") == {"subprotocol": "events", "principal_id": "local-browser"}
+    assert accepted("events, local") == {"subprotocol": "events", "principal_id": "local-bearer"}
+    assert accepted("events, local", origin=None) == {"subprotocol": "events", "principal_id": "local-bearer"}
+    assert accepted("events, local", origin="capacitor://localhost") == {"subprotocol": "events", "principal_id": "local-bearer"}
     assert accepted(cookie="browser", origin="capacitor://localhost") is None
     assert accepted("events, wrong") is None
     assert accepted("local, events") is None

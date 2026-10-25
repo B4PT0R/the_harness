@@ -68,13 +68,18 @@ class TTSExtension(AgentExtension):
             raise RuntimeError(f"Piper synthesis failed (exit {process.returncode}): {detail}")
 
     @tool
-    async def synthesize(self, text: str):
-        """Read 1–4000 characters with local Piper and present a durable WAV audio player.
+    async def synthesize(self, text: str, show_artifact: bool = True, play_audio: bool = False):
+        """Synthesize 1–4000 characters locally; display and playback are independent.
 
-        No microphone, network synthesis or autoplay. Uses the configured local voice.
-        Returns the private WAV path, duration and sample rate plus an audio artifact;
-        do not publish the same result again with show_artifact.
+        show_artifact presents a durable manual audio player (default true).
+        play_audio requests immediate playback only on the last client that sent
+        a message or started voice (default false). No broadcast or fallback.
+        Both may be true or false. Returns the WAV path and playback receipt;
+        playing means started, not heard or finished. Do not republish an artifact
+        already returned here. Browser restrictions can block direct playback.
         """
+        if not isinstance(show_artifact, bool) or not isinstance(play_audio, bool):
+            raise ValueError("show_artifact and play_audio must be booleans.")
         if not isinstance(text, str) or not 1 <= len(text.strip()) <= 4000:
             raise ValueError("text must contain 1–4000 non-blank characters.")
         timeout = self.config.timeout_seconds
@@ -95,8 +100,16 @@ class TTSExtension(AgentExtension):
                 destination = self.root / f"{uuid4().hex}.wav"
                 os.chmod(output, 0o600)
                 output.rename(destination)
-        payload = await self.agent.bridge.call("artifacts", "publish", {
-            "kind": "audio", "payload": {"path": str(destination), "title": "Synthèse vocale", "description": text.strip()},
-        }, timeout_ms=120_000)
-        return {"path": str(destination), "duration_seconds": round(duration, 3),
-                "sample_rate": sample_rate, "voice": model.stem}, Artifact(kind="audio", payload=payload)
+        result = {"path": str(destination), "duration_seconds": round(duration, 3),
+                  "sample_rate": sample_rate, "voice": model.stem}
+        if show_artifact or play_audio:
+            payload = await self.agent.bridge.call(
+                "artifacts", "publish", {
+                    "kind": "audio", "payload": {"path": str(destination), "title": "Synthèse vocale", "description": text.strip()},
+                }, timeout_ms=120_000)
+            if play_audio:
+                result["playback"] = await self.agent.bridge.call(
+                    "tts", "play", {"src": payload["src"]}, timeout_ms=15_000)
+            if show_artifact:
+                return result, Artifact(kind="audio", payload=payload)
+        return result

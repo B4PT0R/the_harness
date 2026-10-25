@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { clientEventsUrl, clientOutput } from "../client-output.js";
 import { api as defaultApi } from "../api";
 import { RemoteRealtimeTranscriptAssembler } from "../realtime-transcript";
 import { voiceSession } from "../voice";
@@ -135,6 +136,10 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       statusError = null;
     const controller = new AbortController();
     const transcripts = new RemoteRealtimeTranscriptAssembler();
+    const media = clientOutput({
+      send: (value) => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(value)); },
+      onError: (message) => { if (!disposed) setError(message); },
+    });
     function workerRecovered() {
       const recovered = [workerError, statusError];
       workerError = statusError = null;
@@ -194,7 +199,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
 
     function connect() {
       const active = new WebSocket(
-        eventsUrl, eventProtocol,
+        clientEventsUrl(eventsUrl), eventProtocol,
       );
       socket = active;
       const current = () => !disposed && socket === active;
@@ -209,6 +214,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       active.onmessage = ({ data }) => {
         if (!current()) return;
         const output = JSON.parse(data);
+        void media.handle(output).catch(fail);
         if (["server_restarting", "server_restart_failed"].includes(output.type)) {
           updateServer(output);
           // Voice has its own post-drain restarting event: do not cut speech here.
@@ -284,6 +290,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       active.onclose = () => {
         if (!current()) return;
         transportReady = false;
+        media.stop();
         setArtifacts([]);
         void voice.current?.suspend();
         transcripts.reset();
@@ -311,6 +318,7 @@ export function useAssistant({ request = defaultApi, eventsUrl = `${location.pro
       controller.abort();
       clearTimeout(retry);
       clearInterval(statusTimer);
+      media.stop();
       socket?.close();
     };
   }, [api, eventsUrl, eventProtocol, updateServer]);

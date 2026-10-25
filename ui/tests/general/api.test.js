@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { api } from "../../src/api.js";
+import { clientInstance } from "../../src/client-output.js";
 import { translate } from "../../src/locales.js";
 
 for (const [label, status, body, message] of [
@@ -36,7 +37,7 @@ test("multipart does not replace browser content type", async (t) => {
   body.append("prompt", "hello");
   t.mock.method(globalThis, "fetch", async (_url, options) => {
     assert.equal(options.body, body);
-    assert.deepEqual(options.headers, {});
+    assert.deepEqual(options.headers, { "X-Client-Instance": clientInstance() });
     return new Response('{"ok":true}');
   });
   assert.deepEqual(await api("test", { method: "POST", body }), { ok: true });

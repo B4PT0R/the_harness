@@ -42,7 +42,8 @@ def test_application_injects_the_installed_chat_ingress(tmp_path, monkeypatch, w
     assert remote.runtime is chat.runtime
     assert remote.ingress.lock is (services["realtime"].service.lock if with_voice else chat.ingress.lock)
     assert (remote.ingress.voice is not None) == with_voice
-    assert services["client_remote_api"].requires_services == ("client_remote", "chat")
+    assert services["client_remote_api"].requires_services == ("client_remote", "chat", "canonical_transport")
+    assert remote.clients is services["canonical_transport"].service.clients
     assert services["client_remote_api"].optional_services == ("scheduler",)
 
 

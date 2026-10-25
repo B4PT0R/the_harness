@@ -143,3 +143,53 @@ def test_timeout_and_cancellation_reap_child_and_remove_partial_files(tmp_path, 
 def test_worker_imports_no_piper_runtime():
     assert (RUNTIME / "uv.lock").is_file()
     assert "piper" not in sys.modules and "onnxruntime" not in sys.modules
+
+
+@pytest.mark.parametrize('show,play', [(False, False), (False, True), (True, False), (True, True)])
+def test_display_and_playback_are_independent(tmp_path, show, play):
+    agent, plugin = setup(tmp_path)
+    calls = []
+    assets = ArtifactAssets(tmp_path)
+
+    async def bridge(request):
+        calls.append(request.capability)
+        if request.capability == 'artifacts':
+            return await assets.handle(request.method, request.payload)
+        assert request.capability == 'tts' and request.method == 'play'
+        assert request.payload['src'].startswith('/api/v1/bucket/')
+        return {'status': 'blocked'}
+
+    async def generate(self, text, model, output):
+        wav(output)
+
+    agent.bridge.bind(bridge)
+    plugin._synthesize = MethodType(generate, plugin)
+    result = asyncio.run(plugin.synthesize('Bonjour', show_artifact=show, play_audio=play))
+    metadata = result[0] if show else result
+    assert isinstance(result, tuple) == show
+    assert Path(metadata['path']).is_file()
+    assert ('playback' in metadata) == play
+    assert calls == (['artifacts'] if show or play else []) + (['tts'] if play else [])
+
+
+@pytest.mark.parametrize('options', [{'show_artifact': 1}, {'play_audio': 'true'}])
+def test_playback_flags_require_booleans(tmp_path, options):
+    _, plugin = setup(tmp_path)
+    with pytest.raises(ValueError, match='booleans'):
+        asyncio.run(plugin.synthesize('Bonjour', **options))
+
+
+def test_playback_service_accepts_only_bucket_assets():
+    from the_harness.plugins.tts.server import TTSPlayback
+
+    class Clients:
+        async def request(self, operation, payload):
+            assert operation == 'audio.play' and payload == {'src': '/api/v1/bucket/audio.wav'}
+            return {'status': 'unavailable'}
+
+    service = TTSPlayback(Clients())
+    for src in (None, 'https://example.org/a.wav', '/api/v1/bucket/../secret',
+                '/api/v1/bucket/%2e/a.wav', '/api/v1/bucket/a.wav?token=secret'):
+        with pytest.raises(ValueError):
+            asyncio.run(service.handle('play', {'src': src}))
+    assert asyncio.run(service.handle('play', {'src': '/api/v1/bucket/audio.wav'})) == {'status': 'unavailable'}

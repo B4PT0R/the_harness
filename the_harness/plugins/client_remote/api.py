@@ -14,6 +14,7 @@ from the_framework.server import endpoint
 from the_framework.server.api.endpoints import HttpError
 from the_framework.server.api.websockets import WebSocketEndpoint, serve_event_stream_until_disconnect
 from the_framework.server.clients.remote import PROTOCOL_VERSION
+from the_framework.server.clients.activity import client_key, request_client
 from the_framework.server.clients.previews import is_preview
 from the_framework.utils.ids import timestamp_id
 
@@ -25,12 +26,13 @@ NOTIFICATION_SUBPROTOCOL = "harness-notifications-v1"
 
 
 class ClientRemoteApi:
-    def __init__(self, service, ingress, *, scheduler=None, advertised_endpoint=None):
+    def __init__(self, service, ingress, *, scheduler=None, advertised_endpoint=None, clients=None):
         self.service = service
         self.runtime = service.runtime
         self.advertised_endpoint = advertised_endpoint
         self.ingress = ingress
         self.scheduler = scheduler
+        self.clients = clients
         self.events_socket = WebSocketEndpoint(
             path="/remote/v1/events",
             handler=self.serve_events,
@@ -103,19 +105,25 @@ class ClientRemoteApi:
     async def serve_ui_events(self, socket, connection):
         client_id = connection["client"]["id"]
         sockets = self.service.event_connections.setdefault(client_id, set())
+        key = client_key(f"remote:{client_id}", socket.query_params.get("client_instance")) if self.clients else None
         sockets.add(socket)
         try:
             await socket.accept(subprotocol=connection["subprotocol"])
+            if self.clients is not None:
+                self.clients.connect(key, socket)
             async def send_events():
                 async for output in self.runtime.stream():
                     payload = wire_mapping(output)
                     if payload.get("type") == "command_event" and wire_mapping(payload.get("event")).get("type") == "agent.config.updated":
                         continue
                     await socket.send_json(output)
-            await serve_event_stream_until_disconnect(socket, send_events)
+            await serve_event_stream_until_disconnect(
+                socket, send_events, on_message=self.clients.receive if self.clients else None)
         except WebSocketDisconnect:
             pass
         finally:
+            if self.clients is not None:
+                self.clients.disconnect(key, socket)
             sockets.discard(socket)
             if not sockets:
                 self.service.event_connections.pop(client_id, None)
@@ -438,6 +446,8 @@ class ClientRemoteApi:
             result = await self.ingress.submit(PromptRequest(
                 id=command_id, prompt=prompt, append_prompt=append_prompt,
             ))
+            if self.clients is not None:
+                await self.clients.activate(request_client(call))
             return {**result, "command_id": command_id, "status": "submitted"}
 
         try:

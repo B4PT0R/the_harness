@@ -152,7 +152,8 @@ class HarnessSecurityPolicy:
                 if previews.authenticate(socket) is None or socket.url.path != '/api/v1/events':
                     return None
                 return {'subprotocol': protocols[0], 'client_role': 'preview'}
-            if self._local_principal(socket, supplied_token=token) is None:
+            principal = self._local_principal(socket, supplied_token=token)
+            if principal is None:
                 return None
-            return {"subprotocol": protocols[0]}
+            return {"subprotocol": protocols[0], "principal_id": principal.id}
         return authenticate

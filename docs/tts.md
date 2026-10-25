@@ -29,9 +29,34 @@ enabled or disabled like other optional tools.
 
 ## Tool and configuration
 
-`tts.synthesize(text)` accepts 1–4000 characters and generates a mono PCM16 WAV.
-It returns the private path, duration and sample rate, and automatically presents
-an `audio` artifact in the conversation. No autoplay: the user presses Play.
+`tts.synthesize(text, show_artifact=True, play_audio=False)` accepts 1–4000
+characters and generates a mono PCM16 WAV. It returns the private path, duration
+and sample rate. Delivery switches are independent:
+
+| show_artifact | play_audio | Result |
+| --- | --- | --- |
+| true | false | Durable manual player (default) |
+| false | true | Direct playback, no widget |
+| true | true | Player plus direct playback |
+| false | false | Private WAV only |
+
+The active target is the authenticated per-page client of the last accepted human
+message (including attachments) or successful explicit voice start. Server
+acceptance order decides; failed inputs, opening/focusing a page, reconnecting,
+and automatic voice recovery do not take over. A client without an identifiable
+page clears the target rather than selecting a default desktop. Identity is scoped
+to the authenticated principal; a page UUID is not a credential or proof of presence.
+This is a participation signal, not a claim to know the user's physical location.
+
+Direct operations are transient and acknowledged over that client's authenticated
+socket, never broadcast, queued offline, replayed from history, or rerouted to
+another device. Handoff requests stopping the previous client's direct audio;
+socket closure also stops it locally. The target resets on server restart or page
+reload until another accepted input. Reconnection of the same page can restore
+availability but never replays missed audio. Browser playback restrictions may
+return `blocked`; disconnection/unavailability or missing acknowledgement are
+reported without retry. `playing` means started, not heard or finished. The manual
+artifact player never autoplays; direct playback requires `play_audio=True`.
 This is separate from the Realtime voice, and does not schedule a reminder or
 change notification behavior. Do not republish the same result with show_artifact.
 
