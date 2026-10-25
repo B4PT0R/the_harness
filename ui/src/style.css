@@ -303,3 +303,40 @@ button.technical-gauge:hover:not(:disabled) { background: var(--color-surface); 
 @media (min-width: 481px) and (max-width: 900px) { .brand strong { display: none; } }
 
 .artifact-audio audio { display: block; width: 100%; min-width: 0; margin-bottom: var(--space-3, 12px); }
+
+/* Data artifacts: bounded regions keep large deliverables inside the conversation. */
+.artifact { min-width: 0; }
+.artifact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); font-size: var(--font-size-control); }
+.artifact-actions button { min-height: var(--button-size); }
+.artifact-actions input { min-width: 0; width: 15rem; max-width: 100%; min-height: var(--button-size); padding: var(--space-2) var(--space-3); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); background: var(--color-background); }
+.artifact-actions [role="status"], .artifact-code-label { color: var(--color-muted); }
+.artifact-code-label { flex: 1 1 10rem; overflow-wrap: anywhere; }
+.artifact-document, .artifact-code-content { max-height: 34rem; overflow: auto; }
+.artifact-document:focus-visible, .artifact-code-content:focus-visible, .artifact-table-scroll:focus-visible, .artifact-chart-scroll:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--focus-offset); }
+.artifact-table-scroll, .artifact-chart-scroll { max-width: 100%; overflow: auto; margin-bottom: var(--space-3); }
+.artifact-table-scroll { max-height: 32rem; }
+.artifact .artifact-table { display: table; width: 100%; margin: 0; font-size: var(--font-size-control); }
+.artifact-table th { position: sticky; top: 0; z-index: 1; }
+.artifact-table th button { border: 0; background: transparent; padding: var(--space-1) 0; min-height: 2rem; text-align: left; font-weight: var(--font-weight-strong); }
+.artifact-table td { min-width: 5rem; max-width: 24rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+.artifact-chart-scroll svg { display: block; width: 100%; height: auto; max-height: 25rem; }
+.artifact-chart-scroll text { fill: var(--color-muted); font-family: var(--font-sans); font-size: 12px; }
+.artifact-grid { stroke: var(--color-border-subtle); }
+.artifact-zero { stroke: var(--color-muted); }
+.artifact-series-0 { color: var(--color-chart-1, #85aeff); }
+.artifact-series-1 { color: var(--color-chart-2, #f6b76b); }
+.artifact-series-2 { color: var(--color-chart-3, #76d8b4); }
+.artifact-series-3 { color: var(--color-chart-4, #d9a0f5); }
+.artifact-series-4 { color: var(--color-chart-5, #f290aa); }
+.artifact-series-5 { color: var(--color-chart-6, #ccdb72); }
+.artifact-legend { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0 0 var(--space-3); padding: 0; font-size: var(--font-size-control); }
+.artifact-chart-data > summary { cursor: pointer; color: var(--color-link); margin-bottom: var(--space-3); }
+.artifact-timeline-list { list-style: none; padding: 0; margin: 0; }
+.artifact-timeline-list li { display: grid; grid-template-columns: minmax(5rem, 24%) 1fr; gap: var(--space-4); padding: 0 0 var(--space-5) var(--space-4); border-left: 2px solid var(--color-accent); }
+.artifact-timeline-list li:last-child { padding-bottom: 0; }
+.artifact-timeline-label { color: var(--color-muted); font-size: var(--font-size-control); }
+.artifact-timeline-list p { margin-top: var(--space-1); white-space: pre-wrap; }
+@media (max-width: 480px) {
+  .artifact { padding: var(--space-3); }
+  .artifact-timeline-list li { grid-template-columns: 1fr; gap: var(--space-1); }
+}

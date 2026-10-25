@@ -906,3 +906,61 @@ def test_audio_artifact_is_manual_persistent_and_downloadable(page, width):
     unsafe = page.locator(".artifact-audio").last
     assert unsafe.locator("audio, a").count() == 0
     assert unsafe.get_by_role("status").count() == 1
+
+
+@pytest.mark.parametrize('width', [1280, 390])
+def test_data_artifacts_controls_exports_safety_and_replay(page, width):
+    from the_framework.agent import Agent
+    from the_harness.plugins.artifacts.agent import HarnessArtifacts
+
+    page.set_viewport_size({'width': width, 'height': 900})
+    catalogue = HarnessArtifacts(Agent(client=object())).supported_artifacts()
+    for kind in ('markdown', 'code', 'table', 'chart', 'timeline'):
+        payload = {**catalogue[kind]['example']}
+        if kind == 'table':
+            payload['rows'] = [[f'Option {i}', 100 - i] for i in range(61)]
+        if kind == 'code':
+            payload['content'] = '<script>window.artifactExecuted = true</script>'
+        page.evaluate('item => window.publishArtifact(item)', {
+            'type': 'artifact', 'id': f'data-{kind}', 'kind': kind, 'payload': payload,
+        })
+    page.locator('.artifact-timeline').wait_for()
+    assert page.locator('.artifact').count() == 5
+    assert page.locator('.artifact-markdown strong').inner_text() == 'autonome'
+    assert '<script>' in page.locator('.artifact-code code').inner_text()
+    assert not page.evaluate('Boolean(window.artifactExecuted)')
+    table = page.locator('article.artifact-table')
+    assert table.locator('tbody tr').count() == 50
+    table.get_by_role('button', name='Suivant', exact=True).click()
+    assert table.locator('tbody tr').count() == 11
+    table.get_by_role('button', name='Coût', exact=False).click()
+    assert table.locator('tbody tr').first.inner_text() == 'Option 60\t40'
+    table.get_by_role('searchbox').fill('Option 60')
+    assert table.locator('tbody tr').count() == 1
+    with page.expect_download() as download:
+        table.get_by_role('button', name='Exporter CSV', exact=True).click()
+    assert download.value.suggested_filename == 'table.csv'
+    assert 'Option 60' in open(download.value.path(), encoding='utf-8-sig').read()
+    chart = page.locator('.artifact-chart')
+    assert chart.get_by_role('img').count() == 1
+    chart.locator('summary').click()
+    assert chart.locator('tbody tr').count() == 3
+    chart.scroll_into_view_if_needed()
+    page.screenshot(path=f'/tmp/harness-data-artifacts-chart-{width}.png')
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    assert page.locator('.artifact-timeline button').count() == 0
+    page.reload()
+    page.locator('.artifact-timeline').wait_for()
+    assert page.locator('.artifact').count() == 5
+    assert table.get_by_role('searchbox').input_value() == ''
+    assert table.locator('tbody tr').count() == 50
+    page.locator('.artifact-code').scroll_into_view_if_needed()
+    page.screenshot(path=f'/tmp/harness-data-artifacts-code-{width}.png')
+    # Malformed persisted payloads degrade to readable data, not a broken chat.
+    page.evaluate('item => window.publishArtifact(item)', {
+        'type': 'artifact', 'id': 'malformed', 'kind': 'timeline', 'payload': {'entries': None},
+    })
+    fallback = page.locator('.artifact-timeline .artifact-fallback')
+    fallback.locator('summary').click()
+    assert 'null' in fallback.locator('pre').inner_text()
+    page.get_by_role('textbox', name='Message', exact=True).fill('Toujours utilisable')

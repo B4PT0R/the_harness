@@ -1,6 +1,7 @@
 import React, { Component, useEffect, useRef, useState } from "react";
 import { useLocale } from "../i18n";
 import { Icon, IconButton } from "./Icons";
+import { MarkdownArtifact, CodeArtifact, TableArtifact, ChartArtifact, TimelineArtifact } from "./DataArtifacts";
 
 // Explicit presentation is data, never an instruction to execute supplied HTML.
 export function artifactSource(value) {
@@ -97,10 +98,15 @@ function AudioArtifact({ payload }) {
   </>;
 }
 
+function boundedJSON(payload) {
+  const text = JSON.stringify(payload, null, 2) || "null";
+  return text.length > 20000 ? `${text.slice(0, 20000)}\n…` : text;
+}
+
 function Fallback({ kind, payload }) {
   const { t } = useLocale();
   return <details className="artifact-fallback"><summary>{t("artifactDetails", { kind })}</summary>
-    <pre>{JSON.stringify(payload, null, 2)}</pre>
+    <pre>{boundedJSON(payload)}</pre>
   </details>;
 }
 
@@ -113,7 +119,11 @@ class RenderBoundary extends Component {
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-const builtins = { image: ImageArtifact, audio: AudioArtifact, file: FileArtifact };
+const builtins = {
+  image: ImageArtifact, audio: AudioArtifact, file: FileArtifact,
+  markdown: MarkdownArtifact, code: CodeArtifact, table: TableArtifact,
+  chart: ChartArtifact, timeline: TimelineArtifact,
+};
 
 export function Artifact({ kind, payload = {}, renderers = {}, temporary = false }) {
   const { t } = useLocale();

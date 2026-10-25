@@ -17,7 +17,7 @@ from the_framework.plugins.web_search import WEB_SEARCH
 from .agent_definition import ASSISTANT_AGENT
 from .http_boundary import access_boundary
 from .plugins.browser import PLUGIN as CHROMIUM
-from the_framework.plugins.artifacts import ARTIFACTS
+from .plugins.artifacts import PLUGIN as ARTIFACTS
 from .plugins.client_remote import PLUGIN as CLIENT_REMOTE
 from .plugins.desktop_notifications import PLUGIN as DESKTOP_NOTIFICATIONS
 from .plugins.hosted_ui import PLUGIN as HOSTED_UI
