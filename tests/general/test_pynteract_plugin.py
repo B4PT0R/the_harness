@@ -79,20 +79,21 @@ def test_composition_binding_and_shutdown(runtime):
     assert "pynteract" in agent.registry("tools")
 
 
-def test_native_identity_no_implicit_repr_and_explicit_projection(runtime):
+def test_native_identity_last_repr_and_explicit_projection(runtime):
     _, plugin = runtime
 
     async def scenario():
         first = await plugin.execute('''
 class Native:
     def __repr__(self):
-        raise RuntimeError("must not render")
+        return "<Native result>"
 x = Native()
 identity = id(x)
 x
 ''')
-        assert first["status"] == "ok" and first["result_type"] == "Native"
-        assert first["stdout"] == "" and first["exports"] == {}
+        assert first["status"] == "ok"
+        assert "result_type" not in first and "error" not in first
+        assert first["stdout"] == "<Native result>\n" and first["exports"] == {}
         result = await plugin.execute('agent.export({"same": id(x) == identity, "underscore": _ is x})')
         assert result["session_id"] == first["session_id"]
         assert result["exports"]["result"] == {"same": True, "underscore": True}
@@ -100,7 +101,7 @@ x
         frozen = await plugin.execute('v = [1]; agent.export(v); v.append(2)')
         assert frozen["exports"] == {"result": [1]}
         bad = await plugin.execute('agent.export(x)')
-        assert bad["status"] == "error" and "JSON serializable" in bad["error"]
+        assert bad["status"] == "error" and "JSON serializable" in bad["stderr"]
         assert (await plugin.execute('agent.export(id(x) == identity)'))["exports"]["result"]
     asyncio.run(scenario())
 
@@ -176,13 +177,13 @@ def test_discovery_failures_disabled_tools_and_recursion(runtime):
         assert failed["exports"]["result"]["status"] == "failure"
         assert "deliberate failure" in failed["exports"]["result"]["error"]
         missing_feedback = await plugin.execute('await agent.call("example.echo", value=1, user_feedback="")')
-        assert missing_feedback["status"] == "error" and "user_feedback" in missing_feedback["error"]
+        assert missing_feedback["status"] == "error" and "user_feedback" in missing_feedback["stderr"]
         for name in ["pynteract.reset", "reset", "pynteract.execute"]:
             recursive = await plugin.execute(f'await agent.call({name!r}, user_feedback="Je teste la récursion.")')
-            assert recursive["status"] == "error" and "Recursive" in recursive["error"]
+            assert recursive["status"] == "error" and "Recursive" in recursive["stderr"]
         worker.deactivate()
         disabled = await plugin.execute('await agent.call("example.echo", value=1, user_feedback="Je teste un outil désactivé.")')
-        assert disabled["status"] == "error" and "unknown tool namespace" in disabled["error"]
+        assert disabled["status"] == "error" and "unknown tool namespace" in disabled["stderr"]
     asyncio.run(scenario())
 
 
@@ -237,18 +238,17 @@ def test_errors_limits_stdio_and_reset_keep_worker_alive(runtime):
         await plugin.execute("x = 1")
         failed = await plugin.execute('x = 2\nraise ValueError("cell failure")')
         assert failed["status"] == "error" and not failed["namespace_lost"]
+        assert "error" not in failed and "result_type" not in failed
+        assert failed["stderr"].count("ValueError: cell failure") == 1
         assert (await plugin.execute('agent.export(x)'))["exports"]["result"] == 2
-        noisy = await plugin.execute('for i in range(100000): print("x" * 100)')
-        assert noisy["status"] == "error" and "output exceeds" in noisy["error"]
-        assert len(noisy.get("stdout", "")) <= 32768
         input_result = await plugin.execute('input("question")')
-        assert "Interactive input" in input_result["error"]
+        assert "Interactive input" in input_result["stderr"]
         native = await plugin.execute('import os; os.write(1, b"not protocol JSON\\n"); agent.export(3)')
         assert native["exports"]["result"] == 3
         for value in ['float("nan")', 'float("inf")', '{1, 2}', 'b"bytes"']:
             assert (await plugin.execute(f'agent.export({value})'))["status"] == "error"
         too_big = await plugin.execute('agent.export("x" * (2 * 1024 * 1024))')
-        assert too_big["status"] == "error" and "1 MiB" in too_big["error"]
+        assert too_big["status"] == "error" and "1 MiB" in too_big["stderr"]
         reset = await plugin.reset()
         assert reset["namespace_lost"]
         fresh = await plugin.execute('agent.export("x" in globals())')
@@ -336,4 +336,44 @@ def test_transport_and_argument_bounds(runtime):
         with pytest.raises(ValueError, match="JSON object"):
             await plugin.call_python("any", "[]", "x")
         assert plugin._process is None
+    asyncio.run(scenario())
+
+
+def test_verbose_stdout_stderr_and_repr_keep_both_edges(runtime):
+    from the_framework.utils.tokens import truncate_middle
+    from the_harness.plugins.pynteract.protocol import MAX_OUTPUT_TOKENS
+    _, plugin = runtime
+    text = "BEGIN\n" + "word " * 20000 + "\nEND\n"
+
+    async def scenario():
+        for code, stream in [
+            ('import sys; print(text, end=""); completed = True', "stdout"),
+            ('print(text, end="", file=sys.stderr); completed = True', "stderr"),
+            ('class Verbose:\n    def __repr__(self): return text\nVerbose()', "stdout"),
+        ]:
+            await plugin.execute(f'text = {text!r}; completed = False')
+            result = await plugin.execute(code)
+            assert result["status"] == "ok", result
+            actual = result[stream]
+            raw = text + ("\n" if code.endswith("Verbose()") else "")
+            assert actual == truncate_middle(raw, max_tokens=MAX_OUTPUT_TOKENS)
+            assert actual.startswith("BEGIN\n") and actual.rstrip().endswith("END")
+            assert "Middle truncated" in actual
+            assert len(actual) < len(text)
+            assert "error" not in result and "result_type" not in result
+            if not code.endswith("Verbose()"):
+                assert (await plugin.execute('completed'))["stdout"] == "True\n"
+        chunks = await plugin.execute('''
+print("BEGIN")
+for i in range(1000):
+    print("word " * 10)
+print("END")
+completed = True
+''')
+        assert chunks["status"] == "ok"
+        assert chunks["stdout"].startswith("BEGIN\n")
+        assert chunks["stdout"].endswith("END\n")
+        assert "Middle truncated" in chunks["stdout"]
+        short = await plugin.execute('print("short"); 21 * 2')
+        assert short["stdout"] == "short\n42\n" and short["stderr"] == ""
     asyncio.run(scenario())

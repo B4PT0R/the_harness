@@ -4,7 +4,7 @@ import json
 
 MAX_FRAME = 1024 * 1024
 MAX_CODE = 128 * 1024
-MAX_OUTPUT = 32 * 1024
+MAX_OUTPUT_TOKENS = 4_000
 
 
 def encode(value):

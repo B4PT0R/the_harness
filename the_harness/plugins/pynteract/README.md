@@ -62,7 +62,10 @@ This explicit call publishes immediately through `artifacts.show_artifact`;
 failed cells do not undo already completed publication or tool side effects.
 `agent.export` freezes its strict JSON projection immediately and returns it in
 that cell's result. Custom objects, NaN and infinity are rejected. Native cell
-results are never implicitly converted with `str`, `repr` or display protocols.
+results stay in the namespace, but `display_mode="last"` includes the last
+expression's `repr` in stdout. Assign the result to suppress display. Cell
+tracebacks appear only in stderr, with no duplicate `error` or `result_type` field.
+Transport/entry-point failures still use `error`; `call_python` retains type metadata.
 
 ## Lifecycle and limits
 
@@ -71,8 +74,10 @@ results are never implicitly converted with `str`, `repr` or display protocols.
 - Lazy start, one process per loaded extension; one cell at a time. Pynteract
   uses its own namespace, `_`, magics, compiler state and bounded history.
 - No startup script is run; normal `Shell.arun`, not the interactive REPL.
-- Code 128 KiB; each newline-delimited JSON frame 1 MiB; Python output 32 Ki
-  characters per cell (abort on overflow). Captured diagnostics are also bounded.
+- Code 128 KiB; each newline-delimited JSON frame 1 MiB. Each returned output
+  stream keeps first/last text totaling 4,000 tokens plus an omission marker via
+  `the_framework.utils.tokens.truncate_middle`. Verbose output does not abort
+  execution. The Shell captures full output in memory before truncation.
   Native fd stdout/stderr go to `/dev/null`; stdin is unavailable.
 - Default deadline 60 seconds, configurable per call up to 900, covering startup,
   the cell and worker RPCs. Timeout/cancellation/crash kills the process group,
@@ -87,7 +92,7 @@ results are never implicitly converted with `str`, `repr` or display protocols.
   files survive. No recovery, replay, checkpointing or pickle persistence.
 - This is fault isolation, **not a security or memory sandbox**. Arbitrary Python
   has the local account's permissions, can modify process internals, allocate
-  memory and spawn detached processes. Large single writes can allocate memory
-  before the output hook detects overflow. No Windows transport is claimed yet.
+  memory and spawn detached processes. Output capture is not memory-bounded.
+  No Windows transport is claimed yet.
 
 Tests: `uv run pytest -q tests/general/test_pynteract_plugin.py`.

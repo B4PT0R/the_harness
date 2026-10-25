@@ -3,10 +3,11 @@
 Use `execute` for Pynteract cells with persistent Python objects and top-level
 `await`. This is a separate local process with the account's real permissions,
 not a security sandbox. Do not send private data externally without authorization.
-Native results stay in that process; they are not automatically printed,
-serialized, displayed or added to conversation context. Assign values to names
-(or reuse `_`). Inspect a small projection with `agent.export(value, name="result")`.
-Only strict JSON values are accepted, without pickle, repr or custom encoders.
+Native results stay in that process (including `_`). The Shell runs in `last`
+mode: the last expression’s `repr` is included in stdout, and tracebacks in stderr
+without a duplicate error field. Assign results to suppress their display. For a
+structured projection, use `agent.export(value, name="result")`: only strict JSON
+values are accepted, without pickle or custom encoders.
 
 Inside a cell, `agent` is a limited proxy, not the worker's Agent:
 - `await agent.tools(query=None)` returns active worker tool schemas.
@@ -29,10 +30,12 @@ Inside a cell, `agent` is a limited proxy, not the worker's Agent:
   paths, and consult the normal artifact catalogue. Nothing is published implicitly.
 
 Cells are serialized. Await/join work before returning; leftover asyncio tasks
-are cancelled. Interactive stdin is unavailable. Python stdout/stderr capture is
-limited to 32 Ki characters per cell; excessive output aborts the cell. Native
-file-descriptor output is discarded. Code is limited to 128 KiB, JSON frames to
-1 MiB; use files for large exports. This is not an RSS, disk or OS resource sandbox.
+are cancelled. Interactive stdin is unavailable. Returned stdout/stderr are each
+centrally truncated to first/last text totaling 4,000 tokens (plus an omission
+marker), using the Framework helper. Verbose output does not abort the cell; the
+Shell captures it in memory before truncation. Native file-descriptor output is
+discarded. Code is limited to 128 KiB, JSON frames to 1 MiB; use files for large
+exports. This is not an RSS, disk or OS resource sandbox.
 
 Timeouts (default 60s, max 900s), interruption or process exit destroy the session
 process group and its namespace; `namespace_lost` reports transport failures.

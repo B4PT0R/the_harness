@@ -158,8 +158,8 @@ class PynteractExtension(AgentExtension):
     async def execute(self, code: str, timeout_seconds: float = 60):
         """Execute a persistent Pynteract cell, with top-level await and proxy agent.
 
-        Native results stay in the session (including _); only stdout/stderr,
-        type, errors and agent.export JSON projections return. Timeout/crash
+        Native results stay in the session (including _); stdout includes the last
+        result repr, stderr includes tracebacks. JSON exports are explicit. Timeout/crash
         destroys the namespace; next call starts a fresh session. Not a sandbox.
         """
         if not isinstance(code, str) or len(code.encode("utf-8")) > MAX_CODE:

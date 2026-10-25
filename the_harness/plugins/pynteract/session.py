@@ -7,8 +7,9 @@ import socket
 import sys
 
 from pynteract import Shell
+from the_framework.utils.tokens import truncate_middle
 
-from .protocol import MAX_FRAME, MAX_OUTPUT, encode, receive, send
+from .protocol import MAX_FRAME, MAX_OUTPUT_TOKENS, encode, receive, send
 
 
 class PythonTools:
@@ -84,37 +85,24 @@ class AgentProxy:
 async def main(fd):
     reader, writer = await asyncio.open_connection(sock=socket.socket(fileno=fd), limit=MAX_FRAME)
     agent = AgentProxy(reader, writer)
-    captured = 0
-
-    def output(data, buffer):
-        nonlocal captured
-        captured += len(data)
-        if captured > MAX_OUTPUT:
-            raise ValueError("Cell output exceeds 32 Ki characters; write a file instead.")
 
     def no_input(*args):
         raise RuntimeError("Interactive input is unavailable in a Pynteract session.")
 
-    shell = Shell(namespace={"agent": agent}, display_mode="none", history_size=10,
-                  stdout_hook=output, stderr_hook=output, stdin_hook=no_input)
+    shell = Shell(namespace={"agent": agent}, display_mode="last", history_size=10,
+                  stdin_hook=no_input)
     try:
         while True:
             request = await receive(reader)
-            captured = 0
             agent._exports = {}
             existing_tasks = asyncio.all_tasks()
             try:
                 if request["operation"] == "execute":
                     response = await shell.arun(request["code"])
-                    error = response.exception
-                    result = {"status": "error" if error else "ok",
-                              "stdout": (response.stdout or "")[:MAX_OUTPUT],
-                              "stderr": (response.stderr or "")[:MAX_OUTPUT],
-                              "result_type": type(response.result).__name__,
+                    result = {"status": "error" if response.exception else "ok",
+                              "stdout": truncate_middle(response.stdout, max_tokens=MAX_OUTPUT_TOKENS),
+                              "stderr": truncate_middle(response.stderr, max_tokens=MAX_OUTPUT_TOKENS),
                               "exports": agent._exports}
-                    if error:
-                        result["error"] = str(getattr(error, "enriched_traceback_string", None)
-                                              or f"{type(error).__name__}: {error}")[:MAX_OUTPUT]
                 elif request["operation"] == "python_call":
                     target = request["save_as"]
                     if not target.isidentifier() or target.startswith("_") or target == "agent":
@@ -126,7 +114,8 @@ async def main(fd):
                 else:
                     raise ValueError("Unknown session operation.")
             except Exception as error:
-                result = {"status": "error", "error": f"{type(error).__name__}: {error}"[:MAX_OUTPUT],
+                result = {"status": "error", "error": truncate_middle(f"{type(error).__name__}: {error}",
+                                                   max_tokens=MAX_OUTPUT_TOKENS),
                           "exports": agent._exports}
             finally:
                 # Cells must join their async work. Do not let late RPCs steal the
