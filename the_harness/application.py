@@ -31,7 +31,7 @@ from .plugins.memory import PLUGIN as MEMORY
 from the_framework.plugins.realtime import REALTIME as GENERIC_REALTIME
 from .plugins.realtime.agent import RealtimeExtension
 from the_framework.plugins.scheduler import SCHEDULER
-from the_framework.plugins.system import SYSTEM
+from .plugins.system import PLUGIN as SYSTEM
 
 PROJECT_ROOT = Path(__file__).parents[1]
 
@@ -65,7 +65,7 @@ application = Application(
         AGENTIC,
         SCHEDULER,
         CHROMIUM,
-        Plugin({**SYSTEM, "agent_binding_required": True}),
+        SYSTEM,
         REGISTRY,
     ),
     surfaces=(ClientSurface(

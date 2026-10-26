@@ -13,6 +13,12 @@ def test_agentic_plugin_preserves_the_assistants_agentic_instructions(tmp_path):
     assert core in instructions.render(scope="agentic")
     assert plugin.instructions_section().content in instructions.render(scope="agentic")
     assert plugin.instructions_section().content not in instructions.render(scope="vocal")
+    assert agent.registry("tools")["agentic"].find("compact") is not None
+    occupancy = agent.registry("providers")["context_occupancy"]
+    assert occupancy.channels == ["text"]
+    agent.context.last_local_input_tokens = agent.configs.compaction.context_token_limit // 2
+    assert occupancy()["occupied_percent"] == 50.0
     plugin.deactivate()
+    assert "context_occupancy" not in agent.registry("providers")
     assert core in agent.registry("instructions").render(scope="agentic")
     assert plugin.instructions_section().content not in agent.registry("instructions").render()

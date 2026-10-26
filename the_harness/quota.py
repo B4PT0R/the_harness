@@ -126,6 +126,16 @@ class QuotaService:
                          "exhausted": self.exhausted(),
                          "operations": self.state["operations"]})
 
+    def context(self):
+        """Read-only, compact view of the already-polled account usage."""
+        available = self.updated_at is not None and self.windows["quota_7d"] is not None
+        status = "unavailable"
+        if available:
+            status = "stale" if (self.error or self.persistence_error
+                                 or self.clock() - self.updated_at > 2 * self.poll_interval) else "ready"
+        return deepcopy({"status": status, "quota_7d": self.windows["quota_7d"],
+                         "updated_at": self.updated_at, "error": self.persistence_error or self.error})
+
     async def policy(self, value):
         if value not in {"block", "consume_earliest"}:
             raise ValueError("invalid exhausted quota policy")
@@ -294,9 +304,11 @@ def build_service(context):
 
 def build_bridge(runtime, quota):
     async def handle(method, payload):
-        if method != "admission":
-            raise ValueError("unsupported quota capability")
-        return await quota.admission()
+        if method == "context":
+            return quota.context()
+        if method == "admission":
+            return await quota.admission()
+        raise ValueError("unsupported quota capability")
 
     runtime.bridge.register("quota", handle)
     return handle
