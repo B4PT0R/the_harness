@@ -92,7 +92,7 @@ export function Composer({ request = api, dictationAvailable = false, onDictatio
         onClick={() => setFiles(files.filter((_, i) => i !== index))}
       >{file.name} ×</button>)}</div>}
       <label className="sr-only" htmlFor="message">{t("message")}</label>
-      <textarea ref={textarea} id="message" placeholder={t("messagePlaceholder")} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => handleComposerKeyDown(event, canSubmit)} rows={1} disabled={sending} />
+      <textarea ref={textarea} id="message" enterKeyHint="enter" placeholder={t("messagePlaceholder")} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => handleComposerKeyDown(event, canSubmit)} rows={1} disabled={sending} />
       <div className="composer-actions">
         <input ref={fileInput} type="file" multiple hidden onChange={(event) => { setFiles([...files, ...event.target.files]); event.target.value = ""; }} />
         <IconButton icon="attach" label={t("attach")} disabled={sending || voiceState !== "idle"} onClick={() => fileInput.current.click()} />
