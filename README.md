@@ -36,6 +36,10 @@ All uploaded and published client files share `~/TheHarness/bucket/` (or
 `data_root/bucket/` when configured). Images, videos, audio and other files use
 this same tree and authenticated `/api/v1/bucket/...` URLs, including for authorized
 remote desktop clients. The session stores references and metadata only.
+Attachment requests accept at most 32 files and 64 MiB of combined contents.
+The Framework also stops multipart reception above 65 MiB, including fields and
+framing, even without a trustworthy Content-Length. Oversized uploads are rejected
+without replacing existing files; partial copies and upload spools are cleaned up.
 
 The optional `images` plugin exposes the backend-hosted `image_generation` tool
 for creation and editing, plus `images.inspect_image` for local-file or HTTP(S)
