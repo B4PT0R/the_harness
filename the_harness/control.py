@@ -85,16 +85,15 @@ class HarnessControl:
     def wait_until_ready(self, timeout=20):
         deadline = time.monotonic() + timeout
         last_error = None
-        while time.monotonic() < deadline:
+        while (remaining := deadline - time.monotonic()) > 0:
             try:
-                health = self.request("GET", "/api/v1/health", timeout=2)
+                health = self.request("GET", "/api/v1/health", timeout=min(2, remaining))
                 if health.get("status") == "ok":
                     return health
                 last_error = RuntimeError(f"server health: {health.get('status', 'unknown')}")
-                time.sleep(0.1)
             except (FileNotFoundError, ValueError, json.JSONDecodeError, httpx.HTTPError) as error:
                 last_error = error
-                time.sleep(0.1)
+            time.sleep(min(0.1, max(0, deadline - time.monotonic())))
         raise RuntimeError("The Harness server did not become ready") from last_error
 
     def _require_local_ui(self):

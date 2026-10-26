@@ -39,6 +39,26 @@ def test_degraded_health_times_out(tmp_path, monkeypatch, clock):
         control.wait_until_ready(timeout=0.2)
 
 
+@pytest.mark.parametrize("failure", [False, True])
+def test_health_probe_and_retry_sleep_respect_remaining_budget(tmp_path, monkeypatch, clock, failure):
+    control = HarnessControl(tmp_path)
+    timeouts = []
+
+    def request(*args, timeout, **kwargs):
+        timeouts.append(timeout)
+        clock[0] += timeout
+        if failure:
+            raise httpx.ReadTimeout("server still starting")
+        return {"status": "degraded"}
+
+    monkeypatch.setattr(control, "request", request)
+    with pytest.raises(RuntimeError, match="server did not become ready") as error:
+        control.wait_until_ready(timeout=0.25)
+    assert timeouts == [pytest.approx(0.25)]
+    assert clock[0] == pytest.approx(0.25)
+    assert isinstance(error.value.__cause__, httpx.ReadTimeout if failure else RuntimeError)
+
+
 def test_open_waits_for_browser_without_restarting_services(tmp_path, monkeypatch, clock):
     control = HarnessControl(tmp_path)
     starts, calls = [], []
