@@ -11,7 +11,7 @@ dependencies = [
     "fastapi",
     "b4pt0r-the-framework>=0.2.1,<0.3",
     "httpx",
-    "modict>=0.4.19",
+    "modict>=0.4.20",
     "pillow",
     "playwright",
     "pyyaml",
@@ -20,7 +20,7 @@ dependencies = [
     "tiktoken",
     "uvicorn",
     "websockets",
-    "pynteract==1.0.0",
+    "pynteract>=1.1.0,<2",
 ]
 
 [project.optional-dependencies]
