@@ -39,7 +39,7 @@ def resolve_data_root(explicit=None, *, bootstrap=None) -> Path:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         return default_data_root(bootstrap=bootstrap)
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise RuntimeError(f"invalid Harness bootstrap configuration: {path}") from error
     value = payload.get("data_root") if isinstance(payload, dict) else None
     if not isinstance(value, str) or not value.strip():

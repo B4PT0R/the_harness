@@ -40,12 +40,34 @@ def test_explicit_runtime_root_has_priority(tmp_path):
     assert resolve_data_root(tmp_path / "fixture", bootstrap=bootstrap) == tmp_path / "fixture"
 
 
-def test_invalid_bootstrap_fails_loudly(tmp_path):
+@pytest.mark.parametrize("content", [b"not json", b"\xff"])
+def test_invalid_bootstrap_fails_loudly(tmp_path, content):
     bootstrap = tmp_path / ".the_harness"
     bootstrap.mkdir()
-    (bootstrap / "config.json").write_text("not json")
+    (bootstrap / "config.json").write_bytes(content)
     with pytest.raises(RuntimeError, match="invalid Harness bootstrap"):
         resolve_data_root(bootstrap=bootstrap)
+
+
+@pytest.mark.parametrize("operation", ["fsync", "replace"])
+def test_failed_bootstrap_save_preserves_previous_config(tmp_path, monkeypatch, operation):
+    from the_harness import runtime_paths
+
+    bootstrap = tmp_path / ".the_harness"
+    previous = configure_data_root(tmp_path / "previous", bootstrap=bootstrap)
+    config = bootstrap / "config.json"
+    original = config.read_bytes()
+
+    def fail(*args):
+        raise OSError("simulated save failure")
+
+    monkeypatch.setattr(runtime_paths.os, operation, fail)
+    with pytest.raises(OSError, match="simulated save failure"):
+        configure_data_root(tmp_path / "next", bootstrap=bootstrap)
+
+    assert config.read_bytes() == original
+    assert resolve_data_root(bootstrap=bootstrap) == previous
+    assert list(bootstrap.iterdir()) == [config]
 
 
 def test_machine_root_precedence_and_isolated_default_data(tmp_path, monkeypatch):
