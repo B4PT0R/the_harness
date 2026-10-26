@@ -10,6 +10,16 @@ from the_harness.plugins.artifacts.agent import HarnessArtifacts
 KINDS = ('markdown', 'code', 'table', 'chart', 'timeline')
 
 
+@pytest.mark.parametrize('artifact_type', HarnessArtifacts.artifact_types)
+def test_payload_requirement_remains_an_explicit_exception(artifact_type):
+    assert artifact_type._config.default_required == 'never'
+    assert artifact_type.__fields__['payload'].required == 'always'
+    artifact = artifact_type(payload=copy.deepcopy(artifact_type.payload_example))
+    artifact.validate()
+    with pytest.raises(TypeError):
+        del artifact['payload']
+
+
 def test_catalogue_examples_validate_and_survive_session_replay(tmp_path):
     extension = HarnessArtifacts(Agent(client=object()))
     catalogue = extension.supported_artifacts()

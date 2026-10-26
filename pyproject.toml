@@ -27,6 +27,7 @@ dependencies = [
 dev = ["httpx", "httpx2>=2.0.0", "openai>=3.16.1", "pytest"]
 
 [tool.uv.sources]
+modict = { path = "../modict", editable = true }
 pynteract = { path = "../pynteract", editable = true }
 b4pt0r-the-framework = { path = "../the_framework", editable = true }
 codex-backend-sdk = { path = "../codex-backend-sdk", editable = true }
