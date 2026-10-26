@@ -145,6 +145,7 @@ class PynteractExtension(AgentExtension):
                 stream, text = reply["stream"], reply["text"]
                 if stream not in {"stdout", "stderr"} or not isinstance(text, str):
                     raise ValueError("Invalid output notification.")
+                job["output_truncated"][stream] |= bool(reply.get("truncated"))
                 job["output_chars"][stream] += len(text)
                 job[stream] = (job[stream] + text)[-12_000:]
                 continue
@@ -247,6 +248,7 @@ class PynteractExtension(AgentExtension):
                   "elapsed_seconds": round((job["finished_at"] or time.monotonic()) - job["started_at"], 3),
                   "stdout": job["stdout"], "stderr": job["stderr"],
                   "output_chars": dict(job["output_chars"]),
+                  "output_truncated": dict(job["output_truncated"]),
                   "namespace_lost": False}
         if job["result"] is not None:
             final = dict(job["result"])
@@ -271,7 +273,8 @@ class PynteractExtension(AgentExtension):
         while len(self._jobs) >= 32:
             del self._jobs[next(iter(self._jobs))]
         job = {"id": uuid4().hex, "status": "running", "stdout": "", "stderr": "",
-               "output_chars": {"stdout": 0, "stderr": 0}, "result": None,
+               "output_chars": {"stdout": 0, "stderr": 0},
+               "output_truncated": {"stdout": False, "stderr": False}, "result": None,
                "session_id": self._session_id, "started_at": time.monotonic(), "finished_at": None,
                "ready": False, "interrupt_requested": False}
         self._active_job = self._jobs[job["id"]] = job
@@ -284,7 +287,8 @@ class PynteractExtension(AgentExtension):
         """Read job status and live stdout/stderr tails without waiting.
 
         Running tails keep the last 12,000 characters per stream; output_chars
-        reports totals. Finished jobs return the usual bounded cell output/exports.
+        counts received text until completion, then actual generated characters.
+        output_truncated flags capture/live overflow. Finished jobs return bounded output/exports.
         Up to 32 job records survive in this worker, never across restart.
         """
         return self._snapshot(self._get_job(job_id))

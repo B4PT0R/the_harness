@@ -10,7 +10,44 @@ import sys
 from pynteract import ExecutionInterrupted, Shell
 from the_framework.utils.tokens import truncate_middle
 
-from .protocol import MAX_FRAME, MAX_OUTPUT_TOKENS, encode, receive, send
+from .protocol import (MAX_FRAME, MAX_OUTPUT_TOKENS, MAX_CAPTURE_CHARS,
+                       MAX_STREAM_BYTES, encode, receive, send)
+
+
+class OutputRelay:
+    """Bound cumulative wire output, including JSON overhead, per cell.
+
+    Sync Python cannot await drain on its own event loop. Rather than enqueue
+    unlimited notifications, stop live delivery at a fixed budget and signal it
+    once per stream. RPC/results still drain normally. No background writer task
+    or unbounded thread queue is needed.
+    """
+
+    def __init__(self, writer):
+        self.writer = writer
+        self.reset(False)
+
+    def reset(self, enabled):
+        self.enabled = enabled
+        self.remaining = MAX_STREAM_BYTES
+        self.truncated = {"stdout": False, "stderr": False}
+
+    def output(self, stream):
+        def capture(text, _buffer):
+            if not self.enabled or self.truncated[stream]:
+                return
+            for offset in range(0, len(text), 8192):
+                frame = encode({"type": "output", "stream": stream,
+                                "text": text[offset:offset + 8192]})
+                if len(frame) > self.remaining:
+                    self.truncated[stream] = True
+                    self.writer.write(encode({
+                        "type": "output", "stream": stream, "truncated": True,
+                        "text": "\n[live output truncated: transport budget reached]\n"}))
+                    break
+                self.remaining -= len(frame)
+                self.writer.write(frame)
+        return capture
 
 
 class PythonTools:
@@ -97,26 +134,17 @@ async def main(fd):
     def no_input(*args):
         raise RuntimeError("Interactive input is unavailable in a Pynteract session.")
 
-    streaming = False
-
-    def output(stream):
-        def capture(text, _buffer):
-            if streaming:
-                # Synchronous hooks also deliver progress from blocking Python
-                # code. Small frames fit the protocol even for large print calls.
-                for offset in range(0, len(text), 8192):
-                    writer.write(encode({"type": "output", "stream": stream,
-                                         "text": text[offset:offset + 8192]}))
-        return capture
+    relay = OutputRelay(writer)
 
     def started(code):
-        if streaming:
+        if relay.enabled:
             writer.write(encode({"type": "started"}))
         return code
 
     shell = Shell(namespace={"agent": agent}, display_mode="last", history_size=10,
+                  capture_limit=MAX_CAPTURE_CHARS, hook_buffer=False,
                   pre_run_hook=started, stdin_hook=no_input,
-                  stdout_hook=output("stdout"), stderr_hook=output("stderr"))
+                  stdout_hook=relay.output("stdout"), stderr_hook=relay.output("stderr"))
     # A Python signal handler runs in the interpreter's owning thread even when
     # synchronous user code blocks its event loop. Idle delivery is a no-op.
     previous_handler = signal.signal(signal.SIGUSR1, lambda *_: shell.interrupt())
@@ -124,7 +152,7 @@ async def main(fd):
         await send(writer, {"type": "ready"})
         while True:
             request = await receive(reader)
-            streaming = request.get("stream", False)
+            relay.reset(request.get("stream", False))
             agent._exports = {}
             existing_tasks = asyncio.all_tasks()
             try:
@@ -133,6 +161,10 @@ async def main(fd):
                     result = {"status": "error" if response.exception else "ok",
                               "stdout": truncate_middle(response.stdout, max_tokens=MAX_OUTPUT_TOKENS),
                               "stderr": truncate_middle(response.stderr, max_tokens=MAX_OUTPUT_TOKENS),
+                              "output_chars": {name: stats["written_chars"]
+                                               for name, stats in response.output_stats.items()},
+                              "output_truncated": {name: stats["truncated"] or relay.truncated[name]
+                                                   for name, stats in response.output_stats.items()},
                               "exports": agent._exports}
                 elif request["operation"] == "python_call":
                     target = request["save_as"]

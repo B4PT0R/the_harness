@@ -623,3 +623,69 @@ def test_ignored_soft_interrupt_can_be_force_killed(runtime):
         assert final["status"] == "interrupted" and final["namespace_lost"], final
         assert (await plugin.execute('"ExecutionInterrupted" in globals()'))["stdout"] == "False\n"
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("text", ["x", "é", "\x00"])
+def test_output_relay_bounds_wire_queue_and_resets(text):
+    from the_harness.plugins.pynteract.session import OutputRelay
+    from the_harness.plugins.pynteract.protocol import MAX_STREAM_BYTES
+
+    class Writer:
+        def __init__(self):
+            self.frames = []
+        def write(self, frame):
+            self.frames.append(frame)
+
+    writer = Writer()
+    relay = OutputRelay(writer)
+    relay.reset(True)
+    for stream in ("stdout", "stderr"):
+        capture = relay.output(stream)
+        for _ in range(10000):
+            capture(text * 100, "")
+        assert relay.truncated[stream]
+    notices = [json.loads(frame) for frame in writer.frames]
+    assert sum(len(frame) for frame in writer.frames) <= MAX_STREAM_BYTES + 512
+    assert len([n for n in notices if n.get("truncated")]) == 2
+    relay.reset(False)
+    count = len(writer.frames)
+    relay.output("stdout")("ignored", "")
+    assert len(writer.frames) == count
+    relay.reset(True)
+    relay.output("stdout")("fresh", "")
+    assert json.loads(writer.frames[-1])["text"] == "fresh"
+
+
+@pytest.mark.parametrize("writes", ["sys.stdout.write('x' * 2_000_000)",
+                                     "for _ in range(100_000): sys.stdout.write('x' * 20)"])
+def test_output_capture_overflow_keeps_counts_and_namespace(runtime, writes):
+    _, plugin = runtime
+
+    async def scenario():
+        result = await plugin.execute("import sys; kept = 42\n" + writes + "\nNone")
+        assert result["status"] == "ok"
+        assert result["output_chars"] == {"stdout": 2_000_000, "stderr": 0}
+        assert result["output_truncated"] == {"stdout": True, "stderr": False}
+        assert "capture limit reached" in result["stdout"]
+        from the_framework.utils.tokens import truncate_middle
+        from the_harness.plugins.pynteract.protocol import MAX_CAPTURE_CHARS, MAX_OUTPUT_TOKENS
+        from pynteract.streams import TRUNCATION_MARKER
+        assert result["stdout"] == truncate_middle(
+            "x" * MAX_CAPTURE_CHARS + TRUNCATION_MARKER, max_tokens=MAX_OUTPUT_TOKENS)
+        assert (await plugin.execute("kept"))["stdout"] == "42\n"
+    asyncio.run(scenario())
+
+
+def test_live_overflow_and_soft_interrupt_preserve_namespace(runtime):
+    _, plugin = runtime
+
+    async def scenario():
+        job_id = (await plugin.job("import sys, time\nkept = 42\nprint('é' * 2_000_000)\ntime.sleep(30)"))["job_id"]
+        live = await until_output(plugin, job_id, "transport budget reached")
+        assert live["status"] == "running" and live["output_truncated"]["stdout"]
+        assert len(live["stdout"]) <= 12000
+        await plugin.interrupt(job_id)
+        final = await plugin.wait(job_id, 10)
+        assert final["status"] == "interrupted" and not final["namespace_lost"]
+        assert (await plugin.execute("kept"))["stdout"] == "42\n"
+    asyncio.run(scenario())

@@ -55,6 +55,22 @@ The optional `tts` plugin uses local CPU Piper synthesis with an isolated runtim
 and a French voice. It produces WAV files and durable `audio` artifacts with manual
 playback controls and a download link; see [setup and configuration](docs/tts.md).
 
+## Embedded Python
+
+The optional `pynteract` plugin runs persistent Python cells in a separate local
+process with the account's real permissions, not a sandbox. It supports native
+objects, worker-tool RPC and cancellable jobs. It requires Pynteract 1.2 or later
+(the current development lock uses the sibling checkout).
+
+Per cell, stdout/stderr capture each keep a 256 Ki-character prefix plus an overflow
+marker. Live job notifications share a 256 KiB wire budget plus small notices;
+subsequent output is discarded, not queued indefinitely. Final text has a further
+4,000-token head/tail presentation limit. `output_truncated` signals capture/live
+loss; `output_chars` counts received text while running and generated characters
+when a cell returns normally (including a captured Python exception). Interrupted
+jobs retain their received counts. Use files for complete logs. These limits do
+not bound user-created objects, custom threads, native memory or disk usage.
+
 ## Account quota and resets
 
 The shared desktop and mobile composer’s weekly quota gauge opens the available reset credits and their
