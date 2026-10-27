@@ -1,7 +1,6 @@
 """Canonical declarative identity of The Harness application."""
 
 from importlib.metadata import version as package_version
-from pathlib import Path
 
 from the_framework import (
     Application,
@@ -33,12 +32,12 @@ from .plugins.realtime.agent import RealtimeExtension
 from the_framework.plugins.scheduler import SCHEDULER
 from .plugins.system import PLUGIN as SYSTEM
 
-PROJECT_ROOT = Path(__file__).parents[1]
+from .project_paths import PROJECT_ROOT
 
 
 application = Application(
     name="The Harness",
-    version=package_version("the-harness"),
+    version=package_version("b4pt0r-the-harness"),
     agents=(ASSISTANT_AGENT,),
     server_extensions=(
         access_boundary(),

@@ -3,8 +3,18 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "the-harness"
+name = "b4pt0r-the-harness"
 version = "0.1.0"
+description = "A local-first, persistent agent application with tools, memory, voice and a desktop interface"
+readme = "README.md"
+authors = [{ name = "B4PT0R" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
 requires-python = ">=3.12"
 dependencies = [
     "codex-backend-sdk>=0.5.9",
@@ -32,8 +42,28 @@ pynteract = { path = "../pynteract", editable = true }
 b4pt0r-the-framework = { path = "../the_framework", editable = true }
 codex-backend-sdk = { path = "../codex-backend-sdk", editable = true }
 
+[project.scripts]
+the-harness = "the_harness.control:main"
+
+[project.urls]
+Homepage = "https://github.com/B4PT0R/the_harness"
+Repository = "https://github.com/B4PT0R/the_harness"
+Issues = "https://github.com/B4PT0R/the_harness/issues"
+
+[tool.hatch.build]
+exclude = ["**/__pycache__/**", "**/*.pyc", "**/node_modules/**", "desktop/.surface-build/**"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/the_harness", "/assets", "/desktop", "/ui", "/package.json", "/package-lock.json", "/pyproject.toml", "/README.md", "/AGENTS.md", "/docs", "/scripts", "/packaging", "/tests", "/uv.lock"]
+
 [tool.hatch.build.targets.wheel]
-packages = ["the_harness"]
+only-include = ["the_harness", "assets", "desktop", "ui"]
+force-include = { "package.json" = "the_harness/_project/package.json", "package-lock.json" = "the_harness/_project/package-lock.json" }
+
+[tool.hatch.build.targets.wheel.sources]
+assets = "the_harness/_project/assets"
+desktop = "the_harness/_project/desktop"
+ui = "the_harness/_project/ui"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

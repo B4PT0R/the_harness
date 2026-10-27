@@ -96,6 +96,58 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [[package]]
+name = "b4pt0r-the-harness"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "b4pt0r-the-framework" },
+    { name = "codex-backend-sdk" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "modict" },
+    { name = "pillow" },
+    { name = "playwright" },
+    { name = "pynteract" },
+    { name = "pystray" },
+    { name = "python-multipart" },
+    { name = "pyyaml" },
+    { name = "tiktoken" },
+    { name = "uvicorn" },
+    { name = "websockets" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "httpx2" },
+    { name = "openai" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "b4pt0r-the-framework", editable = "../the_framework" },
+    { name = "codex-backend-sdk", editable = "../codex-backend-sdk" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "httpx", marker = "extra == 'dev'" },
+    { name = "httpx2", marker = "extra == 'dev'", specifier = ">=2.0.0" },
+    { name = "modict", editable = "../modict" },
+    { name = "openai", marker = "extra == 'dev'", specifier = ">=3.16.1" },
+    { name = "pillow" },
+    { name = "playwright" },
+    { name = "pynteract", editable = "../pynteract" },
+    { name = "pystray" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "python-multipart" },
+    { name = "pyyaml" },
+    { name = "tiktoken" },
+    { name = "uvicorn" },
+    { name = "websockets" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "certifi"
 version = "2026.7.22"
 source = { registry = "https://pypi.org/simple" }
@@ -1211,58 +1263,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/b5/b4/205b0d5241d934e8a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/cb/6a6a47d5b464bd08695d254f3da6e7986cc70c9fa5d778eda57538edfe56/starlette-1.6.0-py3-none-any.whl", hash = "sha256:a86dd39d14bb45f85a3d18525215a9ef0cfd1f192ac793220e72598c90335f0c", size = 75969, upload-time = "2026-08-08T18:27:56.196Z" },
 ]
-
-[[package]]
-name = "the-harness"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "b4pt0r-the-framework" },
-    { name = "codex-backend-sdk" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "modict" },
-    { name = "pillow" },
-    { name = "playwright" },
-    { name = "pynteract" },
-    { name = "pystray" },
-    { name = "python-multipart" },
-    { name = "pyyaml" },
-    { name = "tiktoken" },
-    { name = "uvicorn" },
-    { name = "websockets" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "httpx" },
-    { name = "httpx2" },
-    { name = "openai" },
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "b4pt0r-the-framework", editable = "../the_framework" },
-    { name = "codex-backend-sdk", editable = "../codex-backend-sdk" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "httpx", marker = "extra == 'dev'" },
-    { name = "httpx2", marker = "extra == 'dev'", specifier = ">=2.0.0" },
-    { name = "modict", editable = "../modict" },
-    { name = "openai", marker = "extra == 'dev'", specifier = ">=3.16.1" },
-    { name = "pillow" },
-    { name = "playwright" },
-    { name = "pynteract", editable = "../pynteract" },
-    { name = "pystray" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "python-multipart" },
-    { name = "pyyaml" },
-    { name = "tiktoken" },
-    { name = "uvicorn" },
-    { name = "websockets" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "tiktoken"

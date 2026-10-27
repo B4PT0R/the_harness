@@ -51,7 +51,7 @@ def main():
 import importlib, importlib.metadata, sys
 from pathlib import Path
 for name, package in [('modict', 'modict'), ('pynteract', 'pynteract'),
-                      ('b4pt0r-the-framework', 'the_framework'), ('the-harness', 'the_harness'),
+                      ('b4pt0r-the-framework', 'the_framework'), ('b4pt0r-the-harness', 'the_harness'),
                       ('codex-backend-sdk', 'codex_backend_sdk')]:
     module = importlib.import_module(package)
     path = Path(module.__file__).resolve()

@@ -8,6 +8,7 @@ import threading
 from pathlib import Path
 
 from .control import HarnessControl
+from .project_paths import PROJECT_ROOT
 
 
 def expose_system_gi():
@@ -29,7 +30,7 @@ def tray_icon_path():
     configured = os.environ.get("THE_HARNESS_TRAY_ICON")
     candidates = [
         Path(configured).expanduser() if configured else None,
-        Path(__file__).parents[1] / "assets" / "assistant-tray.png",
+        PROJECT_ROOT / "assets" / "assistant-tray.png",
     ]
     return next((path for path in candidates if path is not None and path.is_file()), None)
 

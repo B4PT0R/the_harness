@@ -214,9 +214,23 @@ an entire plugin remains a separate change to startup composition.
 
 This checkout requires Framework 0.3.x, Modict 0.5.x, Pynteract 1.2 or newer
 (within 1.x), and SDK 0.5.9 or newer. Local development uses the editable siblings
-above; wheel consumers resolve these minimum versions from PyPI. The Harness
-itself is distributed from this Git repository, not the unrelated `the-harness`
-project on PyPI.
+above; wheel consumers resolve these minimum versions from PyPI. The Python
+distribution is **`b4pt0r-the-harness`**; imports remain `the_harness`. The unrelated
+`the-harness` project on PyPI is not this application.
+
+```sh
+python -m pip install b4pt0r-the-harness
+# Inspect the control CLI without starting services:
+the-harness --help
+```
+
+The wheel contains the Python application, prompts, interface sources and icons.
+Its interface sources live in `the_harness/_project`; preparing or rebuilding
+that interface still requires Node.js/npm (`npm ci` then `npm run build` in that
+directory). The Python installation does not install system libraries, download
+Chromium or register/start desktop services. For the supported Linux desktop
+installation and routine self-modification, use a Git checkout and the installer
+above; the wheel is not a replacement for that desktop setup.
 
 ## Find your way through the code
 
