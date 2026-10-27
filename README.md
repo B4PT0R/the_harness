@@ -120,6 +120,8 @@ arrange the repositories as follows, under a path without spaces:
 dev/
 ├── the_harness/
 ├── the_framework/
+├── modict/
+├── pynteract/
 └── codex-backend-sdk/
 ```
 
@@ -210,8 +212,11 @@ services and data remain available. The owning client reconnects automatically;
 a manual stop wins, and disabling voice never reopens it. Installing or removing
 an entire plugin remains a separate change to startup composition.
 
-This checkout requires the sibling Framework's unreleased conversation assembly,
-not just the published 0.2.1 package.
+This checkout requires Framework 0.3.x, Modict 0.5.x, Pynteract 1.2 or newer
+(within 1.x), and SDK 0.5.9 or newer. Local development uses the editable siblings
+above; wheel consumers resolve these minimum versions from PyPI. The Harness
+itself is distributed from this Git repository, not the unrelated `the-harness`
+project on PyPI.
 
 ## Find your way through the code
 
